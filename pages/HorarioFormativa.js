@@ -219,7 +219,7 @@ class HorarioFormativa {
 
         this.renderAmbientes('');
 
-        const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
         const cont = document.getElementById('dias-container');
         cont.innerHTML = dias.map((d, i) => {
             const val = i + 1;
@@ -327,7 +327,7 @@ class HorarioFormativa {
 
     renderGrid(ficha, grilla) {
         const card = document.getElementById('calendario-card');
-        const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const isEmpty = Object.keys(grilla).length === 0;
 
         let header = '<div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-4 pb-2 px-4">' +
             '<div>' +
@@ -339,62 +339,146 @@ class HorarioFormativa {
             '</button>' +
             '</div>';
 
-        let body = '<div class="card-body pt-0 px-4 pb-4">';
+        let body = '<div class="card-body pt-0 px-4 pb-4" style="height: 600px;">';
 
-        if (Object.keys(grilla).length === 0) {
-            body += '<div class="text-center py-5 text-muted">' +
+        if (isEmpty) {
+            body += '<div class="text-center py-5 text-muted h-100 d-flex flex-column justify-content-center">' +
                 '<i class="bi bi-calendar-x fs-1 d-block mb-3 opacity-25"></i>' +
                 '<p class="fw-medium">Sin clases asignadas</p>' +
                 '<p class="small">Usa "Agregar Clase" para comenzar.</p></div>';
+            body += '</div>';
+            card.innerHTML = header + body;
         } else {
-            body += '<div class="table-responsive rounded-3 border">' +
-                '<table class="table table-bordered mb-0 text-center align-middle" style="min-width:700px;">' +
-                '<thead class="table-light"><tr>' +
-                '<th class="py-3 fw-semibold" style="width:110px;color:var(--text-muted);font-size:0.8rem;">Franja</th>' +
-                dias.map(d => '<th class="py-3 fw-semibold" style="color:var(--text-muted);font-size:0.8rem;">' + d + '</th>').join('') +
-                '</tr></thead><tbody>';
+            body += '<div id="fullcalendar-container" class="h-100"></div></div>';
+            card.innerHTML = header + body;
+
+            // Map days to specific dates in a dummy week: 2024-01-01 (Monday) to 2024-01-07 (Sunday)
+            const dayMap = {
+                'Lunes': '2024-01-01',
+                'Martes': '2024-01-02',
+                'Miercoles': '2024-01-03',
+                'Jueves': '2024-01-04',
+                'Viernes': '2024-01-05',
+                'Sabado': '2024-01-06',
+                'Domingo': '2024-01-07'
+            };
+
+            const events = [];
+
+            // To prevent duplicate events for contiguous blocks, we group them by idAsignacion and day
+            const groupedEvents = {}; // { idAsignacion_dia: { ...eventData, startHour, endHour } }
 
             for (const [franja, diasMap] of Object.entries(grilla)) {
-                body += '<tr><td class="fw-medium text-muted bg-light" style="font-size:0.8rem;">' + franja + '</td>';
-                dias.forEach(dia => {
-                    const celda = diasMap[dia];
+                // franja is "06:00 - 08:00"
+                const [startStr, endStr] = franja.split(' - ');
+
+                for (const [dia, celda] of Object.entries(diasMap)) {
                     if (celda) {
-                        const isVirtual = celda.modalidad === 'virtual';
-                        const bg = isVirtual ? 'var(--bs-info-bg-subtle)' : 'var(--primary-light)';
-                        const color = isVirtual ? 'var(--bs-info)' : 'var(--primary)';
-                        const icon = isVirtual ? 'bi-laptop' : 'bi-building';
-                        body += '<td class="p-2 align-top horario-cell">' +
-                            '<div class="rounded-3 p-2 h-100 text-start" style="background:' + bg + ';border:1px solid ' + color + ';min-height:75px;font-size:0.78rem;">' +
-                            '<div class="fw-bold mb-1 d-flex justify-content-between align-items-center" style="color:' + color + ';">' +
-                            '<span class="text-truncate">' + celda.instructor + '</span>' +
-                            '<button class="btn btn-sm text-danger p-0 delete-btn d-none" data-id="' + celda.idAsignacion + '" style="line-height:1;">' +
-                            '<i class="bi bi-x-circle-fill"></i>' +
-                            '</button>' +
-                            '</div>' +
-                            '<div style="color:var(--text-muted);font-size:0.72rem;"><i class="bi ' + icon + ' me-1"></i>' + (celda.ambiente || 'Virtual') + '</div>' +
-                            '</div></td>';
-                    } else {
-                        body += '<td style="min-height:75px;"></td>';
+                        const key = `${celda.idAsignacion}_${dia}`;
+
+                        if (!groupedEvents[key]) {
+                            const isVirtual = celda.modalidad === 'virtual';
+                            const color = isVirtual ? '#0dcaf0' : '#7e57c2'; // Info or Purple
+                            const bgColor = isVirtual ? 'rgba(13, 202, 240, 0.1)' : 'rgba(126, 87, 194, 0.1)';
+
+                            groupedEvents[key] = {
+                                id: celda.idAsignacion,
+                                title: celda.instructor + (isVirtual ? ' (Virtual)' : `\n📍 ${celda.ambiente}`),
+                                dateStr: dayMap[dia],
+                                startHour: startStr,
+                                endHour: endStr,
+                                backgroundColor: bgColor,
+                                borderColor: color,
+                                textColor: color,
+                                extendedProps: {
+                                    instructor: celda.instructor,
+                                    ambiente: celda.ambiente,
+                                    modalidad: celda.modalidad
+                                }
+                            };
+                        } else {
+                            // Extend the end time if the block is contiguous
+                            // We assume the grid is processed in order of hours
+                            if (endStr > groupedEvents[key].endHour) {
+                                groupedEvents[key].endHour = endStr;
+                            }
+                        }
                     }
-                });
-                body += '</tr>';
+                }
             }
-            body += '</tbody></table></div>';
-        }
 
-        body += '</div>';
-        card.innerHTML = header + body;
+            for (const key in groupedEvents) {
+                const group = groupedEvents[key];
+                events.push({
+                    id: group.id,
+                    title: group.title,
+                    start: `${group.dateStr}T${group.startHour}:00`,
+                    end: `${group.dateStr}T${group.endHour}:00`,
+                    backgroundColor: group.backgroundColor,
+                    borderColor: group.borderColor,
+                    textColor: group.textColor,
+                    extendedProps: group.extendedProps
+                });
+            }
 
-        card.querySelectorAll('.horario-cell').forEach(td => {
-            td.addEventListener('mouseenter', () => td.querySelector('.delete-btn')?.classList.remove('d-none'));
-            td.addEventListener('mouseleave', () => td.querySelector('.delete-btn')?.classList.add('d-none'));
-        });
-        card.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', e => {
-                e.stopPropagation();
-                this.deleteAsignacion(btn.dataset.id);
+            const calendarEl = document.getElementById('fullcalendar-container');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                initialDate: '2024-01-01', // Lock to our dummy week
+                headerToolbar: false, // Hide header since week is static
+                allDaySlot: false,
+                slotMinTime: '06:00:00',
+                slotMaxTime: '24:00:00',
+                expandRows: true, // Fill vertical space
+                hiddenDays: [], // Show all 7 days
+                dayHeaders: true,
+                dayHeaderFormat: { weekday: 'long' },
+                locale: 'es',
+                events: events,
+                eventContent: function (arg) {
+                    const props = arg.event.extendedProps;
+                    const isVirtual = props.modalidad === 'virtual';
+                    const icon = isVirtual ? 'bi-laptop' : 'bi-building';
+
+                    return {
+                        html: `
+                            <div class="p-1 h-100 d-flex flex-column position-relative" style="overflow: hidden;">
+                                <div class="fw-bold mb-1 lh-sm" style="font-size: 0.8rem;">
+                                    ${props.instructor}
+                                </div>
+                                <div class="text-truncate" style="font-size: 0.75rem; opacity: 0.9;">
+                                    <i class="bi ${icon}"></i> ${props.ambiente || 'Virtual'}
+                                </div>
+                                <button class="btn btn-sm text-danger p-0 position-absolute top-0 end-0 delete-btn d-none" 
+                                        data-id="${arg.event.id}" 
+                                        style="line-height:1; transform: translate(25%, -25%); background: white; border-radius: 50%; box-shadow: 0 0 3px rgba(0,0,0,0.2);">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            </div>
+                        `
+                    };
+                },
+                eventMouseEnter: function (info) {
+                    const btn = info.el.querySelector('.delete-btn');
+                    if (btn) btn.classList.remove('d-none');
+                },
+                eventMouseLeave: function (info) {
+                    const btn = info.el.querySelector('.delete-btn');
+                    if (btn) btn.classList.add('d-none');
+                }
             });
-        });
+
+            calendar.render();
+
+            // Allow delete button to work inside FullCalendar logic
+            calendarEl.addEventListener('click', (e) => {
+                const btn = e.target.closest('.delete-btn');
+                if (btn) {
+                    e.stopPropagation();
+                    this.deleteAsignacion(btn.dataset.id);
+                }
+            });
+        }
     }
 
     async handleSubmit() {
@@ -415,7 +499,9 @@ class HorarioFormativa {
             hora_inicio: document.getElementById('hora_inicio').value + ':00',
             hora_fin: document.getElementById('hora_fin').value + ':00',
             modalidad,
+            tipoDeFormacion: 'Formativa',
             idFuncionario: parseInt(document.getElementById('idFuncionario').value),
+            idFicha: this.selectedFicha.idFicha, // Para excluir conflictos de ambiente con la misma ficha
             dias
         };
         if (modalidad === 'presencial') bloqueData.idAmbiente = idAmbiente;

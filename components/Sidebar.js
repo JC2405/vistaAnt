@@ -27,7 +27,6 @@ export function DashboardMenu(activePage) {
                 { id: 'programas', icon: 'book-half', text: 'Programas', path: 'programas.html' },
                 { id: 'tipos-programa', icon: 'journals', text: 'Tipo Programas', path: 'tipos-programas.html' },
                 { id: 'fichas', icon: 'folder2-open', text: 'Fichas', path: 'fichas.html' },
-                { id: 'ambientes', icon: 'door-open', text: 'Ambientes', path: 'ambientes.html' },
             ]
         },
         {
@@ -91,7 +90,7 @@ export function DashboardMenu(activePage) {
                         aria-controls="${group.id}">
                     <span class="d-flex align-items-center gap-2 fw-semibold">
                         <i class="bi bi-${group.icon} sidebar-group-icon"></i>
-                        ${group.label}
+                        <span class="sidebar-group-label">${group.label}</span>
                     </span>
                     <i class="bi bi-chevron-down sidebar-chevron ${isOpen ? 'rotated' : ''}"></i>
                 </button>
@@ -105,20 +104,25 @@ export function DashboardMenu(activePage) {
 
     return `
         <div class="sidebar-wrapper d-flex flex-column h-100 py-4 px-3">
-            <!-- Brand -->
-            <a href="${brandHref}" class="sidebar-brand d-flex align-items-center gap-2 mb-4 text-decoration-none px-1">
-                <div class="sidebar-brand-icon d-flex align-items-center justify-content-center rounded-3">
-                    <span class="fw-bold fs-5">H</span>
-                </div>
-                <span class="sidebar-brand-text fw-bold fs-5">horarios</span>
-            </a>
+            <!-- Brand + Toggle -->
+            <div class="sidebar-brand-row d-flex align-items-center justify-content-between mb-4 px-1">
+                <a href="${brandHref}" class="sidebar-brand d-flex align-items-center gap-2 text-decoration-none">
+                    <div class="sidebar-brand-icon d-flex align-items-center justify-content-center rounded-3 flex-shrink-0">
+                        <span class="fw-bold fs-5">H</span>
+                    </div>
+                    <span class="sidebar-brand-text fw-bold fs-5">horarios</span>
+                </a>
+                <button class="btn btn-sm sidebar-toggle-btn d-flex align-items-center justify-content-center" id="btn-toggle-sidebar" title="Ocultar/Mostrar menú">
+                    <i class="bi bi-layout-sidebar" id="toggle-sidebar-icon"></i>
+                </button>
+            </div>
 
             <hr class="sidebar-divider">
 
             <!-- Navigation -->
             <nav class="flex-grow-1 overflow-auto">
                 <ul class="list-unstyled d-flex flex-column gap-1">
-                    ${groupsHtml}
+                    ${menuHtml}
                 </ul>
             </nav>
 
@@ -126,18 +130,18 @@ export function DashboardMenu(activePage) {
 
             <!-- User + Logout -->
             <div class="sidebar-footer px-1">
-                <div class="d-flex align-items-center gap-2 mb-3">
-                    <div class="sidebar-avatar d-flex align-items-center justify-content-center rounded-circle flex-shrink-0">
+                <div class="d-flex align-items-center gap-2 mb-3 sidebar-user-row">
+                    <div class="sidebar-avatar d-flex align-items-center justify-content-center rounded-circle flex-shrink-0" title="Usuario">
                         <i class="bi bi-person-fill"></i>
                     </div>
-                    <div class="overflow-hidden">
+                    <div class="overflow-hidden sidebar-user-info">
                         <div class="sidebar-user-name fw-medium text-truncate" id="sidebar-user-name">Cargando...</div>
                         <div class="sidebar-user-role small text-uppercase">${role}</div>
                     </div>
                 </div>
-                <button class="sidebar-logout btn w-100 d-flex align-items-center justify-content-center gap-2" id="btn-logout">
+                <button class="sidebar-logout btn w-100 d-flex align-items-center justify-content-center gap-2" id="btn-logout" title="Cerrar Sesión">
                     <i class="bi bi-box-arrow-right"></i>
-                    <span>Cerrar Sesión</span>
+                    <span class="sidebar-logout-text">Cerrar Sesión</span>
                 </button>
             </div>
         </div>
@@ -182,4 +186,18 @@ export function initSidebarEvents() {
             btn.querySelector('.sidebar-chevron')?.classList.remove('rotated');
         });
     });
+
+    // ── Sidebar toggle (desktop) ──────────────────
+    const btnToggle = document.getElementById('btn-toggle-sidebar');
+    if (btnToggle) {
+        // Restore persisted state
+        if (localStorage.getItem('sidebar_collapsed') === 'true') {
+            document.body.classList.add('sidebar-collapsed');
+        }
+
+        btnToggle.addEventListener('click', () => {
+            const isNowCollapsed = document.body.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('sidebar_collapsed', isNowCollapsed);
+        });
+    }
 }

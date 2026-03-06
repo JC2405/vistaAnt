@@ -18,6 +18,9 @@ class HorarioTitulada {
         this.instructores = [];
         this.sedes = [];
         this.selectedFicha = null;
+        this.selectedSede = null;
+        this.selectedPrograma = null;
+        this.viewState = 'sedes'; // 'sedes' | 'programas' | 'fichas' | 'horario'
 
         this.init();
     }
@@ -40,46 +43,23 @@ class HorarioTitulada {
             '<main class="container-fluid p-4 flex-grow-1" style="background: var(--bg-page);">' +
             '<div id="page-alert-container"></div>' +
 
-            // Header
+            // Header and Breadcrumb
             '<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-4 gap-3">' +
-            '<div class="d-flex align-items-center gap-3">' +
+            '<div class="d-flex align-items-center gap-3 w-100">' +
             '<div class="page-icon"><i class="bi bi-calendar-week"></i></div>' +
-            '<div>' +
-            '<h4 class="fw-bold mb-0" style="color:var(--text-dark)">Horario Titulada</h4>' +
-            '<small style="color:var(--text-muted)">Gestión de horarios semanales por ficha</small>' +
-            '</div>' +
-            '</div>' +
-            '<div class="input-group" style="max-width:320px;">' +
-            '<span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>' +
-            '<input type="text" class="form-control" id="search-ficha" placeholder="Buscar ficha...">' +
-            '</div>' +
-            '</div>' +
-
-            // Two-column content
-            '<div class="row g-4">' +
-
-            // Left: Fichas list
-            '<div class="col-md-3">' +
-            '<div class="card border-0 shadow-sm rounded-4" style="min-height:70vh;">' +
-            '<div class="card-header bg-white border-bottom py-3 px-4 rounded-top-4">' +
-            '<h6 class="mb-0 fw-bold" style="color:var(--text-dark)"><i class="bi bi-list-ul me-2 text-primary"></i>Fichas Activas</h6>' +
-            '</div>' +
-            '<div class="list-group list-group-flush" id="fichas-list" style="max-height:65vh;overflow-y:auto;border-radius:0 0 1rem 1rem;">' +
+            '<div class="flex-grow-1">' +
+            '<h4 class="fw-bold mb-1" style="color:var(--text-dark)">Horario Titulada</h4>' +
+            '<nav aria-label="breadcrumb">' +
+            '<ol class="breadcrumb mb-0" id="nav-breadcrumb">' +
+            '<li class="breadcrumb-item active" aria-current="page">Sedes</li>' +
+            '</ol>' +
+            '</nav>' +
             '</div>' +
             '</div>' +
             '</div>' +
 
-            // Right: Schedule grid
-            '<div class="col-md-9">' +
-            '<div class="card border-0 shadow-sm rounded-4" id="calendario-card" style="min-height:70vh;">' +
-            '<div class="card-body p-5 text-center d-flex flex-column align-items-center justify-content-center text-muted">' +
-            '<i class="bi bi-calendar-event fs-1 mb-3 opacity-25"></i>' +
-            '<h5 class="fw-semibold">Selecciona una ficha</h5>' +
-            '<p class="small mb-0">Elige una ficha de la lista para ver y gestionar su horario semanal.</p>' +
-            '</div>' +
-            '</div>' +
-            '</div>' +
-
+            // Dynamic Main Content Container
+            '<div id="main-content" class="fade-in">' +
             '</div>' +
 
             // Offcanvas
@@ -99,8 +79,7 @@ class HorarioTitulada {
             '<h6 class="mb-0 fw-bold text-primary" id="lbl-ficha-context">...</h6>' +
             '</div>' +
 
-            // Date range
-            '<p class="fw-semibold text-dark mb-2"><i class="bi bi-calendar-range me-2 text-muted"></i>Rango de Fechas</p>' +
+            '<p class="fw-semibold text-dark mb-2"><i class="bi bi-calendar-range me-2 text-muted"></i>1. Rango de Fechas</p>' +
             '<div class="row g-3 mb-4">' +
             '<div class="col-6">' +
             '<label class="form-label small text-muted">Fecha Inicio</label>' +
@@ -112,14 +91,8 @@ class HorarioTitulada {
             '</div>' +
             '</div>' +
 
-            // Class details
-            '<p class="fw-semibold text-dark mb-2"><i class="bi bi-briefcase me-2 text-muted"></i>Detalles de la Clase</p>' +
-            '<div class="mb-3">' +
-            '<label class="form-label small text-muted">Instructor</label>' +
-            '<select class="form-select" id="idFuncionario" required>' +
-            '<option value="">Seleccionar instructor...</option>' +
-            '</select>' +
-            '</div>' +
+            // Class details (Modalidad, Ambiente, Instructor)
+            '<p class="fw-semibold text-dark mb-2"><i class="bi bi-briefcase me-2 text-muted"></i>2. Detalles de la Clase</p>' +
             '<div class="mb-3">' +
             '<label class="form-label small text-muted">Modalidad</label>' +
             '<select class="form-select" id="modalidad_clase" required>' +
@@ -127,19 +100,23 @@ class HorarioTitulada {
             '<option value="virtual">Virtual</option>' +
             '</select>' +
             '</div>' +
-            '<div class="mb-4" id="container-ambiente">' +
-            '<label class="form-label small text-muted">Filtrar por Sede</label>' +
-            '<select class="form-select form-select-sm mb-2" id="idSedeFiltro">' +
-            '<option value="">Todas las sedes...</option>' +
-            '</select>' +
-            '<label class="form-label small text-muted">Ambiente</label>' +
+
+            '<div class="mb-3" id="container-ambiente">' +
+            '<label class="form-label small text-muted">Ambiente (Sede Activa)</label>' +
             '<select class="form-select" id="idAmbiente" required>' +
             '<option value="">Seleccionar ambiente...</option>' +
             '</select>' +
             '</div>' +
 
+            '<div class="mb-4">' +
+            '<label class="form-label small text-muted">Instructor</label>' +
+            '<select class="form-select" id="idFuncionario" required>' +
+            '<option value="">Seleccionar instructor...</option>' +
+            '</select>' +
+            '</div>' +
+
             // Time range
-            '<p class="fw-semibold text-dark mb-2"><i class="bi bi-clock-history me-2 text-muted"></i>Franja Horaria</p>' +
+            '<p class="fw-semibold text-dark mb-2"><i class="bi bi-clock-history me-2 text-muted"></i>3. Franja Horaria</p>' +
             '<div class="row g-3 mb-3">' +
             '<div class="col-6">' +
             '<label class="form-label small text-muted">Hora Inicio</label>' +
@@ -153,7 +130,7 @@ class HorarioTitulada {
 
             // Days
             '<div class="mb-4">' +
-            '<label class="form-label small text-muted d-block mb-2">Días de la semana</label>' +
+            '<label class="form-label small text-muted d-block mb-2">4. Días de la semana</label>' +
             '<div class="d-flex flex-wrap gap-2" id="dias-container"></div>' +
             '</div>' +
 
@@ -201,7 +178,10 @@ class HorarioTitulada {
             );
             if (this.instructores.length === 0) this.instructores = allFuncs;
 
-            this.renderFichasList(this.fichas);
+            if (this.instructores.length === 0) this.instructores = allFuncs;
+
+            this.renderBreadcrumb();
+            this.renderContent();
             this.populateSelects();
 
         } catch (err) {
@@ -210,21 +190,13 @@ class HorarioTitulada {
     }
 
     populateSelects() {
-        // Instructores
-        const selInst = document.getElementById('idFuncionario');
-        selInst.innerHTML = '<option value="">Seleccionar instructor...</option>' +
-            this.instructores.map(i => '<option value="' + i.idFuncionario + '">' + (i.nombre || 'Sin nombre') + '</option>').join('');
-
-        // Sedes
-        const selSede = document.getElementById('idSedeFiltro');
-        selSede.innerHTML = '<option value="">Todas las sedes...</option>' +
-            this.sedes.map(s => '<option value="' + s.idSede + '">' + s.nombre + '</option>').join('');
+        this.renderInstructores();
 
         // Ambientes inicial
-        this.renderAmbientes('');
+        this.renderAmbientes();
 
         // Días
-        const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
         const cont = document.getElementById('dias-container');
         cont.innerHTML = dias.map((d, i) => {
             const val = i + 1;
@@ -234,37 +206,85 @@ class HorarioTitulada {
         }).join('');
     }
 
-    renderAmbientes(idSede) {
+    renderInstructores(idAreaPreferida = null) {
+        let sortedInstructores = [...this.instructores];
+
+        if (idAreaPreferida) {
+            sortedInstructores.sort((a, b) => {
+                const aHasArea = a.areas && a.areas.some(area => String(area.idArea) === String(idAreaPreferida));
+                const bHasArea = b.areas && b.areas.some(area => String(area.idArea) === String(idAreaPreferida));
+
+                if (aHasArea && !bHasArea) return -1;
+                if (!aHasArea && bHasArea) return 1;
+                return 0; // maintain original alphabetical or ID order
+            });
+        }
+
+        const selInst = document.getElementById('idFuncionario');
+        if (!selInst) return;
+
+        selInst.innerHTML = '<option value="">Seleccionar instructor...</option>' +
+            sortedInstructores.map(i => {
+                const nombre = i.nombre || 'Sin nombre';
+                const areas = i.areas && i.areas.length > 0 ? i.areas.map(a => a.nombreArea).join(', ') : 'Sin área';
+
+                // Si preferimos un área y este instructor la tiene, mostramos un pequeño highlight (e.g. estrella o texto)
+                const isMatch = idAreaPreferida && i.areas && i.areas.some(a => String(a.idArea) === String(idAreaPreferida));
+                const prefix = isMatch ? '★ ' : '';
+
+                return '<option value="' + i.idFuncionario + '">' + prefix + nombre + ' (' + areas + ')</option>';
+            }).join('');
+    }
+
+    renderAmbientes() {
         const sel = document.getElementById('idAmbiente');
-        const filtered = idSede ? this.ambientes.filter(a => String(a.idSede) === String(idSede)) : this.ambientes;
+        if (!sel || !this.selectedSede) return;
+
+        // Automatically filter block environments by currently selected campus (Sede)
+        const filtered = this.ambientes.filter(a => String(a.idSede) === String(this.selectedSede.idSede));
+
         sel.innerHTML = '<option value="">Seleccionar ambiente...</option>' +
-            filtered.map(a => '<option value="' + a.idAmbiente + '">Blq ' + a.bloque + ' - Amb ' + a.numero + ' (' + a.tipoAmbiente + ')</option>').join('');
+            filtered.map(a => {
+                const areaNombre = a.area ? a.area.nombreArea : 'Sin área';
+                return '<option value="' + a.idAmbiente + '">Blq ' + a.bloque + ' - Amb ' + a.numero + ' (' + areaNombre + ')</option>';
+            }).join('');
     }
 
     setupEventListeners() {
-        // Search
-        document.getElementById('search-ficha')?.addEventListener('input', e => {
-            const q = e.target.value.toLowerCase();
-            const filtered = this.fichas.filter(f =>
-                String(f.codigoFicha).toLowerCase().includes(q) ||
-                (f.programa && f.programa.nombre.toLowerCase().includes(q))
-            );
-            this.renderFichasList(filtered);
-        });
-
-        // Sede filter in offcanvas
-        document.getElementById('idSedeFiltro')?.addEventListener('change', e => {
-            this.renderAmbientes(e.target.value);
-        });
+        // Search - We can delegate search to specific views if needed, 
+        // but for now, the UI relies on clicking through the hierarchy.
+        // We will bind search later if required for the specific view.
 
         // Modalidad → toggle ambiente
         document.getElementById('modalidad_clase')?.addEventListener('change', e => {
             const isVirtual = e.target.value === 'virtual';
             const cont = document.getElementById('container-ambiente');
-            const sel = document.getElementById('idAmbiente');
+            const selAmb = document.getElementById('idAmbiente');
+
             cont.style.opacity = isVirtual ? '0.4' : '1';
             cont.style.pointerEvents = isVirtual ? 'none' : '';
-            sel.required = !isVirtual;
+            selAmb.required = !isVirtual;
+
+            if (isVirtual) {
+                selAmb.value = "";
+                this.renderInstructores(); // Reset sorting
+            }
+        });
+
+        // Ambiente -> reordenar instructores por área
+        document.getElementById('idAmbiente')?.addEventListener('change', e => {
+            const selectedAmbId = e.target.value;
+            if (!selectedAmbId) {
+                this.renderInstructores();
+                return;
+            }
+
+            const ambObj = this.ambientes.find(a => String(a.idAmbiente) === String(selectedAmbId));
+            if (ambObj && ambObj.idArea) {
+                this.renderInstructores(ambObj.idArea);
+            } else {
+                this.renderInstructores();
+            }
         });
 
         // Form submit
@@ -274,34 +294,360 @@ class HorarioTitulada {
         });
     }
 
-    renderFichasList(fichasArr) {
-        const cont = document.getElementById('fichas-list');
-        if (!fichasArr.length) {
-            cont.innerHTML = '<div class="p-4 text-center text-muted small">No se encontraron fichas activas</div>';
+    renderBreadcrumb() {
+        const bc = document.getElementById('nav-breadcrumb');
+        if (!bc) return;
+
+        let html = '';
+
+        // Sedes
+        if (this.viewState === 'sedes') {
+            html += '<li class="breadcrumb-item active" aria-current="page">Sedes</li>';
+        } else {
+            html += '<li class="breadcrumb-item"><a href="#" id="bc-sedes" class="text-decoration-none">Sedes</a></li>';
+        }
+
+        // Programas
+        if (['programas', 'fichas', 'horario'].includes(this.viewState) && this.selectedSede) {
+            if (this.viewState === 'programas') {
+                html += '<li class="breadcrumb-item active" aria-current="page">' + this.selectedSede.nombre + '</li>';
+            } else {
+                html += '<li class="breadcrumb-item"><a href="#" id="bc-programas" class="text-decoration-none">' + this.selectedSede.nombre + '</a></li>';
+            }
+        }
+
+        // Fichas
+        if (['fichas', 'horario'].includes(this.viewState) && this.selectedPrograma) {
+            if (this.viewState === 'fichas') {
+                html += '<li class="breadcrumb-item active" aria-current="page">' + this.selectedPrograma.nombre + '</li>';
+            } else {
+                html += '<li class="breadcrumb-item"><a href="#" id="bc-fichas" class="text-decoration-none">' + this.selectedPrograma.nombre + '</a></li>';
+            }
+        }
+
+        // Horario
+        if (this.viewState === 'horario' && this.selectedFicha) {
+            html += '<li class="breadcrumb-item active" aria-current="page">Ficha ' + this.selectedFicha.codigoFicha + '</li>';
+        }
+
+        bc.innerHTML = html;
+
+        // Attach events
+        document.getElementById('bc-sedes')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.setViewState('sedes');
+        });
+        document.getElementById('bc-programas')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.setViewState('programas');
+        });
+        document.getElementById('bc-fichas')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.setViewState('fichas');
+        });
+    }
+
+    setViewState(state) {
+        this.viewState = state;
+        if (state === 'sedes') {
+            this.selectedSede = null;
+            this.selectedPrograma = null;
+            this.selectedFicha = null;
+        } else if (state === 'programas') {
+            this.selectedPrograma = null;
+            this.selectedFicha = null;
+        } else if (state === 'fichas') {
+            this.selectedFicha = null;
+        }
+        this.renderBreadcrumb();
+        this.renderContent();
+    }
+
+    renderContent() {
+        const container = document.getElementById('main-content');
+        container.innerHTML = '';
+
+        switch (this.viewState) {
+            case 'sedes':
+                this.renderSedesView(container);
+                break;
+            case 'programas':
+                this.renderProgramasView(container);
+                break;
+            case 'fichas':
+                this.renderFichasView(container);
+                break;
+            case 'horario':
+                this.renderHorarioView(container);
+                break;
+        }
+    }
+
+    renderSedesView(container) {
+        if (!this.sedes.length) {
+            container.innerHTML = '<div class="alert alert-info">No hay sedes disponibles.</div>';
             return;
         }
-        cont.innerHTML = fichasArr.map(f => {
-            const prog = f.programa ? f.programa.nombre : 'Sin programa';
-            return '<button type="button" class="list-group-item list-group-item-action px-4 py-3 ficha-btn border-0 border-start border-3 border-transparent" data-id="' + f.idFicha + '">' +
-                '<div class="d-flex justify-content-between align-items-center mb-1">' +
-                '<span class="badge rounded-pill" style="background:var(--primary-light);color:var(--primary);font-size:0.7rem;">' + f.codigoFicha + '</span>' +
-                '<i class="bi bi-chevron-right text-muted" style="font-size:0.75rem;"></i>' +
-                '</div>' +
-                '<div class="text-truncate small fw-medium" style="color:var(--text-dark);" title="' + prog + '">' + prog + '</div>' +
-                '<div class="d-flex gap-3 mt-1" style="font-size:0.72rem;color:var(--text-muted);">' +
-                '<span><i class="bi bi-clock me-1"></i>' + (f.jornada || '-') + '</span>' +
-                '<span><i class="bi bi-laptop me-1"></i>' + (f.modalidad || '-') + '</span>' +
-                '</div>' +
-                '</button>';
-        }).join('');
 
-        cont.querySelectorAll('.ficha-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                cont.querySelectorAll('.ficha-btn').forEach(b => b.classList.remove('active', 'text-primary'));
-                btn.classList.add('active');
-                this.selectFicha(btn.dataset.id);
-            });
+        let html = '<div class="row g-4">';
+
+        this.sedes.forEach(sede => {
+            // Count unique programs in this sede based on fichas
+            const myFichas = this.fichas.filter(f => f.ambiente && String(f.ambiente.idSede) === String(sede.idSede));
+            const distinctPrograms = new Set(myFichas.filter(f => f.idPrograma).map(f => f.idPrograma));
+
+            html += `
+                <div class="col-md-4 col-sm-6">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 hover-lift" style="cursor: pointer; transition: transform 0.2s;" data-id="${sede.idSede}">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                    <i class="bi bi-building fs-4"></i>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-0" style="color:var(--text-dark)">${sede.nombre}</h5>
+                                    <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>${sede.direccion || 'Sin dirección'}</small>
+                                </div>
+                            </div>
+                            <div class="mt-3 pt-3 border-top">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="badge bg-light text-dark border"><i class="bi bi-journal-bookmark me-1"></i>${distinctPrograms.size} programas</span>
+                                    <i class="bi bi-arrow-right text-primary"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
         });
+
+        html += '</div>';
+        container.innerHTML = html;
+
+        container.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('click', () => {
+                const idSede = card.dataset.id;
+                this.selectedSede = this.sedes.find(s => String(s.idSede) === idSede);
+                this.setViewState('programas');
+            });
+            card.addEventListener('mouseenter', () => card.style.transform = 'translateY(-5px)');
+            card.addEventListener('mouseleave', () => card.style.transform = 'translateY(0)');
+        });
+    }
+
+    renderProgramasView(container) {
+        const myFichas = this.fichas.filter(f => f.ambiente && String(f.ambiente.idSede) === String(this.selectedSede.idSede) && f.programa);
+
+        // Group by idPrograma
+        const propsById = {};
+        myFichas.forEach(f => {
+            if (!propsById[f.idPrograma]) {
+                propsById[f.idPrograma] = {
+                    programa: f.programa,
+                    fichasCount: 0
+                };
+            }
+            propsById[f.idPrograma].fichasCount++;
+        });
+
+        const distinctPrograms = Object.values(propsById);
+
+        if (!distinctPrograms.length) {
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="bi bi-journal-x fs-1 text-muted mb-3 d-block opacity-50"></i>
+                    <h5 class="fw-bold">Sin Programas</h5>
+                    <p class="text-muted">No se encontraron programas de formación activos con fichas asignadas a esta sede.</p>
+                    <button class="btn btn-outline-primary mt-2" id="btn-back">Volver a Sedes</button>
+                </div>
+            `;
+            document.getElementById('btn-back')?.addEventListener('click', () => this.setViewState('sedes'));
+            return;
+        }
+
+        let html = `
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <button class="btn btn-light rounded-pill border shadow-sm" id="btn-back-sedes">
+                    <i class="bi bi-arrow-left me-2"></i>Volver
+                </button>
+                <div class="input-group" style="max-width:320px;">
+                    <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" class="form-control" id="search-programa" placeholder="Buscar programa...">
+                </div>
+            </div>
+            <div class="row g-4" id="programas-grid">
+        `;
+
+        const renderProgCards = (programs) => {
+            let ch = '';
+            programs.forEach(({ programa, fichasCount }) => {
+                const tipo = programa.tipoFormacion ? programa.tipoFormacion.nombre : 'Titulada';
+                let colorClass = 'primary';
+                if (tipo.toLowerCase().includes('tecnólogo')) colorClass = 'success';
+                else if (tipo.toLowerCase().includes('técnico')) colorClass = 'info';
+
+                ch += `
+                    <div class="col-md-6 col-lg-4 prog-card">
+                        <div class="card h-100 border-0 shadow-sm rounded-4 hover-lift" style="cursor: pointer; transition: transform 0.2s;" data-id="${programa.idPrograma}">
+                            <div class="card-body p-4">
+                                <div class="mb-2">
+                                    <span class="badge bg-${colorClass} bg-opacity-10 text-${colorClass} rounded-pill px-3 py-2 fw-semibold">${tipo}</span>
+                                </div>
+                                <h6 class="fw-bold mb-1 mt-3" style="color:var(--text-dark); line-height: 1.4">${programa.nombre}</h6>
+                                <p class="small text-muted mb-3">Código: ${programa.codigo || 'N/A'}</p>
+                                
+                                <div class="mt-auto pt-3 border-top">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center text-muted small">
+                                            <i class="bi bi-people-fill me-2 text-primary opacity-75"></i>
+                                            <span class="fw-medium">${fichasCount} ficha(s) activa(s)</span>
+                                        </div>
+                                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                            <i class="bi bi-chevron-right text-muted" style="font-size: 0.8rem;"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            return ch;
+        };
+
+        html += renderProgCards(distinctPrograms);
+        html += '</div>';
+        container.innerHTML = html;
+
+        document.getElementById('btn-back-sedes')?.addEventListener('click', () => this.setViewState('sedes'));
+
+        const attachCardEvents = () => {
+            container.querySelectorAll('.card.hover-lift').forEach(card => {
+                card.addEventListener('click', () => {
+                    const idProg = card.dataset.id;
+                    const p = distinctPrograms.find(dp => String(dp.programa.idPrograma) === idProg);
+                    if (p) {
+                        this.selectedPrograma = p.programa;
+                        this.setViewState('fichas');
+                    }
+                });
+                card.addEventListener('mouseenter', () => card.style.transform = 'translateY(-5px)');
+                card.addEventListener('mouseleave', () => card.style.transform = 'translateY(0)');
+            });
+        };
+        attachCardEvents();
+
+        document.getElementById('search-programa')?.addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase();
+            const filtered = distinctPrograms.filter(dp =>
+                dp.programa.nombre.toLowerCase().includes(q) ||
+                (dp.programa.codigo && dp.programa.codigo.toLowerCase().includes(q))
+            );
+            document.getElementById('programas-grid').innerHTML = renderProgCards(filtered);
+            attachCardEvents();
+        });
+    }
+
+    renderFichasView(container) {
+        const myFichas = this.fichas.filter(f =>
+            f.ambiente &&
+            String(f.ambiente.idSede) === String(this.selectedSede.idSede) &&
+            String(f.idPrograma) === String(this.selectedPrograma.idPrograma)
+        );
+
+        if (!myFichas.length) {
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="bi bi-people x fs-1 text-muted mb-3 d-block opacity-50"></i>
+                    <h5 class="fw-bold">Sin Fichas</h5>
+                    <p class="text-muted">No se encontraron fichas activas para este programa en esta sede.</p>
+                    <button class="btn btn-outline-primary mt-2" id="btn-back-prog">Volver a Programas</button>
+                </div>
+            `;
+            document.getElementById('btn-back-prog')?.addEventListener('click', () => this.setViewState('programas'));
+            return;
+        }
+
+        let html = `
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-light rounded-pill border shadow-sm" id="btn-back-prog">
+                        <i class="bi bi-arrow-left me-2"></i>Volver
+                    </button>
+                    <div>
+                        <h5 class="mb-0 fw-bold" style="color:var(--text-dark);">${this.selectedPrograma.nombre}</h5>
+                        <small class="text-muted">Selecciona una ficha para ver su horario</small>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-4">
+        `;
+
+        myFichas.forEach(f => {
+            let mtIcon = f.modalidad === 'virtual' ? 'bi-laptop' : 'bi-person-workspace';
+            let colorMod = f.modalidad === 'virtual' ? 'info' : 'primary';
+
+            html += `
+                <div class="col-md-4 col-sm-6">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 hover-lift" style="cursor: pointer; transition: transform 0.2s; background: linear-gradient(145deg, #ffffff, #fdfdfd);" data-id="${f.idFicha}">
+                        <div class="card-body p-4 position-relative overflow-hidden">
+                            <!-- Background Decoration -->
+                            <i class="bi bi-grid-3x3-gap-fill position-absolute text-light" style="font-size: 8rem; right: -2rem; bottom: -2rem; opacity: 0.5;"></i>
+                            
+                            <div class="position-relative z-1">
+                                <span class="badge bg-${colorMod} bg-opacity-10 text-${colorMod} px-3 py-2 rounded-pill fw-semibold mb-3">
+                                    <i class="bi ${mtIcon} me-1"></i>${f.modalidad === 'virtual' ? 'Virtual' : 'Presencial'}
+                                </span>
+                                
+                                <h3 class="fw-bold mb-1 text-dark">Ficha ${f.codigoFicha}</h3>
+                                
+                                <div class="d-flex gap-3 mt-4 text-muted small">
+                                    <div><i class="bi bi-clock me-1"></i>${f.jornada || 'Sin jornada'}</div>
+                                    <div><i class="bi bi-check-circle me-1 text-success"></i>Activa</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+
+        document.getElementById('btn-back-prog')?.addEventListener('click', () => this.setViewState('programas'));
+
+        container.querySelectorAll('.card.hover-lift').forEach(card => {
+            card.addEventListener('click', () => {
+                this.selectedFicha = myFichas.find(f => String(f.idFicha) === card.dataset.id);
+                this.setViewState('horario');
+                this.selectFicha(this.selectedFicha.idFicha);
+            });
+            card.addEventListener('mouseenter', () => card.style.transform = 'translateY(-5px)');
+            card.addEventListener('mouseleave', () => card.style.transform = 'translateY(0)');
+        });
+    }
+
+    renderHorarioView(container) {
+        container.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <button class="btn btn-light rounded-pill border shadow-sm" id="btn-back-fichas">
+                    <i class="bi bi-arrow-left me-2"></i>Volver a Fichas
+                </button>
+            </div>
+            <div class="card border-0 shadow-sm rounded-4" id="calendario-card" style="min-height:70vh;">
+                <div class="card-body p-5 text-center d-flex flex-column align-items-center justify-content-center text-muted">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <p class="small mb-0">Cargando horario...</p>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('btn-back-fichas')?.addEventListener('click', () => this.setViewState('fichas'));
+    }
+
+    renderFichasList(fichasArr) {
+        // Obsolete in new layout paradigm, left intentionally empty to avoid errors
     }
 
     async selectFicha(idFicha) {
@@ -321,11 +667,13 @@ class HorarioTitulada {
         if (this.selectedFicha.fechaInicio) document.getElementById('fecha_inicio').value = this.selectedFicha.fechaInicio;
         if (this.selectedFicha.fechaFin) document.getElementById('fecha_fin').value = this.selectedFicha.fechaFin;
 
-        // Sede prefill from ficha's ambiente
-        if (this.selectedFicha.ambiente && this.selectedFicha.ambiente.idSede) {
-            document.getElementById('idSedeFiltro').value = this.selectedFicha.ambiente.idSede;
-            this.renderAmbientes(this.selectedFicha.ambiente.idSede);
-        }
+        // Render environments for the currently selected campus
+        this.renderAmbientes();
+
+        // Ambiente already prefilled logic removed (or we can select an ambiente and trigger area re-sort)
+        const selAmb = document.getElementById('idAmbiente');
+        if (selAmb) selAmb.value = '';
+        this.renderInstructores(); // Reset instructors on open
 
         try {
             const data = await apiCall('/horariosPorFicha/' + idFicha);
@@ -339,7 +687,6 @@ class HorarioTitulada {
 
     renderGrid(ficha, grilla) {
         const card = document.getElementById('calendario-card');
-        const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
         const isEmpty = Object.keys(grilla).length === 0;
 
         let header = '<div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-4 pb-2 px-4">' +
@@ -352,63 +699,146 @@ class HorarioTitulada {
             '</button>' +
             '</div>';
 
-        let body = '<div class="card-body pt-0 px-4 pb-4">';
+        let body = '<div class="card-body pt-0 px-4 pb-4" style="height: 600px;">';
 
         if (isEmpty) {
-            body += '<div class="text-center py-5 text-muted">' +
+            body += '<div class="text-center py-5 text-muted h-100 d-flex flex-column justify-content-center">' +
                 '<i class="bi bi-calendar-x fs-1 d-block mb-3 opacity-25"></i>' +
                 '<p class="fw-medium">Sin clases asignadas</p>' +
                 '<p class="small">Usa "Agregar Clase" para comenzar.</p></div>';
+            body += '</div>';
+            card.innerHTML = header + body;
         } else {
-            body += '<div class="table-responsive rounded-3 border" style="overflow-x:auto;">' +
-                '<table class="table table-bordered mb-0 text-center align-middle" style="min-width:700px;">' +
-                '<thead class="table-light"><tr>' +
-                '<th class="py-3 fw-semibold" style="width:110px;color:var(--text-muted);font-size:0.8rem;">Franja</th>' +
-                dias.map(d => '<th class="py-3 fw-semibold" style="color:var(--text-muted);font-size:0.8rem;">' + d + '</th>').join('') +
-                '</tr></thead><tbody>';
+            body += '<div id="fullcalendar-container" class="h-100"></div></div>';
+            card.innerHTML = header + body;
+
+            // Map days to specific dates in a dummy week: 2024-01-01 (Monday) to 2024-01-07 (Sunday)
+            const dayMap = {
+                'Lunes': '2024-01-01',
+                'Martes': '2024-01-02',
+                'Miercoles': '2024-01-03',
+                'Jueves': '2024-01-04',
+                'Viernes': '2024-01-05',
+                'Sabado': '2024-01-06',
+                'Domingo': '2024-01-07'
+            };
+
+            const events = [];
+
+            // To prevent duplicate events for contiguous blocks, we group them by idAsignacion and day
+            const groupedEvents = {}; // { idAsignacion_dia: { ...eventData, startHour, endHour } }
 
             for (const [franja, diasMap] of Object.entries(grilla)) {
-                body += '<tr><td class="fw-medium text-muted bg-light" style="font-size:0.8rem;">' + franja + '</td>';
-                dias.forEach(dia => {
-                    const celda = diasMap[dia];
+                // franja is "06:00 - 08:00"
+                const [startStr, endStr] = franja.split(' - ');
+
+                for (const [dia, celda] of Object.entries(diasMap)) {
                     if (celda) {
-                        const isVirtual = celda.modalidad === 'virtual';
-                        const bg = isVirtual ? 'var(--bs-info-bg-subtle)' : 'var(--primary-light)';
-                        const color = isVirtual ? 'var(--bs-info)' : 'var(--primary)';
-                        const icon = isVirtual ? 'bi-laptop' : 'bi-building';
-                        body += '<td class="p-2 align-top horario-cell" style="cursor:pointer;" data-id="' + celda.idAsignacion + '">' +
-                            '<div class="rounded-3 p-2 h-100 text-start" style="background:' + bg + ';border:1px solid ' + color + ';min-height:75px;font-size:0.78rem;">' +
-                            '<div class="fw-bold mb-1 d-flex justify-content-between align-items-center" style="color:' + color + ';">' +
-                            '<span class="text-truncate">' + celda.instructor + '</span>' +
-                            '<button class="btn btn-sm text-danger p-0 delete-btn d-none" title="Eliminar" data-id="' + celda.idAsignacion + '" style="line-height:1;">' +
-                            '<i class="bi bi-x-circle-fill"></i>' +
-                            '</button>' +
-                            '</div>' +
-                            '<div style="color:var(--text-muted);font-size:0.72rem;"><i class="bi ' + icon + ' me-1"></i>' + (celda.ambiente || 'Virtual') + '</div>' +
-                            '</div></td>';
-                    } else {
-                        body += '<td style="min-height:75px;"></td>';
+                        const key = `${celda.idAsignacion}_${dia}`;
+
+                        if (!groupedEvents[key]) {
+                            const isVirtual = celda.modalidad === 'virtual';
+                            const color = isVirtual ? '#0dcaf0' : '#7e57c2'; // Info or Purple
+                            const bgColor = isVirtual ? 'rgba(13, 202, 240, 0.1)' : 'rgba(126, 87, 194, 0.1)';
+
+                            groupedEvents[key] = {
+                                id: celda.idAsignacion,
+                                title: celda.instructor + (isVirtual ? ' (Virtual)' : `\n📍 ${celda.ambiente}`),
+                                dateStr: dayMap[dia],
+                                startHour: startStr,
+                                endHour: endStr,
+                                backgroundColor: bgColor,
+                                borderColor: color,
+                                textColor: color,
+                                extendedProps: {
+                                    instructor: celda.instructor,
+                                    ambiente: celda.ambiente,
+                                    modalidad: celda.modalidad
+                                }
+                            };
+                        } else {
+                            // Extend the end time if the block is contiguous
+                            // We assume the grid is processed in order of hours
+                            if (endStr > groupedEvents[key].endHour) {
+                                groupedEvents[key].endHour = endStr;
+                            }
+                        }
                     }
-                });
-                body += '</tr>';
+                }
             }
-            body += '</tbody></table></div>';
-        }
 
-        body += '</div>';
-        card.innerHTML = header + body;
+            for (const key in groupedEvents) {
+                const group = groupedEvents[key];
+                events.push({
+                    id: group.id,
+                    title: group.title,
+                    start: `${group.dateStr}T${group.startHour}:00`,
+                    end: `${group.dateStr}T${group.endHour}:00`,
+                    backgroundColor: group.backgroundColor,
+                    borderColor: group.borderColor,
+                    textColor: group.textColor,
+                    extendedProps: group.extendedProps
+                });
+            }
 
-        // Hover to show delete button
-        card.querySelectorAll('.horario-cell').forEach(td => {
-            td.addEventListener('mouseenter', () => td.querySelector('.delete-btn')?.classList.remove('d-none'));
-            td.addEventListener('mouseleave', () => td.querySelector('.delete-btn')?.classList.add('d-none'));
-        });
-        card.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', e => {
-                e.stopPropagation();
-                this.deleteAsignacion(btn.dataset.id);
+            const calendarEl = document.getElementById('fullcalendar-container');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                initialDate: '2024-01-01', // Lock to our dummy week
+                headerToolbar: false, // Hide header since week is static
+                allDaySlot: false,
+                slotMinTime: '06:00:00',
+                slotMaxTime: '24:00:00',
+                expandRows: true, // Fill vertical space
+                hiddenDays: [], // Show all 7 days
+                dayHeaders: true,
+                dayHeaderFormat: { weekday: 'long' },
+                locale: 'es',
+                events: events,
+                eventContent: function (arg) {
+                    const props = arg.event.extendedProps;
+                    const isVirtual = props.modalidad === 'virtual';
+                    const icon = isVirtual ? 'bi-laptop' : 'bi-building';
+
+                    return {
+                        html: `
+                            <div class="p-1 h-100 d-flex flex-column position-relative" style="overflow: hidden;">
+                                <div class="fw-bold mb-1 lh-sm" style="font-size: 0.8rem;">
+                                    ${props.instructor}
+                                </div>
+                                <div class="text-truncate" style="font-size: 0.75rem; opacity: 0.9;">
+                                    <i class="bi ${icon}"></i> ${props.ambiente || 'Virtual'}
+                                </div>
+                                <button class="btn btn-sm text-danger p-0 position-absolute top-0 end-0 delete-btn d-none" 
+                                        data-id="${arg.event.id}" 
+                                        style="line-height:1; transform: translate(25%, -25%); background: white; border-radius: 50%; box-shadow: 0 0 3px rgba(0,0,0,0.2);">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </button>
+                            </div>
+                        `
+                    };
+                },
+                eventMouseEnter: function (info) {
+                    const btn = info.el.querySelector('.delete-btn');
+                    if (btn) btn.classList.remove('d-none');
+                },
+                eventMouseLeave: function (info) {
+                    const btn = info.el.querySelector('.delete-btn');
+                    if (btn) btn.classList.add('d-none');
+                }
             });
-        });
+
+            calendar.render();
+
+            // Allow delete button to work inside FullCalendar logic
+            calendarEl.addEventListener('click', (e) => {
+                const btn = e.target.closest('.delete-btn');
+                if (btn) {
+                    e.stopPropagation();
+                    this.deleteAsignacion(btn.dataset.id);
+                }
+            });
+        }
     }
 
     async handleSubmit() {
@@ -430,7 +860,9 @@ class HorarioTitulada {
             hora_inicio: document.getElementById('hora_inicio').value + ':00',
             hora_fin: document.getElementById('hora_fin').value + ':00',
             modalidad,
+            tipoDeFormacion: 'Titulada',
             idFuncionario: parseInt(document.getElementById('idFuncionario').value),
+            idFicha: this.selectedFicha.idFicha, // Para excluir conflictos de ambiente con la misma ficha
             dias
         };
         if (modalidad === 'presencial') bloqueData.idAmbiente = idAmbiente;

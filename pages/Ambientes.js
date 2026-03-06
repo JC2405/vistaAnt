@@ -177,6 +177,7 @@ class AmbientesPage {
             },
             { key: 'bloque', label: 'Bloque', icon: 'building' },
             { key: 'capacidad', label: 'Capacidad', icon: 'people' },
+            { key: 'tipoAmbiente', label: 'Tipo Formación', icon: 'easel' },
             {
                 key: 'area',
                 label: 'Área',
@@ -254,9 +255,9 @@ class AmbientesPage {
                     <div class="mb-4 form-floating position-relative">
                         <select class="form-select" id="tipoAmbiente" required style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
                             <option value="">Seleccione tipo...</option>
-                            <option value="Virtual">Virtual</option>
-                            <option value="Presencial">Presencial</option>
-                            <option value="Hibrido">Híbrido</option>
+                            <option value="Bilinguismo">Bilinguismo</option>
+                            <option value="Formacion">Formacion</option>
+                            <option value="Taller">Taller</option>
                         </select>
                         <label for="tipoAmbiente">Tipo de Ambiente</label>
                     </div>

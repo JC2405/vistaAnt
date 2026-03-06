@@ -39,11 +39,6 @@ export function Navbar() {
                     </button>
                     
                     <div class="avatar-circle">${initial}</div>
-                    
-                    <button class="btn btn-light btn-sm border-0 d-flex align-items-center gap-2" id="btn-logout" style="color: var(--text-muted);">
-                        <i class="bi bi-box-arrow-right"></i>
-                        <span class="d-none d-md-inline">Salir</span>
-                    </button>
                 </div>
             </div>
         </nav>

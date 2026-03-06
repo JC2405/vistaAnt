@@ -6,7 +6,7 @@ import { ModalForm, setModalLoading, FormSelect } from '../components/ModalForm.
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
-import { getFuncionarios, createFuncionario, updateFuncionario, deleteFuncionario, getTiposContrato } from '../utils/api.js';
+import { getFuncionarios, createFuncionario, updateFuncionario, deleteFuncionario, getTiposContrato, getAreas } from '../utils/api.js';
 
 class FuncionariosPage {
     constructor() {
@@ -14,6 +14,7 @@ class FuncionariosPage {
         this.appContainer = document.getElementById('app');
         this.funcionarios = [];
         this.tiposContrato = [];
+        this.areas = [];
         this.currentEditId = null;
 
         this.init();
@@ -111,13 +112,15 @@ class FuncionariosPage {
 
     async loadData() {
         try {
-            const [funcionariosData, contratosData] = await Promise.all([
+            const [funcionariosData, contratosData, areasData] = await Promise.all([
                 getFuncionarios(),
-                getTiposContrato()
+                getTiposContrato(),
+                getAreas()
             ]);
 
             this.funcionarios = funcionariosData.data || (Array.isArray(funcionariosData) ? funcionariosData : []);
             this.tiposContrato = contratosData.data || (Array.isArray(contratosData) ? contratosData : []);
+            this.areas = areasData.data || (Array.isArray(areasData) ? areasData : []);
 
             this.renderTable();
         } catch (error) {
@@ -147,6 +150,20 @@ class FuncionariosPage {
                 label: 'Tipo Contrato',
                 icon: 'file-earmark-text',
                 render: (row) => row.tipo_contrato ? row.tipo_contrato.nombre : 'N/A'
+            },
+            {
+                key: 'areas',
+                label: 'Áreas',
+                icon: 'tags',
+                render: (row) => {
+                    if (!row.areas || row.areas.length === 0) return '<span class="text-muted small">Ninguna</span>';
+                    const maxDisplay = 2;
+                    let html = row.areas.slice(0, maxDisplay).map(a => `<span class="badge bg-light text-dark border me-1 mb-1 fw-normal">${a.nombreArea}</span>`).join('');
+                    if (row.areas.length > maxDisplay) {
+                        html += `<span class="badge bg-secondary text-white fw-normal">+${row.areas.length - maxDisplay}</span>`;
+                    }
+                    return `<div class="d-flex flex-wrap" style="max-width: 180px;">${html}</div>`;
+                }
             },
             {
                 key: 'acciones',
@@ -209,6 +226,10 @@ class FuncionariosPage {
                 <div class="col-md-6">
                     ${FormSelect({ id: 'estado', label: 'Estado', options: estOptions, required: true })}
                 </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-medium" style="color: var(--text-dark); font-size: 0.9rem;">Áreas Asignadas</label>
+                    <div id="areas-wrapper" class="d-flex flex-wrap gap-3 mt-2"></div>
+                </div>
             </div>
         `;
 
@@ -234,6 +255,16 @@ class FuncionariosPage {
             selectedValue: funcionario ? funcionario.idTipoContrato : '',
             required: true
         });
+
+        // Generar checkboxes para áreas
+        const funcAreasIds = funcionario && funcionario.areas ? funcionario.areas.map(a => Number(a.idArea)) : [];
+        const areasHtml = this.areas.map(area => `
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="areas[]" value="${area.idArea}" id="area_${area.idArea}" ${funcAreasIds.includes(Number(area.idArea)) ? 'checked' : ''}>
+                <label class="form-check-label" for="area_${area.idArea}">${area.nombreArea}</label>
+            </div>
+        `).join('');
+        document.getElementById('areas-wrapper').innerHTML = areasHtml || '<span class="text-muted">No hay áreas disponibles.</span>';
 
         document.getElementById('nombre').value = funcionario ? funcionario.nombre : '';
         document.getElementById('documento').value = funcionario ? funcionario.documento : '';
@@ -269,13 +300,19 @@ class FuncionariosPage {
             return;
         }
 
+        const areasSelected = [];
+        document.querySelectorAll('input[name="areas[]"]:checked').forEach(cb => {
+            areasSelected.push(parseInt(cb.value));
+        });
+
         const data = {
             nombre: document.getElementById('nombre').value,
             documento: document.getElementById('documento').value,
             correo: document.getElementById('correo').value,
             telefono: document.getElementById('telefono').value,
             estado: document.getElementById('estado').value,
-            idTipoContrato: document.getElementById('idTipoContrato').value
+            idTipoContrato: document.getElementById('idTipoContrato').value,
+            areas: areasSelected
         };
 
         const pwd = document.getElementById('password').value;
