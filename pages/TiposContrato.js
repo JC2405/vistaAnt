@@ -121,7 +121,6 @@ class TiposContratoPage {
         const displayData = data || this.tipos;
 
         const columns = [
-            { key: 'idTipoContrato', label: 'ID', icon: 'hash' },
             { key: 'nombre', label: 'Nombre del Tipo de Contrato', icon: 'textarea-t' },
             {
                 key: 'acciones',

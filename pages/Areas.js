@@ -121,7 +121,6 @@ class AreasPage {
         const displayData = data || this.areas;
 
         const columns = [
-            { key: 'idArea', label: 'ID', icon: 'hash' },
             { key: 'nombreArea', label: 'Nombre del Área', icon: 'textarea-t' },
             {
                 key: 'acciones',

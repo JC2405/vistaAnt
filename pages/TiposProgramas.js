@@ -121,7 +121,6 @@ class TiposProgramasPage {
         const displayData = data || this.tipos;
 
         const columns = [
-            { key: 'idTipoFormacion', label: 'ID', icon: 'hash' },
             { key: 'nombre', label: 'Nombre del Tipo de Formación', icon: 'mortarboard' },
             {
                 key: 'duracion_meses',
