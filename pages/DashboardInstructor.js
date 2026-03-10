@@ -1,112 +1,270 @@
 import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
-import { Card } from '../components/Card.js';
-import { StatWidget } from '../components/StatWidget.js';
+import { getHorarioPorInstructor } from '../utils/api.js';
 
 class DashboardInstructor {
     constructor() {
-        // 1. Proteger ruta
         new ProtectedRoute();
-
-        // 2. Renderizar UI
         this.appContainer = document.getElementById('app');
-        this.render();
-
-        // 3. Inicializar eventos
-        initNavbarEvents();
-        initSidebarEvents();
+        this.idFuncionario = null;
+        this.nombreInstructor = null;
+        this.clases = [];
+        this.init();
     }
 
-    render() {
-        const currentPath = window.location.pathname;
+    async init() {
+        // Leer id del instructor desde localStorage
+        const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
+        this.idFuncionario    = userInfo.idFuncionario ?? userInfo.id ?? null;
+        this.nombreInstructor = userInfo.nombre || localStorage.getItem('user_name') || 'Instructor';
 
+        this.renderLayout();
+        initNavbarEvents();
+        initSidebarEvents();
+
+        if (this.idFuncionario) {
+            await this.loadData();
+        } else {
+            this.renderStats(0, 0, 0, 0);
+            this.renderClases([]);
+        }
+    }
+
+    async loadData() {
+        try {
+            const data = await getHorarioPorInstructor(this.idFuncionario);
+            this.clases = data.clases || [];
+            const { fichas, ambientes, horasSemana } = this.calcularStats(this.clases);
+            this.renderStats(fichas, ambientes, horasSemana, this.clases.length);
+            this.renderClases(this.clases);
+        } catch (err) {
+            this.renderStats(0, 0, 0, 0);
+            this.renderClases([]);
+        }
+    }
+
+    /**
+     * Calcula estadísticas reales desde las clases del instructor.
+     */
+    calcularStats(clases) {
+        const fichasIds    = new Set();
+        const ambientesIds = new Set();
+        let minutosTotales = 0;
+
+        // Días de la semana actuales (lunes–domingo)
+        const hoy      = new Date();
+        const diaSemana = hoy.getDay(); // 0=Dom,1=Lun...6=Sab
+        const lunes    = new Date(hoy);
+        lunes.setDate(hoy.getDate() - ((diaSemana + 6) % 7)); // ajustar a lunes
+        const domingo  = new Date(lunes);
+        domingo.setDate(lunes.getDate() + 6);
+
+        const diasSemana = new Set(); // nombres de días activos de la semana actual
+        for (let d = new Date(lunes); d <= domingo; d.setDate(d.getDate() + 1)) {
+            const nombres = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+            diasSemana.add(nombres[d.getDay()]);
+        }
+
+        clases.forEach(asig => {
+            const bloque = asig.bloque;
+            if (!bloque) return;
+
+            if (asig.ficha?.idFicha) fichasIds.add(asig.ficha.idFicha);
+            if (bloque.idAmbiente)   ambientesIds.add(bloque.idAmbiente);
+
+            // Horas de la semana actual: contar sólo los días que caen en esta semana
+            const inicioMin = this.timeToMinutes(bloque.hora_inicio);
+            const finMin    = this.timeToMinutes(bloque.hora_fin);
+            const duracion  = finMin - inicioMin;
+
+            (bloque.dias || []).forEach(dia => {
+                if (diasSemana.has(dia.nombre)) {
+                    minutosTotales += duracion;
+                }
+            });
+        });
+
+        return {
+            fichas:      fichasIds.size,
+            ambientes:   ambientesIds.size,
+            horasSemana: Math.round(minutosTotales / 60),
+        };
+    }
+
+    timeToMinutes(timeStr) {
+        if (!timeStr) return 0;
+        const [h, m] = timeStr.split(':').map(Number);
+        return h * 60 + (m || 0);
+    }
+
+    renderLayout() {
+        const currentPath = window.location.pathname;
         this.appContainer.innerHTML = `
             ${Sidebar(currentPath)}
-            
+
             <div class="main-wrapper transition-all">
                 ${Navbar()}
-                
-                <main class="container-fluid p-4 bg-light flex-grow-1">
+
+                <main class="container-fluid p-4 flex-grow-1" style="background: var(--bg-page);">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2 class="fw-bold mb-0 text-dark">Mi Panel de Instructor</h2>
-                    </div>
-
-                    <!-- Widgets -->
-                    <div class="row g-4 mb-4">
-                        <div class="col-12 col-md-6 col-lg-3">
-                            ${StatWidget({ title: 'Fichas Asignadas', value: '4', icon: 'folder-fill', colorClass: 'primary' })}
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-3">
-                            ${StatWidget({ title: 'Aprendices', value: '120', icon: 'people-fill', colorClass: 'success' })}
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-3">
-                            ${StatWidget({ title: 'Horas esta semana', value: '32', icon: 'clock-fill', colorClass: 'warning' })}
-                        </div>
-                        <div class="col-12 col-md-6 col-lg-3">
-                            ${StatWidget({ title: 'Ambientes', value: '2', icon: 'building', colorClass: 'info' })}
+                        <div>
+                            <h4 class="fw-bold mb-0" style="color:var(--text-dark);">Mi Panel de Instructor</h4>
+                            <small style="color:var(--text-muted);" id="lbl-bienvenida">Cargando datos...</small>
                         </div>
                     </div>
 
-                    <!-- Main Content Row -->
+                    <!-- Widgets estadísticos -->
+                    <div class="row g-4 mb-4" id="stats-row">
+                        ${this.skeletonStat()}${this.skeletonStat()}${this.skeletonStat()}${this.skeletonStat()}
+                    </div>
+
+                    <!-- Contenido principal -->
                     <div class="row g-4">
                         <div class="col-12 col-lg-8">
-                            ${Card({
-            icon: 'calendar-week',
-            title: 'Próximas Clases',
-            content: `
-                                    <div class="table-responsive">
-                                        <table class="table table-hover align-middle">
-                                            <thead>
-                                                <tr>
-                                                    <th>Hora</th>
-                                                    <th>Ficha</th>
-                                                    <th>Ambiente</th>
-                                                    <th>Estado</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td>08:00 AM - 10:00 AM</td>
-                                                    <td><strong>2701234</strong><br><small class="text-muted">Desarrollo de Software</small></td>
-                                                    <td>Sistemas 101</td>
-                                                    <td><span class="badge bg-success">Activa</span></td>
-                                                </tr>
-                                                <tr>
-                                                    <td>10:30 AM - 12:30 PM</td>
-                                                    <td><strong>2701235</strong><br><small class="text-muted">Diseño Multimedia</small></td>
-                                                    <td>Sistemas 102</td>
-                                                    <td><span class="badge bg-secondary">Programada</span></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
+                            <div class="card border-0 shadow-sm rounded-4 h-100">
+                                <div class="card-header bg-white border-0 pt-4 px-4 pb-2 d-flex align-items-center gap-2">
+                                    <i class="bi bi-calendar-week text-primary"></i>
+                                    <h6 class="fw-bold mb-0" style="color:var(--text-dark);">Mis Clases Asignadas</h6>
+                                </div>
+                                <div class="card-body px-4 pb-4" id="clases-container">
+                                    <div class="text-center py-4 text-muted">
+                                        <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                                        Cargando clases...
                                     </div>
-                                `
-        })}
+                                </div>
+                            </div>
                         </div>
                         <div class="col-12 col-lg-4">
-                            ${Card({
-            icon: 'bell-fill',
-            title: 'Avisos',
-            content: `
-                                    <div class="alert alert-info border-0 bg-info bg-opacity-10 text-info">
-                                        <i class="bi bi-info-circle-fill me-2"></i>
-                                        Recuerda registrar asistencia de la ficha 2701234.
-                                    </div>
-                                    <div class="alert alert-warning border-0 bg-warning bg-opacity-10 text-warning">
-                                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                        Reunión de área mañana a las 2:00 PM.
-                                    </div>
-                                `
-        })}
+                            <div class="card border-0 shadow-sm rounded-4 h-100">
+                                <div class="card-header bg-white border-0 pt-4 px-4 pb-2 d-flex align-items-center gap-2">
+                                    <i class="bi bi-lightning-charge-fill text-warning"></i>
+                                    <h6 class="fw-bold mb-0" style="color:var(--text-dark);">Accesos Rápidos</h6>
+                                </div>
+                                <div class="card-body px-4 pb-4 d-flex flex-column gap-3">
+                                    <a href="mi-horario.html"
+                                       class="d-flex align-items-center gap-3 text-decoration-none p-3 rounded-3"
+                                       style="background:rgba(126,87,194,0.08);color:#7e57c2;">
+                                        <i class="bi bi-calendar-week fs-5"></i>
+                                        <div>
+                                            <div class="fw-semibold small">Ver Mi Horario</div>
+                                            <div class="text-muted" style="font-size:0.75rem;">Calendario completo de clases</div>
+                                        </div>
+                                        <i class="bi bi-arrow-right ms-auto"></i>
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </main>
             </div>
         `;
     }
+
+    skeletonStat() {
+        return `<div class="col-12 col-md-6 col-lg-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-4">
+                <div class="placeholder-glow">
+                    <span class="placeholder col-6 rounded mb-2" style="height:12px;display:block;"></span>
+                    <span class="placeholder col-4 rounded" style="height:28px;display:block;"></span>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    renderStats(fichas, ambientes, horasSemana, totalClases) {
+        const userName = this.nombreInstructor;
+        document.getElementById('lbl-bienvenida').textContent = `Bienvenido, ${userName}`;
+
+        const stats = [
+            { title: 'Fichas Asignadas',   value: fichas,       icon: 'bi-folder-fill',     color: 'primary' },
+            { title: 'Clases Registradas',  value: totalClases,  icon: 'bi-journal-bookmark', color: 'success' },
+            { title: 'Horas esta Semana',   value: horasSemana,  icon: 'bi-clock-fill',       color: 'warning' },
+            { title: 'Ambientes',           value: ambientes,    icon: 'bi-building',         color: 'info'    },
+        ];
+
+        document.getElementById('stats-row').innerHTML = stats.map(s => `
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 h-100">
+                    <div class="card-body p-4 d-flex align-items-center gap-3">
+                        <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                             style="width:52px;height:52px;background:rgba(var(--bs-${s.color}-rgb),.12);">
+                            <i class="bi ${s.icon} fs-4 text-${s.color}"></i>
+                        </div>
+                        <div>
+                            <p class="mb-1 fw-semibold text-uppercase" style="font-size:0.7rem;color:var(--text-muted);letter-spacing:.05em;">${s.title}</p>
+                            <h3 class="fw-bold mb-0" style="color:var(--text-dark);">${s.value}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>`).join('');
+    }
+
+    renderClases(clases) {
+        const container = document.getElementById('clases-container');
+        if (!clases.length) {
+            container.innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-calendar-x fs-1 d-block mb-3 opacity-25"></i>
+                    <p class="fw-medium mb-1">Sin clases asignadas</p>
+                    <p class="small">Aún no tienes clases registradas.</p>
+                </div>`;
+            return;
+        }
+
+        // Agrupar por bloque único (idBloque) para no repetir filas
+        const seen = new Set();
+        const rows = [];
+        clases.forEach(asig => {
+            const bloque = asig.bloque;
+            if (!bloque || seen.has(bloque.idBloque)) return;
+            seen.add(bloque.idBloque);
+
+            const ficha    = asig.ficha;
+            const dias     = (bloque.dias || []).map(d => d.nombre.substring(0, 2)).join(', ');
+            const ambiente = bloque.ambiente
+                ? `${bloque.ambiente.codigo} No.${bloque.ambiente.numero}`
+                : '<span class="badge bg-info text-dark fw-normal">Virtual</span>';
+            const horaInicio = bloque.hora_inicio ? bloque.hora_inicio.substring(0, 5) : '--';
+            const horaFin    = bloque.hora_fin    ? bloque.hora_fin.substring(0, 5)    : '--';
+            const isVirtual  = bloque.modalidad === 'virtual';
+            const modBadge   = isVirtual
+                ? '<span class="badge bg-info text-dark fw-normal">Virtual</span>'
+                : '<span class="badge bg-primary text-white fw-normal">Presencial</span>';
+            const tipoBadge  = bloque.tipoDeFormacion
+                ? `<span class="badge bg-secondary text-white fw-normal ms-1">${bloque.tipoDeFormacion}</span>`
+                : '';
+
+            rows.push(`
+                <tr>
+                    <td class="align-middle">
+                        <span class="fw-medium" style="font-size:0.85rem;">${horaInicio} – ${horaFin}</span>
+                        <div class="text-muted" style="font-size:0.73rem;">${dias}</div>
+                    </td>
+                    <td class="align-middle">
+                        <div class="fw-bold">${ficha ? ficha.codigoFicha : '—'}</div>
+                        <small class="text-muted">${ficha?.programa?.nombre || ''}</small>
+                    </td>
+                    <td class="align-middle" style="font-size:0.85rem;">${isVirtual ? '—' : ambiente}</td>
+                    <td class="align-middle">${modBadge}${tipoBadge}</td>
+                </tr>`);
+        });
+
+        container.innerHTML = `
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="font-size:0.75rem;" class="text-uppercase text-muted fw-semibold">Horario / Días</th>
+                            <th style="font-size:0.75rem;" class="text-uppercase text-muted fw-semibold">Ficha</th>
+                            <th style="font-size:0.75rem;" class="text-uppercase text-muted fw-semibold">Ambiente</th>
+                            <th style="font-size:0.75rem;" class="text-uppercase text-muted fw-semibold">Modalidad</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows.join('')}</tbody>
+                </table>
+            </div>`;
+    }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    new DashboardInstructor();
-});
+document.addEventListener('DOMContentLoaded', () => { new DashboardInstructor(); });

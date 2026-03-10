@@ -299,3 +299,11 @@ export async function deleteFicha(id) {
     });
 }
 
+// ==========================================
+// HORARIO POR INSTRUCTOR API
+// ==========================================
+
+export async function getHorarioPorInstructor(idFuncionario) {
+    return apiFetch(`/horarioPorInstructor/${idFuncionario}`);
+}
+

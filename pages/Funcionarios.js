@@ -6,7 +6,7 @@ import { ModalForm, setModalLoading, FormSelect } from '../components/ModalForm.
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
-import { getFuncionarios, createFuncionario, updateFuncionario, deleteFuncionario, getTiposContrato, getAreas } from '../utils/api.js';
+import { getFuncionarios, createFuncionario, updateFuncionario, deleteFuncionario, getTiposContrato, getAreas, getHorarioPorInstructor } from '../utils/api.js';
 
 class FuncionariosPage {
     constructor() {
@@ -82,6 +82,24 @@ class FuncionariosPage {
             
             <!-- Modal Container -->
             <div id="modal-container"></div>
+
+            <!-- Offcanvas: Horario del Instructor -->
+            <div class="offcanvas offcanvas-end shadow-lg" tabindex="-1" id="offcanvasHorarioInstructor" style="width:600px;">
+                <div class="offcanvas-header text-white p-4" style="background:linear-gradient(135deg,var(--primary) 0%,hsl(280,60%,55%) 100%);">
+                    <h5 class="offcanvas-title fw-bold d-flex align-items-center gap-2" id="offcanvas-instructor-title">
+                        <i class="bi bi-calendar-week"></i> Horario del Instructor
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+                </div>
+                <div class="offcanvas-body p-4" style="background:var(--bg-page);">
+                    <div id="offcanvas-horario-body">
+                        <div class="text-center py-5 text-muted">
+                            <div class="spinner-border text-primary mb-3" role="status"></div>
+                            <p class="small">Cargando horario...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
 
         document.getElementById('btn-add-funcionario').addEventListener('click', () => this.openModal());
@@ -176,6 +194,9 @@ class FuncionariosPage {
                         <button class="btn-action delete btn-delete" data-id="${row.idFuncionario}" title="Eliminar">
                             <i class="bi bi-trash"></i>
                         </button>
+                        <button class="btn-action btn-ver-horario" data-id="${row.idFuncionario}" data-nombre="${row.nombre}" title="Ver Horario" style="color:var(--primary);">
+                            <i class="bi bi-calendar-week"></i>
+                        </button>
                     </div>
                 `
             }
@@ -194,6 +215,14 @@ class FuncionariosPage {
 
         document.querySelectorAll('.btn-delete').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleDelete(e.currentTarget.dataset.id));
+        });
+
+        document.querySelectorAll('.btn-ver-horario').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id     = e.currentTarget.dataset.id;
+                const nombre = e.currentTarget.dataset.nombre;
+                this.verHorario(id, nombre);
+            });
         });
     }
 
@@ -344,6 +373,122 @@ class FuncionariosPage {
         } finally {
             setModalLoading('funcionario-modal', false);
         }
+    }
+
+    // ── Ver Horario del Instructor ─────────────────────────────────────────
+    async verHorario(idFuncionario, nombreInstructor) {
+        // Actualizar título del offcanvas
+        document.getElementById('offcanvas-instructor-title').innerHTML =
+            '<i class="bi bi-calendar-week"></i> ' + (nombreInstructor || 'Instructor');
+
+        // Mostrar el offcanvas
+        const offcanvasEl = document.getElementById('offcanvasHorarioInstructor');
+        const offcanvas   = bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
+        offcanvas.show();
+
+        // Mostrar spinner mientras carga
+        const body = document.getElementById('offcanvas-horario-body');
+        body.innerHTML = `
+            <div class="text-center py-5 text-muted">
+                <div class="spinner-border text-primary mb-3" role="status"></div>
+                <p class="small">Cargando horario de <strong>${nombreInstructor}</strong>...</p>
+            </div>`;
+
+        try {
+            const data  = await getHorarioPorInstructor(idFuncionario);
+            const clases = data.clases || [];
+            this.renderCalendarioInstructor(body, clases, nombreInstructor);
+        } catch (err) {
+            body.innerHTML = `
+                <div class="text-center py-5 text-danger">
+                    <i class="bi bi-exclamation-triangle fs-1 d-block mb-3 opacity-50"></i>
+                    <p>${err.message || 'Error al cargar el horario.'}</p>
+                </div>`;
+        }
+    }
+
+    renderCalendarioInstructor(container, clases, nombreInstructor) {
+        if (!clases.length) {
+            container.innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-calendar-x fs-1 d-block mb-3 opacity-25"></i>
+                    <p class="fw-medium">Sin clases asignadas</p>
+                    <p class="small">Este instructor no tiene horario registrado.</p>
+                </div>`;
+            return;
+        }
+
+        // Mapa para convertir nombre de día a fecha de referencia (semana fija)
+        const dayMap = {
+            'Lunes': '2024-01-01', 'Martes': '2024-01-02', 'Miercoles': '2024-01-03',
+            'Jueves': '2024-01-04', 'Viernes': '2024-01-05', 'Sabado': '2024-01-06', 'Domingo': '2024-01-07'
+        };
+
+        // Construir eventos de FullCalendar desde las clases del instructor
+        const events = [];
+        clases.forEach(asig => {
+            const bloque = asig.bloque;
+            if (!bloque) return;
+            const dias = bloque.dias || [];
+            const ficha = asig.ficha;
+            const isVirtual = bloque.modalidad === 'virtual';
+            const color  = isVirtual ? '#0dcaf0' : '#7e57c2';
+            const bgColor = isVirtual ? 'rgba(13,202,240,0.1)' : 'rgba(126,87,194,0.1)';
+            const ambienteLabel = bloque.ambiente
+                ? (bloque.ambiente.codigo + ' - No.' + bloque.ambiente.numero)
+                : 'Virtual';
+            const fichaLabel = ficha ? 'Ficha ' + (ficha.codigoFicha || '') : '';
+            const progLabel  = ficha && ficha.programa ? ficha.programa.nombre : '';
+
+            dias.forEach(dia => {
+                const dateStr = dayMap[dia.nombre];
+                if (!dateStr) return;
+                events.push({
+                    id: `${asig.idAsignacion}_${dia.idDia}`,
+                    start: `${dateStr}T${bloque.hora_inicio}`,
+                    end:   `${dateStr}T${bloque.hora_fin}`,
+                    backgroundColor: bgColor,
+                    borderColor: color,
+                    textColor: color,
+                    extendedProps: { ambienteLabel, fichaLabel, progLabel, modalidad: bloque.modalidad, tipoDeFormacion: bloque.tipoDeFormacion }
+                });
+            });
+        });
+
+        container.innerHTML = '<div id="cal-instructor" style="height:520px;"></div>';
+
+        const calendarEl = document.getElementById('cal-instructor');
+        const calendar   = new FullCalendar.Calendar(calendarEl, {
+            initialView:   'timeGridWeek',
+            initialDate:   '2024-01-01',
+            headerToolbar: false,
+            allDaySlot:    false,
+            slotMinTime:   '06:00:00',
+            slotMaxTime:   '24:00:00',
+            expandRows:    true,
+            hiddenDays:    [],
+            dayHeaderFormat: { weekday: 'long' },
+            locale: 'es',
+            events,
+            eventContent(arg) {
+                const p     = arg.event.extendedProps;
+                const icon  = p.modalidad === 'virtual' ? 'bi-laptop' : 'bi-building';
+                const badge = p.tipoDeFormacion
+                    ? `<div class="mt-auto pt-1"><span class="badge bg-secondary bg-opacity-25 text-dark" style="font-size:0.65rem;">${p.tipoDeFormacion}</span></div>`
+                    : '';
+                return {
+                    html: `<div class="p-1 h-100 d-flex flex-column" style="overflow:hidden;">
+                        <div class="fw-bold mb-1 lh-sm" style="font-size:0.78rem;">${p.fichaLabel}</div>
+                        <div class="text-truncate" style="font-size:0.72rem;opacity:0.85;">
+                            <i class="bi ${icon}"></i> ${p.ambienteLabel}
+                        </div>
+                        <div class="text-truncate" style="font-size:0.7rem;opacity:0.7;">${p.progLabel}</div>
+                        ${badge}
+                    </div>`
+                };
+            }
+        });
+        calendar.render();
     }
 
     async handleDelete(id) {

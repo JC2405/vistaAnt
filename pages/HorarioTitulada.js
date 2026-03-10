@@ -13,13 +13,13 @@ async function apiCall(endpoint, method = 'GET', body = null) {
 
 // Mapa nombre de día → idDia (según tabla `dia` de la BD)
 const DIA_ID_MAP = {
-    'Lunes':     1,
-    'Martes':    2,
+    'Lunes': 1,
+    'Martes': 2,
     'Miercoles': 3,
-    'Jueves':    4,
-    'Viernes':   5,
-    'Sabado':    6,
-    'Domingo':   7
+    'Jueves': 4,
+    'Viernes': 5,
+    'Sabado': 6,
+    'Domingo': 7
 };
 
 class HorarioTitulada {
@@ -137,10 +137,10 @@ class HorarioTitulada {
             });
             if (this.fichas.length === 0) this.fichas = allFichas.filter(f => f.estado === 'Activo');
 
-            this.ambientes   = aData.data || (Array.isArray(aData) ? aData : []);
-            this.sedes       = sData.data || (Array.isArray(sData) ? sData : []);
+            this.ambientes = aData.data || (Array.isArray(aData) ? aData : []);
+            this.sedes = sData.data || (Array.isArray(sData) ? sData : []);
 
-            const allFuncs   = iData.data || (Array.isArray(iData) ? iData : []);
+            const allFuncs = iData.data || (Array.isArray(iData) ? iData : []);
             this.instructores = allFuncs.filter(f => f.roles && f.roles.some(r => r.nombre === 'Instructor'));
             if (this.instructores.length === 0) this.instructores = allFuncs;
 
@@ -182,7 +182,7 @@ class HorarioTitulada {
         sel.innerHTML = '<option value="">Seleccionar instructor...</option>' +
             sorted.map(i => {
                 const nombre = i.nombre || 'Sin nombre';
-                const areas  = i.areas && i.areas.length > 0 ? i.areas.map(a => a.nombreArea).join(', ') : 'Sin área';
+                const areas = i.areas && i.areas.length > 0 ? i.areas.map(a => a.nombreArea).join(', ') : 'Sin área';
                 const isMatch = idAreaPreferida && i.areas && i.areas.some(a => String(a.idArea) === String(idAreaPreferida));
                 return '<option value="' + i.idFuncionario + '">' + (isMatch ? '★ ' : '') + nombre + ' (' + areas + ')</option>';
             }).join('');
@@ -202,11 +202,11 @@ class HorarioTitulada {
     setupEventListeners() {
         document.getElementById('modalidad_clase')?.addEventListener('change', e => {
             const isVirtual = e.target.value === 'virtual';
-            const cont   = document.getElementById('container-ambiente');
+            const cont = document.getElementById('container-ambiente');
             const selAmb = document.getElementById('idAmbiente');
-            cont.style.opacity       = isVirtual ? '0.4' : '1';
+            cont.style.opacity = isVirtual ? '0.4' : '1';
             cont.style.pointerEvents = isVirtual ? 'none' : '';
-            selAmb.required          = !isVirtual;
+            selAmb.required = !isVirtual;
             if (isVirtual) { selAmb.value = ''; this.renderInstructores(); }
         });
 
@@ -257,9 +257,9 @@ class HorarioTitulada {
 
     setViewState(state) {
         this.viewState = state;
-        if (state === 'sedes')    { this.selectedSede = null; this.selectedPrograma = null; this.selectedFicha = null; }
+        if (state === 'sedes') { this.selectedSede = null; this.selectedPrograma = null; this.selectedFicha = null; }
         if (state === 'programas') { this.selectedPrograma = null; this.selectedFicha = null; }
-        if (state === 'fichas')   { this.selectedFicha = null; }
+        if (state === 'fichas') { this.selectedFicha = null; }
         this.renderBreadcrumb();
         this.renderContent();
     }
@@ -268,10 +268,10 @@ class HorarioTitulada {
         const container = document.getElementById('main-content');
         container.innerHTML = '';
         switch (this.viewState) {
-            case 'sedes':    this.renderSedesView(container);    break;
+            case 'sedes': this.renderSedesView(container); break;
             case 'programas': this.renderProgramasView(container); break;
-            case 'fichas':   this.renderFichasView(container);   break;
-            case 'horario':  this.renderHorarioView(container);  break;
+            case 'fichas': this.renderFichasView(container); break;
+            case 'horario': this.renderHorarioView(container); break;
         }
     }
 
@@ -426,7 +426,7 @@ class HorarioTitulada {
             <div class="row g-4">`;
 
         myFichas.forEach(f => {
-            const mtIcon  = f.modalidad === 'virtual' ? 'bi-laptop' : 'bi-person-workspace';
+            const mtIcon = f.modalidad === 'virtual' ? 'bi-laptop' : 'bi-person-workspace';
             const colorMod = f.modalidad === 'virtual' ? 'info' : 'primary';
             html += `
                 <div class="col-md-4 col-sm-6">
@@ -492,7 +492,7 @@ class HorarioTitulada {
             this.selectedFicha.codigoFicha +
             ' <span class="badge bg-light text-dark border fw-normal ms-1">' + (this.selectedFicha.jornada || '') + '</span>';
         if (this.selectedFicha.fechaInicio) document.getElementById('fecha_inicio').value = this.selectedFicha.fechaInicio;
-        if (this.selectedFicha.fechaFin)    document.getElementById('fecha_fin').value    = this.selectedFicha.fechaFin;
+        if (this.selectedFicha.fechaFin) document.getElementById('fecha_fin').value = this.selectedFicha.fechaFin;
 
         this.renderAmbientes();
         const selAmb = document.getElementById('idAmbiente');
@@ -510,7 +510,7 @@ class HorarioTitulada {
     }
 
     renderGrid(ficha, grilla) {
-        const card    = document.getElementById('calendario-card');
+        const card = document.getElementById('calendario-card');
         const isEmpty = Object.keys(grilla).length === 0;
 
         const header = '<div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-4 pb-2 px-4">' +
@@ -552,29 +552,30 @@ class HorarioTitulada {
                 // ── CAMBIO CLAVE: agrupar por idBloque + dia (no por idAsignacion + dia)
                 // Así cada tarjeta del calendario corresponde exactamente a UN bloque en UN día
                 const idBloque = celda.idBloque;
-                const idDia    = DIA_ID_MAP[dia] ?? null;
-                const key      = `${idBloque}_${dia}`;
+                const idDia = DIA_ID_MAP[dia] ?? null;
+                const key = `${idBloque}_${dia}`;
 
                 if (!groupedEvents[key]) {
                     const isVirtual = celda.modalidad === 'virtual';
-                    const color     = isVirtual ? '#0dcaf0' : '#7e57c2';
-                    const bgColor   = isVirtual ? 'rgba(13,202,240,0.1)' : 'rgba(126,87,194,0.1)';
+                    const color = isVirtual ? '#0dcaf0' : '#7e57c2';
+                    const bgColor = isVirtual ? 'rgba(13,202,240,0.1)' : 'rgba(126,87,194,0.1)';
 
                     groupedEvents[key] = {
-                        id:              key,          // único por bloque+día
-                        dateStr:         dayMap[dia],
-                        startHour:       startStr,
-                        endHour:         endStr,
+                        id: key,          // único por bloque+día
+                        dateStr: dayMap[dia],
+                        startHour: startStr,
+                        endHour: endStr,
                         backgroundColor: bgColor,
-                        borderColor:     color,
-                        textColor:       color,
+                        borderColor: color,
+                        textColor: color,
                         extendedProps: {
-                            instructor:   celda.instructor,
-                            ambiente:     celda.ambiente,
-                            modalidad:    celda.modalidad,
-                            idBloque:     idBloque,   // ← para la llamada al endpoint
-                            idDia:        idDia,      // ← para la llamada al endpoint
-                            nombreDia:    dia
+                            instructor: celda.instructor,
+                            ambiente: celda.ambiente,
+                            modalidad: celda.modalidad,
+                            tipoDeFormacion: celda.tipoDeFormacion,
+                            idBloque: idBloque,   // ← para la llamada al endpoint
+                            idDia: idDia,      // ← para la llamada al endpoint
+                            nombreDia: dia
                         }
                     };
                 } else {
@@ -584,33 +585,36 @@ class HorarioTitulada {
         }
 
         const events = Object.values(groupedEvents).map(g => ({
-            id:              g.id,
-            start:           `${g.dateStr}T${g.startHour}:00`,
-            end:             `${g.dateStr}T${g.endHour}:00`,
+            id: g.id,
+            start: `${g.dateStr}T${g.startHour}:00`,
+            end: `${g.dateStr}T${g.endHour}:00`,
             backgroundColor: g.backgroundColor,
-            borderColor:     g.borderColor,
-            textColor:       g.textColor,
-            extendedProps:   g.extendedProps
+            borderColor: g.borderColor,
+            textColor: g.textColor,
+            extendedProps: g.extendedProps
         }));
 
         const calendarEl = document.getElementById('fullcalendar-container');
-        const calendar   = new FullCalendar.Calendar(calendarEl, {
-            initialView:      'timeGridWeek',
-            initialDate:      '2024-01-01',
-            headerToolbar:    false,
-            allDaySlot:       false,
-            slotMinTime:      '06:00:00',
-            slotMaxTime:      '24:00:00',
-            expandRows:       true,
-            hiddenDays:       [],
-            dayHeaders:       true,
-            dayHeaderFormat:  { weekday: 'long' },
-            locale:           'es',
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            initialDate: '2024-01-01',
+            headerToolbar: false,
+            allDaySlot: false,
+            slotMinTime: '06:00:00',
+            slotMaxTime: '24:00:00',
+            expandRows: true,
+            hiddenDays: [],
+            dayHeaders: true,
+            dayHeaderFormat: { weekday: 'long' },
+            locale: 'es',
             events,
             eventContent: function (arg) {
-                const props     = arg.event.extendedProps;
+                const props = arg.event.extendedProps;
                 const isVirtual = props.modalidad === 'virtual';
-                const icon      = isVirtual ? 'bi-laptop' : 'bi-building';
+                const icon = isVirtual ? 'bi-laptop' : 'bi-building';
+                const tipoFormacionBadge = props.tipoDeFormacion
+                    ? `<div class="mt-auto pt-1"><span class="badge bg-secondary bg-opacity-25 text-dark" style="font-size:0.65rem;">${props.tipoDeFormacion}</span></div>`
+                    : '';
                 return {
                     html: `
                         <div class="p-1 h-100 d-flex flex-column position-relative" style="overflow:hidden;">
@@ -618,6 +622,7 @@ class HorarioTitulada {
                             <div class="text-truncate" style="font-size:0.75rem;opacity:0.9;">
                                 <i class="bi ${icon}"></i> ${props.ambiente || 'Virtual'}
                             </div>
+                            ${tipoFormacionBadge}
                             <button class="btn btn-sm text-danger p-0 position-absolute top-0 end-0 delete-dia-btn d-none"
                                     data-idbloque="${props.idBloque}"
                                     data-iddia="${props.idDia}"
@@ -643,8 +648,8 @@ class HorarioTitulada {
             const btn = e.target.closest('.delete-dia-btn');
             if (!btn) return;
             e.stopPropagation();
-            const idBloque  = parseInt(btn.dataset.idbloque);
-            const idDia     = parseInt(btn.dataset.iddia);
+            const idBloque = parseInt(btn.dataset.idbloque);
+            const idDia = parseInt(btn.dataset.iddia);
             const nombreDia = btn.dataset.nombredia;
             this.eliminarDiaDeBloque(idBloque, idDia, nombreDia);
         });
@@ -685,7 +690,7 @@ class HorarioTitulada {
         const dias = Array.from(document.querySelectorAll('#dias-container .btn-check:checked')).map(c => parseInt(c.value));
         if (!dias.length) { this.showAlert('offcanvas-alert', 'warning', 'Selecciona al menos un día de la semana.'); return; }
 
-        const modalidad  = document.getElementById('modalidad_clase').value;
+        const modalidad = document.getElementById('modalidad_clase').value;
         const idAmbiente = parseInt(document.getElementById('idAmbiente').value);
         if (modalidad === 'presencial' && !idAmbiente) {
             this.showAlert('offcanvas-alert', 'warning', 'Selecciona un ambiente para la modalidad presencial.');
@@ -693,31 +698,31 @@ class HorarioTitulada {
         }
 
         const bloqueData = {
-            hora_inicio:     document.getElementById('hora_inicio').value + ':00',
-            hora_fin:        document.getElementById('hora_fin').value + ':00',
+            hora_inicio: document.getElementById('hora_inicio').value + ':00',
+            hora_fin: document.getElementById('hora_fin').value + ':00',
             modalidad,
             tipoDeFormacion: 'Titulada',
-            idFuncionario:   parseInt(document.getElementById('idFuncionario').value),
-            idFicha:         this.selectedFicha.idFicha,
+            idFuncionario: parseInt(document.getElementById('idFuncionario').value),
+            idFicha: this.selectedFicha.idFicha,
             dias
         };
         if (modalidad === 'presencial') bloqueData.idAmbiente = idAmbiente;
 
         const btn = document.getElementById('btn-asignar');
-        btn.disabled  = true;
+        btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Asignando...';
 
         try {
             const resBloque = await apiCall('/crearBloque', 'POST', bloqueData);
-            const idBloque  = resBloque.idBloque || (resBloque.bloque && resBloque.bloque.idBloque);
+            const idBloque = resBloque.idBloque || (resBloque.bloque && resBloque.bloque.idBloque);
             if (!idBloque) throw new Error('No se obtuvo el ID del bloque.');
 
             await apiCall('/crearAsignacion', 'POST', {
-                idFicha:     this.selectedFicha.idFicha,
+                idFicha: this.selectedFicha.idFicha,
                 idBloque,
                 fecha_inicio: document.getElementById('fecha_inicio').value,
-                fecha_fin:    document.getElementById('fecha_fin').value,
-                estado:       'activo'
+                fecha_fin: document.getElementById('fecha_fin').value,
+                estado: 'activo'
             });
 
             bootstrap.Offcanvas.getInstance(document.getElementById('offcanvasHorario'))?.hide();
@@ -730,7 +735,7 @@ class HorarioTitulada {
             if (msg.toLowerCase().includes('conflicto')) msg = '<i class="bi bi-exclamation-triangle-fill me-2"></i>' + msg;
             this.showAlert('offcanvas-alert', 'danger', msg);
         } finally {
-            btn.disabled  = false;
+            btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-calendar-check"></i> Asignar';
         }
     }
