@@ -63,10 +63,10 @@ class FichasPage {
                     <!-- Toolbar -->
                     <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                         <div class="btn-group btn-group-sm" role="group">
-                            <button class="btn btn-dark rounded-start-pill px-3">Columnas <i class="bi bi-chevron-down ms-1"></i></button>
-                            <button class="btn btn-dark px-3">Excel</button>
-                            <button class="btn btn-dark px-3">PDF</button>
-                            <button class="btn btn-dark rounded-end-pill px-3">Print</button>
+                            <button id="btn-colvis" class="btn btn-dark rounded-start-pill px-3">Columnas <i class="bi bi-chevron-down ms-1"></i></button>
+                            <button id="btn-excel"  class="btn btn-dark px-3">Excel</button>
+                            <button id="btn-pdf"    class="btn btn-dark px-3">PDF</button>
+                            <button id="btn-print"  class="btn btn-dark rounded-end-pill px-3">Print</button>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <label class="mb-0 fw-medium" style="color: var(--text-muted); font-size: 0.85rem;">Search:</label>
@@ -193,6 +193,25 @@ class FichasPage {
             data: displayData
         });
 
+        // Inicializar DataTables con botones
+        if (typeof $ !== 'undefined' && $.fn.dataTable) {
+            this.dtInstance = $('#fichas-table').DataTable({
+                responsive: true,
+                paging: false,
+                info: false,
+                searching: false,
+                dom: 'rt',
+                buttons: [
+                    { extend: 'colvis', text: 'Columnas' },
+                    { extend: 'excel',  text: 'Excel' },
+                    { extend: 'pdf',    text: 'PDF' },
+                    { extend: 'print',  text: 'Print' }
+                ],
+                columnDefs: [{ orderable: false, targets: -1 }]
+            });
+            this.bindToolbarButtons();
+        }
+
         // Event Listeners
         document.querySelectorAll('.btn-edit').forEach(btn => {
             btn.addEventListener('click', (e) => this.openModal(e.currentTarget.dataset.id));
@@ -200,6 +219,20 @@ class FichasPage {
 
         document.querySelectorAll('.btn-delete').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleDelete(e.currentTarget.dataset.id));
+        });
+    }
+
+    bindToolbarButtons() {
+        const dt = this.dtInstance;
+        if (!dt) return;
+        const map = { 'btn-colvis': 0, 'btn-excel': 1, 'btn-pdf': 2, 'btn-print': 3 };
+        Object.entries(map).forEach(([id, idx]) => {
+            const el = document.getElementById(id);
+            if (el) {
+                const newEl = el.cloneNode(true);
+                el.parentNode.replaceChild(newEl, el);
+                newEl.addEventListener('click', () => dt.button(idx).trigger());
+            }
         });
     }
 
@@ -241,9 +274,8 @@ class FichasPage {
                         <label for="jornada" class="form-label"><i class="bi bi-clock text-muted me-1"></i> Jornada</label>
                         <select class="form-select" id="jornada" required>
                           <option value="">Seleccionar jornada...</option>
-                          <option value="Mañana">🌅 Mañana (6:00 AM - 12:00 PM)</option>
-                          <option value="Tarde">☀️ Tarde (12:00 PM - 6:00 PM)</option>
-                          <option value="Noche">🌙 Noche (6:00 PM - 12:00 AM)</option>
+                          <option value="Diurna">🌅 Diurna</option>
+                          <option value="Mixta">🌙 Mixta</option>
                         </select>
                       </div>
                       <div class="col-md-6">
@@ -344,7 +376,7 @@ class FichasPage {
                     <div class="col-md-6">
                       <label for="fechaFin" class="form-label"><i class="bi bi-calendar-check text-muted me-1"></i> Fecha de Finalización</label>
                       <input type="date" class="form-control bg-light" id="fechaFin" readonly>
-                      <div class="form-text mt-1 text-muted" style="font-size: 0.8rem;">Se calcula automáticamente base al programa</div>
+                      <div class="form-text mt-1 text-muted" style="font-size: 0.8rem;">Se calcula con base en el tiempo de duracion del programa.</div>
                     </div>
                   </div>
                   <div class="d-flex justify-content-between mt-4 pt-3 border-top">

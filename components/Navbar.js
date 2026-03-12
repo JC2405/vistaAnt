@@ -38,7 +38,7 @@ export function Navbar() {
                         <i class="bi bi-bell fs-5"></i>
                     </button>
                     
-                    <div class="avatar-circle">${initial}</div>
+  
                 </div>
             </div>
         </nav>

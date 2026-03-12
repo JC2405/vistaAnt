@@ -14,19 +14,19 @@ export function DashboardMenu(activePage) {
             label: 'Horario',
             icon: 'calendar-week',
             items: [
-                { id: 'horario-titulada', icon: 'calendar-check', text: 'Horario Titulada', path: 'horario-titulada.html' },
-                { id: 'horario-formativa', icon: 'calendar-event', text: 'Horario Formativa', path: 'horario-formativa.html' },
+                { id: 'horario-titulada', icon: 'calendar-check', text: 'Programar Horario Titulada', path: 'horario-titulada.html' },
+                { id: 'horario-formativa', icon: 'calendar-event', text: 'Programar Horario Tranvesales', path: 'horario-formativa.html' },
             ]
         },
         {
             id: 'group-programa',
-            label: 'Programa Formación',
+            label: 'Programas Formacion',
             icon: 'book',
             items: [
-                { id: 'sedes', icon: 'building', text: 'Sedes', path: 'sedes.html' },
+                { id: 'fichas', icon: 'folder2-open', text: 'Fichas', path: 'fichas.html' },
                 { id: 'programas', icon: 'book-half', text: 'Programas', path: 'programas.html' },
                 { id: 'tipos-programa', icon: 'journals', text: 'Tipo Programas', path: 'tipos-programas.html' },
-                { id: 'fichas', icon: 'folder2-open', text: 'Fichas', path: 'fichas.html' },
+                { id: 'sedes', icon: 'building', text: 'Sedes', path: 'sedes.html' },
             ]
         },
         {
@@ -34,9 +34,9 @@ export function DashboardMenu(activePage) {
             label: 'Instructores',
             icon: 'people',
             items: [
-                { id: 'tipos-contrato', icon: 'file-earmark-text', text: 'Tipo de Contrato', path: 'tipos-contrato.html' },
-                { id: 'areas', icon: 'grid', text: 'Áreas', path: 'areas.html' },
                 { id: 'funcionarios', icon: 'person-badge', text: 'Instructores', path: 'funcionarios.html' },
+                { id: 'areas', icon: 'grid', text: 'Áreas', path: 'areas.html' },
+                { id: 'tipos-contrato', icon: 'file-earmark-text', text: 'Tipo de Contrato', path: 'tipos-contrato.html' },
             ]
         }
     ];
@@ -61,7 +61,7 @@ export function DashboardMenu(activePage) {
         const pathFilename = i.path.replace(/^.*\//, '').replace(/\.html$/, '');
         return activePageClean === i.id || activePageClean === pathFilename;
     }));
-    const activeGroupId = activeGroup ? activeGroup.id : (groups[0] ? groups[0].id : '');
+    const activeGroupId = activeGroup ? activeGroup.id : '';
 
     const menuHtml = groups.map(group => {
         const isOpen = group.id === activeGroupId;
@@ -88,9 +88,9 @@ export function DashboardMenu(activePage) {
                         data-bs-target="#${group.id}"
                         aria-expanded="${isOpen}"
                         aria-controls="${group.id}">
-                    <span class="d-flex align-items-center gap-2 fw-semibold">
+                    <span class="d-flex align-items-center gap-2 fw-semibold text-start">
                         <i class="bi bi-${group.icon} sidebar-group-icon"></i>
-                        <span class="sidebar-group-label">${group.label}</span>
+                        <span class="sidebar-group-label" style="line-height: 1.1;">${group.label}</span>
                     </span>
                     <i class="bi bi-chevron-down sidebar-chevron ${isOpen ? 'rotated' : ''}"></i>
                 </button>

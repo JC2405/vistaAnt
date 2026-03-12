@@ -62,10 +62,10 @@ class FuncionariosPage {
                     <!-- Toolbar -->
                     <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                         <div class="btn-group btn-group-sm" role="group">
-                            <button class="btn btn-dark rounded-start-pill px-3">Columnas <i class="bi bi-chevron-down ms-1"></i></button>
-                            <button class="btn btn-dark px-3">Excel</button>
-                            <button class="btn btn-dark px-3">PDF</button>
-                            <button class="btn btn-dark rounded-end-pill px-3">Print</button>
+                            <button id="btn-colvis" class="btn btn-dark rounded-start-pill px-3">Columnas <i class="bi bi-chevron-down ms-1"></i></button>
+                            <button id="btn-excel"  class="btn btn-dark px-3">Excel</button>
+                            <button id="btn-pdf"    class="btn btn-dark px-3">PDF</button>
+                            <button id="btn-print"  class="btn btn-dark rounded-end-pill px-3">Print</button>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <label class="mb-0 fw-medium" style="color: var(--text-muted); font-size: 0.85rem;">Search:</label>
@@ -83,19 +83,26 @@ class FuncionariosPage {
             <!-- Modal Container -->
             <div id="modal-container"></div>
 
-            <!-- Offcanvas: Horario del Instructor -->
-            <div class="offcanvas offcanvas-end shadow-lg" tabindex="-1" id="offcanvasHorarioInstructor" style="width:600px;">
-                <div class="offcanvas-header text-white p-4" style="background:linear-gradient(135deg,var(--primary) 0%,hsl(280,60%,55%) 100%);">
-                    <h5 class="offcanvas-title fw-bold d-flex align-items-center gap-2" id="offcanvas-instructor-title">
-                        <i class="bi bi-calendar-week"></i> Horario del Instructor
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-                </div>
-                <div class="offcanvas-body p-4" style="background:var(--bg-page);">
-                    <div id="offcanvas-horario-body">
-                        <div class="text-center py-5 text-muted">
-                            <div class="spinner-border text-primary mb-3" role="status"></div>
-                            <p class="small">Cargando horario...</p>
+            <!-- Modal: Horario del Instructor -->
+            <div class="modal fade" id="modalHorarioInstructor" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
+                        <!-- Header -->
+                        <div class="modal-header text-white border-0 px-4 py-3"
+                             style="background:linear-gradient(135deg,var(--primary) 0%,hsl(280,60%,55%) 100%);">
+                            <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modal-horario-instructor-title">
+                                <i class="bi bi-calendar-week"></i> Horario del Instructor
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <!-- Body -->
+                        <div class="modal-body p-4" style="background:var(--bg-page); min-height:500px;">
+                            <div id="modal-horario-body">
+                                <div class="text-center py-5 text-muted">
+                                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                                    <p class="small">Cargando horario...</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -208,6 +215,25 @@ class FuncionariosPage {
             data: displayData
         });
 
+        // Inicializar DataTables con botones
+        if (typeof $ !== 'undefined' && $.fn.dataTable) {
+            this.dtInstance = $('#funcionarios-table').DataTable({
+                responsive: true,
+                paging: false,
+                info: false,
+                searching: false,
+                dom: 'rt',
+                buttons: [
+                    { extend: 'colvis', text: 'Columnas' },
+                    { extend: 'excel',  text: 'Excel' },
+                    { extend: 'pdf',    text: 'PDF' },
+                    { extend: 'print',  text: 'Print' }
+                ],
+                columnDefs: [{ orderable: false, targets: -1 }]
+            });
+            this.bindToolbarButtons();
+        }
+
         // Event Listeners
         document.querySelectorAll('.btn-edit').forEach(btn => {
             btn.addEventListener('click', (e) => this.openModal(e.currentTarget.dataset.id));
@@ -223,6 +249,20 @@ class FuncionariosPage {
                 const nombre = e.currentTarget.dataset.nombre;
                 this.verHorario(id, nombre);
             });
+        });
+    }
+
+    bindToolbarButtons() {
+        const dt = this.dtInstance;
+        if (!dt) return;
+        const map = { 'btn-colvis': 0, 'btn-excel': 1, 'btn-pdf': 2, 'btn-print': 3 };
+        Object.entries(map).forEach(([id, idx]) => {
+            const el = document.getElementById(id);
+            if (el) {
+                const newEl = el.cloneNode(true);
+                el.parentNode.replaceChild(newEl, el);
+                newEl.addEventListener('click', () => dt.button(idx).trigger());
+            }
         });
     }
 
@@ -246,9 +286,34 @@ class FuncionariosPage {
                 <div class="col-md-6">
                     ${FormInput({ id: 'telefono', label: 'Teléfono', required: true })}
                 </div>
-                <div class="col-md-6">
-                    ${FormInput({ id: 'password', label: 'Contraseña (Opcional en edición)', type: 'password' })}
+
+                <!-- Campo contraseña: solo visible en modo editar -->
+                <div class="col-md-6" id="password-section" style="display:none;">
+                    <div class="mb-4 position-relative" style="background:#f8fafc; border:1px solid #eeecf5; border-radius:0.6rem; padding: 0.1rem 0 0 0;">
+                        <div class="input-group" style="border-radius:0.6rem; overflow:hidden;">
+                            <input type="password" class="form-control" id="password-new"
+                                   placeholder=" "
+                                   style="background:#f8fafc; border:none; border-radius:0.6rem 0 0 0.6rem; padding-top:1.4rem; padding-bottom:0.3rem; height:3.4rem;">
+                            <button type="button"
+                                    style="background:#f8fafc; border:none; border-left:1px solid #eeecf5; padding: 0 0.9rem; cursor:pointer;"
+                                    onclick="
+                                        const inp = document.getElementById('password-new');
+                                        const ico = this.querySelector('i');
+                                        if(inp.type==='password'){ inp.type='text'; ico.className='bi bi-eye-slash text-muted'; }
+                                        else { inp.type='password'; ico.className='bi bi-eye text-muted'; }
+                                    ">
+                                <i class="bi bi-eye text-muted"></i>
+                            </button>
+                        </div>
+                        <label style="position:absolute; top:0.5rem; left:0.85rem; font-size:0.75rem; color:var(--primary); font-weight:500; pointer-events:none;">
+                            <i class="bi bi-lock me-1"></i>Nueva contraseña
+                        </label>
+                        <small id="password-hint" class="d-block px-2 pb-1 mt-1" style="font-size:0.73rem; color:#888;">
+                            <i class="bi bi-info-circle me-1"></i>Por defecto: <strong id="password-hint-value" style="color:var(--text-dark);">—</strong> · Deja vacío para no cambiar
+                        </small>
+                    </div>
                 </div>
+
                 <div class="col-md-6">
                     <div id="tipoContrato-wrapper"></div>
                 </div>
@@ -300,12 +365,25 @@ class FuncionariosPage {
         document.getElementById('correo').value = funcionario ? funcionario.correo : '';
         document.getElementById('telefono').value = funcionario ? funcionario.telefono : '';
         document.getElementById('estado').value = funcionario ? funcionario.estado : '';
-        document.getElementById('password').value = '';
+
+        // Mostrar/ocultar sección de contraseña según modo
+        const pwdSection = document.getElementById('password-section');
+        const pwdInput   = document.getElementById('password-new');
+        if (funcionario) {
+            // Modo editar: mostrar panel con hint del documento actual
+            pwdSection.style.display = 'block';
+            pwdInput.value = '';
+            const hintVal = document.getElementById('password-hint-value');
+            if (hintVal) hintVal.textContent = funcionario.documento || '—';
+        } else {
+            // Modo crear: ocultar panel, el backend pone el documento
+            pwdSection.style.display = 'none';
+            if (pwdInput) pwdInput.value = '';
+        }
 
         const formEl = document.getElementById('funcionario-modal-form');
         formEl.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
         document.getElementById('funcionario-modal-title').textContent = funcionario ? 'Editar Instructor' : 'Nuevo Instructor';
-        document.getElementById('password').required = !funcionario;
     }
 
     openModal(id = null) {
@@ -344,9 +422,12 @@ class FuncionariosPage {
             areas: areasSelected
         };
 
-        const pwd = document.getElementById('password').value;
-        if (pwd) {
-            data.password = pwd;
+        // En modo editar: incluir contraseña solo si se ingresó una nueva
+        if (this.currentEditId) {
+            const newPwd = (document.getElementById('password-new')?.value || '').trim();
+            if (newPwd) {
+                data.password = newPwd;
+            }
         }
 
         setModalLoading('funcionario-modal', true);
@@ -377,17 +458,17 @@ class FuncionariosPage {
 
     // ── Ver Horario del Instructor ─────────────────────────────────────────
     async verHorario(idFuncionario, nombreInstructor) {
-        // Actualizar título del offcanvas
-        document.getElementById('offcanvas-instructor-title').innerHTML =
+        // Actualizar título del modal
+        document.getElementById('modal-horario-instructor-title').innerHTML =
             '<i class="bi bi-calendar-week"></i> ' + (nombreInstructor || 'Instructor');
 
-        // Mostrar el offcanvas
-        const offcanvasEl = document.getElementById('offcanvasHorarioInstructor');
-        const offcanvas   = bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
-        offcanvas.show();
+        // Mostrar el modal
+        const modalEl = document.getElementById('modalHorarioInstructor');
+        const bsModal  = bootstrap.Modal.getOrCreateInstance(modalEl);
+        bsModal.show();
 
         // Mostrar spinner mientras carga
-        const body = document.getElementById('offcanvas-horario-body');
+        const body = document.getElementById('modal-horario-body');
         body.innerHTML = `
             <div class="text-center py-5 text-muted">
                 <div class="spinner-border text-primary mb-3" role="status"></div>
@@ -395,7 +476,7 @@ class FuncionariosPage {
             </div>`;
 
         try {
-            const data  = await getHorarioPorInstructor(idFuncionario);
+            const data   = await getHorarioPorInstructor(idFuncionario);
             const clases = data.clases || [];
             this.renderCalendarioInstructor(body, clases, nombreInstructor);
         } catch (err) {
@@ -455,7 +536,7 @@ class FuncionariosPage {
             });
         });
 
-        container.innerHTML = '<div id="cal-instructor" style="height:520px;"></div>';
+        container.innerHTML = '<div id="cal-instructor" style="height:560px;"></div>';
 
         const calendarEl = document.getElementById('cal-instructor');
         const calendar   = new FullCalendar.Calendar(calendarEl, {

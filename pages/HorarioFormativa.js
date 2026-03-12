@@ -69,7 +69,7 @@ class HorarioFormativa {
             // Offcanvas
             '<div class="offcanvas offcanvas-end shadow-lg" tabindex="-1" id="offcanvasHorario" style="width:460px;">' +
             '<div class="offcanvas-header text-white p-4" style="background:linear-gradient(135deg,hsl(280,60%,55%) 0%,var(--primary) 100%);">' +
-            '<h5 class="offcanvas-title fw-bold d-flex align-items-center gap-2"><i class="bi bi-calendar-plus"></i> Asignar Clase</h5>' +
+            '<h5 class="offcanvas-title fw-bold d-flex align-items-center gap-2"><i class="bi bi-calendar-plus"></i> Asignar Formacion</h5>' +
             '<button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>' +
             '</div>' +
             '<div class="offcanvas-body p-4" style="background:var(--bg-page)">' +
@@ -86,7 +86,7 @@ class HorarioFormativa {
             '<div class="col-6"><label class="form-label small text-muted">Fecha Fin</label><input type="date" class="form-control" id="fecha_fin" required></div>' +
             '</div>' +
 
-            '<p class="fw-semibold text-dark mb-2"><i class="bi bi-briefcase me-2 text-muted"></i>2. Detalles de la Clase</p>' +
+            '<p class="fw-semibold text-dark mb-2"><i class="bi bi-briefcase me-2 text-muted"></i>2. Detalles de la Formacion</p>' +
             '<div class="mb-3"><label class="form-label small text-muted">Modalidad</label>' +
             '<select class="form-select" id="modalidad_clase" required>' +
             '<option value="presencial">Presencial</option><option value="virtual">Virtual</option>' +
@@ -510,7 +510,7 @@ class HorarioFormativa {
             '<p class="small mb-0" style="color:var(--text-muted)">' + (ficha.programa ? ficha.programa.nombre : '') + '</p>' +
             '</div>' +
             '<button class="btn btn-purple rounded-pill px-4 d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="offcanvas" data-bs-target="#offcanvasHorario">' +
-            '<i class="bi bi-plus-lg"></i><span>Agregar Clase</span>' +
+            '<i class="bi bi-plus-lg"></i><span>Agregar Formacion</span>' +
             '</button></div>';
 
         let body = '<div class="card-body pt-0 px-4 pb-4" style="height:600px;">';
@@ -563,9 +563,12 @@ class HorarioFormativa {
                             ambiente: celda.ambiente,
                             modalidad: celda.modalidad,
                             tipoDeFormacion: celda.tipoDeFormacion,
+                            fecha_inicio: celda.fecha_inicio,
+                            fecha_fin: celda.fecha_fin,
                             idBloque: idBloque,   // ← para la llamada al endpoint
                             idDia: idDia,      // ← para la llamada al endpoint
-                            nombreDia: dia
+                            nombreDia: dia,
+                            idAsignacion: celda.idAsignacion
                         }
                     };
                 } else {
@@ -612,11 +615,15 @@ class HorarioFormativa {
                             <div class="text-truncate" style="font-size:0.75rem;opacity:0.9;">
                                 <i class="bi ${icon}"></i> ${props.ambiente || 'Virtual'}
                             </div>
+                            <div class="mt-1 pb-1" style="font-size: 0.65rem; opacity: 0.85; border-bottom: 1px dashed rgba(0,0,0,0.1);">
+                                <i class="bi bi-calendar3 me-1"></i>${props.fecha_inicio} a ${props.fecha_fin}
+                            </div>
                             ${tipoFormacionBadge}
                             <button class="btn btn-sm text-danger p-0 position-absolute top-0 end-0 delete-dia-btn d-none"
                                     data-idbloque="${props.idBloque}"
                                     data-iddia="${props.idDia}"
                                     data-nombredia="${props.nombreDia}"
+                                    data-idasignacion="${props.idAsignacion}"
                                     style="line-height:1;transform:translate(25%,-25%);background:white;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,0.2);">
                                 <i class="bi bi-x-circle-fill"></i>
                             </button>
@@ -641,31 +648,56 @@ class HorarioFormativa {
             const idBloque = parseInt(btn.dataset.idbloque);
             const idDia = parseInt(btn.dataset.iddia);
             const nombreDia = btn.dataset.nombredia;
-            this.eliminarDiaDeBloque(idBloque, idDia, nombreDia);
+            const idAsignacion = parseInt(btn.dataset.idasignacion);
+            this.eliminarDiaDeBloque(idBloque, idDia, nombreDia, idAsignacion);
         });
     }
 
     // ── NUEVO: elimina solo un día del bloque, no la asignación completa
-    async eliminarDiaDeBloque(idBloque, idDia, nombreDia) {
-        if (!confirm(`¿Eliminar el día ${nombreDia} de este bloque horario?`)) return;
-        try {
-            await apiCall(`/eliminarDiaDeBloque/${idBloque}/${idDia}`, 'DELETE');
-            this.showAlert('page-alert-container', 'success', `Día ${nombreDia} eliminado correctamente del bloque.`);
-            this.selectFicha(this.selectedFicha.idFicha);
-        } catch (err) {
-            const msg = err.message || 'Error al eliminar el día.';
-            if (msg.includes('ULTIMO_DIA') || msg.toLowerCase().includes('único')) {
-                this.showAlert('page-alert-container', 'warning',
-                    'Este es el único día del bloque. Si deseas eliminarlo, elimina el bloque completo.');
-            } else {
-                this.showAlert('page-alert-container', 'danger', 'Error: ' + msg);
+    async eliminarDiaDeBloque(idBloque, idDia, nombreDia, idAsignacion) {
+        Swal.fire({
+            title: `¿Eliminar el día ${nombreDia}?`,
+            text: "Se eliminará este día del bloque horario",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    await apiCall(`/eliminarDiaDeBloque/${idBloque}/${idDia}`, 'DELETE');
+                    this.showAlert('page-alert-container', 'success', `Día ${nombreDia} eliminado correctamente del bloque.`);
+                    this.selectFicha(this.selectedFicha.idFicha);
+                } catch (err) {
+                    const msg = err.message || 'Error al eliminar el día.';
+                    if (msg.includes('ULTIMO_DIA') || msg.toLowerCase().includes('único')) {
+                        Swal.fire({
+                            title: 'Último día del bloque',
+                            text: 'Este es el único día del bloque. Si lo eliminas, se eliminará toda la asignación. ¿Deseas continuar?',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#d33',
+                            cancelButtonColor: '#3085d6',
+                            confirmButtonText: 'Sí, eliminar todo',
+                            cancelButtonText: 'Cancelar'
+                        }).then((resultConfirm) => {
+                            if (resultConfirm.isConfirmed) {
+                                this.deleteAsignacion(idAsignacion, true);
+                            }
+                        });
+                    } else {
+                        this.showAlert('page-alert-container', 'danger', 'Error: ' + msg);
+                    }
+                }
             }
-        }
+        });
     }
 
     // ── Eliminar asignación completa (ya no se usa desde el calendario, se mantiene por si se necesita)
-    async deleteAsignacion(id) {
-        if (!confirm('¿Eliminar esta clase del horario por completo?')) return;
+    async deleteAsignacion(id, skipConfirm = false) {
+        if (!skipConfirm && !confirm('¿Eliminar esta clase del horario por completo?')) return;
         try {
             await apiCall('/eliminarAsignacion/' + id, 'DELETE');
             this.showAlert('page-alert-container', 'success', 'Clase eliminada correctamente.');
@@ -686,29 +718,19 @@ class HorarioFormativa {
             return;
         }
 
-        const bloqueData = {
-            hora_inicio: document.getElementById('hora_inicio').value + ':00',
-            hora_fin: document.getElementById('hora_fin').value + ':00',
-            modalidad,
-            tipoDeFormacion: 'Formativa',
-            idFuncionario: parseInt(document.getElementById('idFuncionario').value),
-            idFicha: this.selectedFicha.idFicha,
-            dias
-        };
-        if (modalidad === 'presencial') bloqueData.idAmbiente = idAmbiente;
-
-        const btn = document.getElementById('btn-asignar');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Asignando...';
-
         try {
-            const resBloque = await apiCall('/crearBloque', 'POST', bloqueData);
-            const idBloque = resBloque.idBloque || (resBloque.bloque && resBloque.bloque.idBloque);
-            if (!idBloque) throw new Error('No se obtuvo el ID del bloque.');
-
             await apiCall('/crearAsignacion', 'POST', {
+                // Datos del Bloque
+                hora_inicio: document.getElementById('hora_inicio').value + ':00',
+                hora_fin: document.getElementById('hora_fin').value + ':00',
+                modalidad: modalidad,
+                tipoDeFormacion: 'Formativa',
+                idFuncionario: parseInt(document.getElementById('idFuncionario').value),
+                dias: dias,
+                idAmbiente: modalidad === 'presencial' ? idAmbiente : null,
+                
+                // Datos de la Asignación
                 idFicha: this.selectedFicha.idFicha,
-                idBloque,
                 fecha_inicio: document.getElementById('fecha_inicio').value,
                 fecha_fin: document.getElementById('fecha_fin').value,
                 estado: 'activo'
