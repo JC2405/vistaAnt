@@ -100,7 +100,7 @@ class TiposContratoPage {
             return;
         }
         const filtered = this.tipos.filter(t => {
-            return (t.nombre && t.nombre.toLowerCase().includes(q)) ||
+            return (t.nombreTipoContrato  && t.nombreTipoContrato .toLowerCase().includes(q)) ||
                 (t.idTipoContrato && String(t.idTipoContrato).toLowerCase().includes(q));
         });
         this.renderTable(filtered);
@@ -121,7 +121,7 @@ class TiposContratoPage {
         const displayData = data || this.tipos;
 
         const columns = [
-            { key: 'nombre', label: 'Nombre del Tipo de Contrato', icon: 'textarea-t' },
+            { key: 'nombreTipoContrato', label: 'Nombre del Tipo de Contrato', icon: 'textarea-t' },
             {
                 key: 'acciones',
                 label: '',
@@ -191,7 +191,7 @@ class TiposContratoPage {
         const formContent = `
             <div class="row g-3">
                 <div class="col-12">
-                    ${FormInput({ id: 'nombre', label: 'Nombre del Tipo de Contrato', required: true })}
+                    ${FormInput({ id: 'nombreTipoContrato', label: 'Nombre del Tipo de Contrato', required: true })}
                 </div>
             </div>
         `;
@@ -209,7 +209,7 @@ class TiposContratoPage {
     }
 
     injectDynamicModalFields(tipo = null) {
-        document.getElementById('nombre').value = tipo ? tipo.nombre : '';
+        document.getElementById('nombreTipoContrato').value = tipo ? tipo.nombreTipoContrato     : '';
 
         const formEl = document.getElementById('tipo-modal-form');
         formEl.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
@@ -238,7 +238,7 @@ class TiposContratoPage {
         }
 
         const data = {
-            nombre: document.getElementById('nombre').value
+            nombreTipoContrato: document.getElementById('nombreTipoContrato').value
         };
 
         setModalLoading('tipo-modal', true);
@@ -274,7 +274,7 @@ class TiposContratoPage {
 
         const confirm = await ConfirmDialog({
             title: '¿Eliminar Tipo de Contrato?',
-            message: 'Vas a eliminar permanentemente el tipo <strong>' + tipo.nombre + '</strong>. Esta acción no se puede deshacer.',
+            message: 'Vas a eliminar permanentemente el tipo <strong>' + tipo.nombreTipoContrato  + '</strong>. Esta acción no se puede deshacer.',
             confirmText: 'Sí, eliminar',
             cancelText: 'Cancelar'
         });

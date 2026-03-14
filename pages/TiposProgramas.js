@@ -84,7 +84,6 @@ class TiposProgramasPage {
 
         document.getElementById('btn-add-tipo').addEventListener('click', () => this.openModal());
 
-        // Search filter
         const searchInput = document.getElementById('search-input');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -100,7 +99,9 @@ class TiposProgramasPage {
             return;
         }
         const filtered = this.tipos.filter(t => {
-            return (t.nombre && t.nombre.toLowerCase().includes(q)) ||
+            // Support both old snake_case and new camelCase field names from the API response
+            const nombre = t.nombreTipoFormacion || t.nombre || '';
+            return nombre.toLowerCase().includes(q) ||
                 (t.idTipoFormacion && String(t.idTipoFormacion).includes(q));
         });
         this.renderTable(filtered);
@@ -121,12 +122,21 @@ class TiposProgramasPage {
         const displayData = data || this.tipos;
 
         const columns = [
-            { key: 'nombre', label: 'Nombre del Tipo de Formación', icon: 'mortarboard' },
             {
-                key: 'duracion_meses',
+                key: 'nombreTipoFormacion',
+                label: 'Nombre del Tipo de Formación',
+                icon: 'mortarboard',
+                // Support both field names in case the API returns either
+                render: (row) => row.nombreTipoFormacion || row.nombre || '<span class="text-muted">N/A</span>'
+            },
+            {
+                key: 'duracionMeses',
                 label: 'Duración (Meses)',
                 icon: 'calendar-range',
-                render: (row) => row.duracion_meses ? row.duracion_meses + ' meses' : '<span class="text-muted">No definida</span>'
+                render: (row) => {
+                    const val = row.duracionMeses ?? row.duracion_meses;
+                    return val ? val + ' meses' : '<span class="text-muted">No definida</span>';
+                }
             },
             {
                 key: 'acciones',
@@ -150,7 +160,6 @@ class TiposProgramasPage {
             data: displayData
         });
 
-        // Inicializar DataTables con botones
         if (typeof $ !== 'undefined' && $.fn.dataTable) {
             this.dtInstance = $('#tipos-table').DataTable({
                 responsive: true,
@@ -169,7 +178,6 @@ class TiposProgramasPage {
             this.bindToolbarButtons();
         }
 
-        // Event Listeners
         document.querySelectorAll('.btn-edit').forEach(btn => {
             btn.addEventListener('click', (e) => this.openModal(e.currentTarget.dataset.id));
         });
@@ -197,10 +205,10 @@ class TiposProgramasPage {
         const formContent = `
             <div class="row g-3">
                 <div class="col-md-8">
-                    ${FormInput({ id: 'nombre', label: 'Nombre (Ej. Tecnólogo, Especialización)', required: true })}
+                    ${FormInput({ id: 'nombreTipoFormacion', label: 'Nombre (Ej. Tecnólogo, Especialización)', required: true })}
                 </div>
                 <div class="col-md-4">
-                    ${FormInput({ id: 'duracion_meses', label: 'Duración (Meses)', type: 'number', required: false })}
+                    ${FormInput({ id: 'duracionMeses', label: 'Duración (Meses)', type: 'number', required: true })}
                 </div>
             </div>
         `;
@@ -218,8 +226,13 @@ class TiposProgramasPage {
     }
 
     injectDynamicModalFields(tipo = null) {
-        document.getElementById('nombre').value = tipo ? tipo.nombre : '';
-        document.getElementById('duracion_meses').value = tipo ? (tipo.duracion_meses || '') : '';
+        // Support both field names in case the API returns either
+        document.getElementById('nombreTipoFormacion').value = tipo
+            ? (tipo.nombreTipoFormacion || tipo.nombre || '')
+            : '';
+        document.getElementById('duracionMeses').value = tipo
+            ? (tipo.duracionMeses ?? tipo.duracion_meses ?? '')
+            : '';
 
         const formEl = document.getElementById('tipo-modal-form');
         formEl.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
@@ -247,10 +260,9 @@ class TiposProgramasPage {
             return;
         }
 
-        const duracionStr = document.getElementById('duracion_meses').value;
         const data = {
-            nombre: document.getElementById('nombre').value,
-            duracion_meses: duracionStr ? parseInt(duracionStr) : null
+            nombreTipoFormacion: document.getElementById('nombreTipoFormacion').value,
+            duracionMeses: parseInt(document.getElementById('duracionMeses').value)
         };
 
         setModalLoading('tipo-modal', true);
@@ -284,16 +296,17 @@ class TiposProgramasPage {
         const tipo = this.tipos.find(t => String(t.idTipoFormacion) === String(id));
         if (!tipo) return;
 
+        const nombre = tipo.nombreTipoFormacion || tipo.nombre || 'este tipo';
+
         const confirm = await ConfirmDialog({
             title: '¿Eliminar Tipo?',
-            message: 'Vas a eliminar permanentemente <strong>' + tipo.nombre + '</strong>. Esta acción no se puede deshacer.',
+            message: 'Vas a eliminar permanentemente <strong>' + nombre + '</strong>. Esta acción no se puede deshacer.',
             confirmText: 'Sí, eliminar',
             cancelText: 'Cancelar'
         });
 
         if (confirm) {
             try {
-                // Optimistic UI update
                 const prev = [...this.tipos];
                 this.tipos = this.tipos.filter(t => String(t.idTipoFormacion) !== String(id));
                 this.renderTable();
@@ -302,7 +315,7 @@ class TiposProgramasPage {
                 this.showAlert('page-alert-container', 'success', 'Tipo de formación eliminado del sistema.');
             } catch (error) {
                 this.showAlert('page-alert-container', 'danger', 'Error al eliminar: ' + error.message);
-                await this.loadData(); // revert
+                await this.loadData();
             }
         }
     }

@@ -267,53 +267,54 @@ class AmbientesPage {
         ).join('');
 
         const formContent = `
-            <div class="row g-3">
-                <div class="col-md-4">
-                    ${FormInput({ id: 'codigo', label: 'Código', required: true })}
-                </div>
-                <div class="col-md-8">
-                    ${FormInput({ id: 'descripcion', label: 'Descripción / Nombre', required: true })}
-                </div>
-                <div class="col-md-4">
-                    ${FormInput({ id: 'numero', label: 'Número de Ambiente', type: 'number', required: true })}
-                </div>
-                <div class="col-md-4">
-                    ${FormInput({ id: 'capacidad', label: 'Capacidad', type: 'number', required: true })}
-                </div>
-                <div class="col-md-4">
-                    ${FormInput({ id: 'bloque', label: 'Bloque (ej. L, D)', required: true })}
-                </div>
-                
-                <div class="col-md-4">
-                    <div class="mb-4 form-floating position-relative">
-                        <select class="form-select" id="tipoAmbiente" required style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
-                            <option value="">Seleccione tipo...</option>
-                            <option value="Bilinguismo">Bilinguismo</option>
-                            <option value="Formacion">Formacion</option>
-                            <option value="Taller">Taller</option>
-                        </select>
-                        <label for="tipoAmbiente">Tipo de Ambiente</label>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="mb-4 form-floating position-relative">
-                        <select class="form-select" id="idArea" required style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
-                            <option value="">Seleccione área...</option>
-                            ${areaOptions}
-                        </select>
-                        <label for="idArea">Área de Formación</label>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="mb-4 form-floating position-relative">
-                        <select class="form-select" id="estado" required style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
-                            <option value="Activo">Activo</option>
-                            <option value="Inactivo">Inactivo</option>
-                        </select>
-                        <label for="estado">Estado</label>
-                    </div>
+                   <div class="row g-3">
+            <div class="col-md-4">
+                ${FormInput({ id: 'codigo', label: 'Código', required: true })}
+            </div>
+            <div class="col-md-8">
+                ${FormInput({ id: 'descripcion', label: 'Descripción / Nombre', required: true })}
+            </div>
+
+            <div class="col-md-4">
+                ${FormInput({ id: 'capacidad', label: 'Capacidad', type: 'number', required: true })}
+            </div>
+
+            <div class="col-md-4">
+                ${FormInput({ id: 'bloque', label: 'Bloque (ej. L, D)', required: true })}
+            </div>
+
+            <div class="col-md-4">
+                <div class="mb-4 form-floating position-relative">
+                    <select class="form-select" id="tipoAmbiente" required style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
+                        <option value="">Seleccione tipo...</option>
+                        <option value="Bilinguismo">Bilinguismo</option>
+                        <option value="Formacion">Formacion</option>
+                        <option value="Taller">Taller</option>
+                    </select>
+                    <label for="tipoAmbiente">Tipo de Ambiente</label>
                 </div>
             </div>
+
+            <div class="col-md-4">
+                <div class="mb-4 form-floating position-relative">
+                    <select class="form-select" id="idArea" required style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
+                        <option value="">Seleccione área...</option>
+                        ${areaOptions}
+                    </select>
+                    <label for="idArea">Área de Formación</label>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="mb-4 form-floating position-relative">
+                    <select class="form-select" id="estado" required style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
+                        <option value="Activo">Activo</option>
+                        <option value="Inactivo">Inactivo</option>
+                    </select>
+                    <label for="estado">Estado</label>
+                </div>
+            </div>
+        </div>
         `;
 
         document.getElementById('modal-container').innerHTML = ModalForm({
@@ -331,7 +332,6 @@ class AmbientesPage {
     injectDynamicModalFields(ambiente = null) {
         document.getElementById('codigo').value = ambiente ? ambiente.codigo : '';
         document.getElementById('descripcion').value = ambiente ? ambiente.descripcion : '';
-        document.getElementById('numero').value = ambiente ? ambiente.numero : '';
         document.getElementById('capacidad').value = ambiente ? ambiente.capacidad : '';
         document.getElementById('bloque').value = ambiente ? ambiente.bloque : '';
         document.getElementById('tipoAmbiente').value = ambiente ? (ambiente.tipoAmbiente || '') : '';
@@ -382,7 +382,6 @@ class AmbientesPage {
         const data = {
             codigo: document.getElementById('codigo').value,
             descripcion: document.getElementById('descripcion').value,
-            numero: document.getElementById('numero').value,
             capacidad: parseInt(document.getElementById('capacidad').value),
             bloque: document.getElementById('bloque').value,
             tipoAmbiente: document.getElementById('tipoAmbiente').value,

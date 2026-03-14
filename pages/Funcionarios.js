@@ -111,7 +111,6 @@ class FuncionariosPage {
 
         document.getElementById('btn-add-funcionario').addEventListener('click', () => this.openModal());
 
-        // Search filter
         const searchInput = document.getElementById('search-input');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -127,10 +126,10 @@ class FuncionariosPage {
             return;
         }
         const filtered = this.funcionarios.filter(f => {
-            return (f.nombre && f.nombre.toLowerCase().includes(q)) ||
-                (f.documento && f.documento.toLowerCase().includes(q)) ||
-                (f.correo && f.correo.toLowerCase().includes(q)) ||
-                (f.telefono && f.telefono.toLowerCase().includes(q));
+            return (f.nombre    && f.nombre.toLowerCase().includes(q)) ||
+                   (f.documento && f.documento.toLowerCase().includes(q)) ||
+                   (f.correo    && f.correo.toLowerCase().includes(q)) ||
+                   (f.telefono  && f.telefono.toLowerCase().includes(q));
         });
         this.renderTable(filtered);
     }
@@ -143,9 +142,9 @@ class FuncionariosPage {
                 getAreas()
             ]);
 
-            this.funcionarios = funcionariosData.data || (Array.isArray(funcionariosData) ? funcionariosData : []);
-            this.tiposContrato = contratosData.data || (Array.isArray(contratosData) ? contratosData : []);
-            this.areas = areasData.data || (Array.isArray(areasData) ? areasData : []);
+            this.funcionarios  = funcionariosData.data || (Array.isArray(funcionariosData) ? funcionariosData : []);
+            this.tiposContrato = contratosData.data    || (Array.isArray(contratosData)    ? contratosData    : []);
+            this.areas         = areasData.data        || (Array.isArray(areasData)        ? areasData        : []);
 
             this.renderTable();
         } catch (error) {
@@ -154,12 +153,35 @@ class FuncionariosPage {
         }
     }
 
+    // ── Helpers para leer tipo de contrato sin importar la forma que llegue del backend ──
+    _getTipoContratoNombre(row) {
+        // Caso 1: objeto anidado  { tipoContrato: { nombreTipoContrato: '...' } }
+        if (row.tipoContrato?.nombreTipoContrato) return row.tipoContrato.nombreTipoContrato;
+        // Caso 2: objeto anidado con campo 'nombre'  { tipoContrato: { nombre: '...' } }
+        if (row.tipoContrato?.nombre)             return row.tipoContrato.nombre;
+        // Caso 3: campo plano  { nombreTipoContrato: '...' }
+        if (row.nombreTipoContrato)               return row.nombreTipoContrato;
+        // Caso 4: buscar en el array local por ID
+        const id = row.idTipoContrato ?? row.tipoContrato?.idTipoContrato;
+        if (id) {
+            const found = this.tiposContrato.find(t => String(t.idTipoContrato) === String(id));
+            if (found) return found.nombreTipoContrato || found.nombre || '';
+        }
+        return '';
+    }
+
+    _getTipoContratoId(row) {
+        return row.idTipoContrato
+            ?? row.tipoContrato?.idTipoContrato
+            ?? '';
+    }
+
     renderTable(data = null) {
         const displayData = data || this.funcionarios;
 
         const columns = [
-            { key: 'nombre', label: 'Nombre', icon: 'person' },
-            { key: 'correo', label: 'Correo', icon: 'envelope' },
+            { key: 'nombre',   label: 'Nombre',   icon: 'person'    },
+            { key: 'correo',   label: 'Correo',   icon: 'envelope'  },
             { key: 'telefono', label: 'Teléfono', icon: 'telephone' },
             {
                 key: 'estado',
@@ -167,23 +189,31 @@ class FuncionariosPage {
                 icon: 'circle-fill',
                 render: (row) => {
                     const isActive = row.estado && row.estado.toLowerCase() === 'activo';
-                    return `<span class="badge-status ${isActive ? 'active' : 'inactive'}">${row.estado || 'N/A'}</span>`;
+                    return `<span class="badge-status ${isActive ? 'active' : 'inactive'}">${row.estado || ''}</span>`;
                 }
             },
             {
-                key: 'tipo_contrato',
+                key: 'tipoContrato',
                 label: 'Tipo Contrato',
                 icon: 'file-earmark-text',
-                render: (row) => row.tipo_contrato ? row.tipo_contrato.nombre : 'N/A'
+                render: (row) => {
+                    const nombre = this._getTipoContratoNombre(row);
+                    return nombre
+                        ? `<span>${nombre}</span>`
+                        : `<span class="text-muted small">Sin asignar</span>`;
+                }
             },
             {
                 key: 'areas',
                 label: 'Áreas',
                 icon: 'tags',
                 render: (row) => {
-                    if (!row.areas || row.areas.length === 0) return '<span class="text-muted small">Ninguna</span>';
+                    if (!row.areas || row.areas.length === 0)
+                        return '<span class="text-muted small">Ninguna</span>';
                     const maxDisplay = 2;
-                    let html = row.areas.slice(0, maxDisplay).map(a => `<span class="badge bg-light text-dark border me-1 mb-1 fw-normal">${a.nombreArea}</span>`).join('');
+                    let html = row.areas.slice(0, maxDisplay)
+                        .map(a => `<span class="badge bg-light text-dark border me-1 mb-1 fw-normal">${a.nombreArea}</span>`)
+                        .join('');
                     if (row.areas.length > maxDisplay) {
                         html += `<span class="badge bg-secondary text-white fw-normal">+${row.areas.length - maxDisplay}</span>`;
                     }
@@ -211,43 +241,37 @@ class FuncionariosPage {
 
         document.getElementById('table-container').innerHTML = DataTable({
             id: 'funcionarios-table',
-            columns: columns,
+            columns,
             data: displayData
         });
 
-        // Inicializar DataTables con botones
         if (typeof $ !== 'undefined' && $.fn.dataTable) {
             this.dtInstance = $('#funcionarios-table').DataTable({
                 responsive: true,
-                paging: false,
-                info: false,
-                searching: false,
-                dom: 'rt',
+                paging:     false,
+                info:       false,
+                searching:  false,
+                dom:        'rt',
                 buttons: [
                     { extend: 'colvis', text: 'Columnas' },
-                    { extend: 'excel',  text: 'Excel' },
-                    { extend: 'pdf',    text: 'PDF' },
-                    { extend: 'print',  text: 'Print' }
+                    { extend: 'excel',  text: 'Excel'    },
+                    { extend: 'pdf',    text: 'PDF'      },
+                    { extend: 'print',  text: 'Print'    }
                 ],
                 columnDefs: [{ orderable: false, targets: -1 }]
             });
             this.bindToolbarButtons();
         }
 
-        // Event Listeners
         document.querySelectorAll('.btn-edit').forEach(btn => {
             btn.addEventListener('click', (e) => this.openModal(e.currentTarget.dataset.id));
         });
-
         document.querySelectorAll('.btn-delete').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleDelete(e.currentTarget.dataset.id));
         });
-
         document.querySelectorAll('.btn-ver-horario').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const id     = e.currentTarget.dataset.id;
-                const nombre = e.currentTarget.dataset.nombre;
-                this.verHorario(id, nombre);
+                this.verHorario(e.currentTarget.dataset.id, e.currentTarget.dataset.nombre);
             });
         });
     }
@@ -268,23 +292,23 @@ class FuncionariosPage {
 
     setupModal() {
         const estOptions = [
-            { id: 'ACTIVO', nombre: 'ACTIVO' },
+            { id: 'ACTIVO',   nombre: 'ACTIVO'   },
             { id: 'INACTIVO', nombre: 'INACTIVO' }
         ];
 
         const formContent = `
             <div class="row g-3">
                 <div class="col-md-6">
-                    ${FormInput({ id: 'nombre', label: 'Nombre Completo', required: true })}
+                    ${FormInput({ id: 'nombre',    label: 'Nombre Completo',      required: true })}
                 </div>
                 <div class="col-md-6">
-                    ${FormInput({ id: 'documento', label: 'Documento ID', required: true })}
+                    ${FormInput({ id: 'documento', label: 'Documento ID',         required: true })}
                 </div>
                 <div class="col-md-6">
-                    ${FormInput({ id: 'correo', label: 'Correo Electrónico', type: 'email', required: true })}
+                    ${FormInput({ id: 'correo',    label: 'Correo Electrónico',   type: 'email', required: true })}
                 </div>
                 <div class="col-md-6">
-                    ${FormInput({ id: 'telefono', label: 'Teléfono', required: true })}
+                    ${FormInput({ id: 'telefono',  label: 'Teléfono',             required: true })}
                 </div>
 
                 <!-- Campo contraseña: solo visible en modo editar -->
@@ -330,70 +354,76 @@ class FuncionariosPage {
         document.getElementById('modal-container').innerHTML = ModalForm({
             id: 'funcionario-modal',
             title: 'Funcionario',
-            formContent: formContent
+            formContent
         });
 
-        const formEl = document.getElementById('funcionario-modal-form');
-        formEl.addEventListener('submit', this.handleFormSubmit.bind(this));
+        document.getElementById('funcionario-modal-form')
+            .addEventListener('submit', this.handleFormSubmit.bind(this));
 
         this.bsModal = new bootstrap.Modal(document.getElementById('funcionario-modal'));
     }
 
     injectDynamicModalFields(funcionario = null) {
+        // Resolver el ID del tipo de contrato sin importar cómo llega del backend
+        const selectedTipoId = funcionario ? this._getTipoContratoId(funcionario) : '';
+
         document.getElementById('tipoContrato-wrapper').innerHTML = FormSelect({
-            id: 'idTipoContrato',
-            label: 'Tipo de Contrato',
-            options: this.tiposContrato,
-            valueKey: 'idTipoContrato',
-            textKey: 'nombre',
-            selectedValue: funcionario ? funcionario.idTipoContrato : '',
-            required: true
+            id:            'idTipoContrato',
+            label:         'Tipo de Contrato',
+            options:       this.tiposContrato,
+            valueKey:      'idTipoContrato',
+            textKey:       'nombreTipoContrato',
+            selectedValue: selectedTipoId,
+            required:      true
         });
 
-        // Generar checkboxes para áreas
-        const funcAreasIds = funcionario && funcionario.areas ? funcionario.areas.map(a => Number(a.idArea)) : [];
+        // Checkboxes de áreas
+        const funcAreasIds = funcionario?.areas ? funcionario.areas.map(a => Number(a.idArea)) : [];
         const areasHtml = this.areas.map(area => `
             <div class="form-check">
-                <input class="form-check-input" type="checkbox" name="areas[]" value="${area.idArea}" id="area_${area.idArea}" ${funcAreasIds.includes(Number(area.idArea)) ? 'checked' : ''}>
+                <input class="form-check-input" type="checkbox" name="areas[]"
+                       value="${area.idArea}" id="area_${area.idArea}"
+                       ${funcAreasIds.includes(Number(area.idArea)) ? 'checked' : ''}>
                 <label class="form-check-label" for="area_${area.idArea}">${area.nombreArea}</label>
             </div>
         `).join('');
-        document.getElementById('areas-wrapper').innerHTML = areasHtml || '<span class="text-muted">No hay áreas disponibles.</span>';
+        document.getElementById('areas-wrapper').innerHTML =
+            areasHtml || '<span class="text-muted">No hay áreas disponibles.</span>';
 
-        document.getElementById('nombre').value = funcionario ? funcionario.nombre : '';
-        document.getElementById('documento').value = funcionario ? funcionario.documento : '';
-        document.getElementById('correo').value = funcionario ? funcionario.correo : '';
-        document.getElementById('telefono').value = funcionario ? funcionario.telefono : '';
-        document.getElementById('estado').value = funcionario ? funcionario.estado : '';
+        document.getElementById('nombre').value    = funcionario?.nombre    ?? '';
+        document.getElementById('documento').value = funcionario?.documento ?? '';
+        document.getElementById('correo').value    = funcionario?.correo    ?? '';
+        document.getElementById('telefono').value  = funcionario?.telefono  ?? '';
+        document.getElementById('estado').value    = funcionario?.estado    ?? '';
 
-        // Mostrar/ocultar sección de contraseña según modo
+        // Contraseña
         const pwdSection = document.getElementById('password-section');
         const pwdInput   = document.getElementById('password-new');
         if (funcionario) {
-            // Modo editar: mostrar panel con hint del documento actual
             pwdSection.style.display = 'block';
             pwdInput.value = '';
             const hintVal = document.getElementById('password-hint-value');
             if (hintVal) hintVal.textContent = funcionario.documento || '—';
         } else {
-            // Modo crear: ocultar panel, el backend pone el documento
             pwdSection.style.display = 'none';
             if (pwdInput) pwdInput.value = '';
         }
 
-        const formEl = document.getElementById('funcionario-modal-form');
-        formEl.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-        document.getElementById('funcionario-modal-title').textContent = funcionario ? 'Editar Instructor' : 'Nuevo Instructor';
+        document.getElementById('funcionario-modal-form')
+            .querySelectorAll('.is-invalid')
+            .forEach(el => el.classList.remove('is-invalid'));
+
+        document.getElementById('funcionario-modal-title').textContent =
+            funcionario ? 'Editar Instructor' : 'Nuevo Instructor';
     }
 
     openModal(id = null) {
         this.currentEditId = id;
         document.getElementById('funcionario-modal-alert').innerHTML = '';
 
-        let funcionario = null;
-        if (id) {
-            funcionario = this.funcionarios.find(f => String(f.idFuncionario) === String(id));
-        }
+        const funcionario = id
+            ? this.funcionarios.find(f => String(f.idFuncionario) === String(id)) ?? null
+            : null;
 
         this.injectDynamicModalFields(funcionario);
         this.bsModal.show();
@@ -402,10 +432,7 @@ class FuncionariosPage {
     async handleFormSubmit(e) {
         e.preventDefault();
         const form = e.target;
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
+        if (!form.checkValidity()) { form.reportValidity(); return; }
 
         const areasSelected = [];
         document.querySelectorAll('input[name="areas[]"]:checked').forEach(cb => {
@@ -413,21 +440,18 @@ class FuncionariosPage {
         });
 
         const data = {
-            nombre: document.getElementById('nombre').value,
-            documento: document.getElementById('documento').value,
-            correo: document.getElementById('correo').value,
-            telefono: document.getElementById('telefono').value,
-            estado: document.getElementById('estado').value,
+            nombre:         document.getElementById('nombre').value,
+            documento:      document.getElementById('documento').value,
+            correo:         document.getElementById('correo').value,
+            telefono:       document.getElementById('telefono').value,
+            estado:         document.getElementById('estado').value,
             idTipoContrato: document.getElementById('idTipoContrato').value,
-            areas: areasSelected
+            areas:          areasSelected
         };
 
-        // En modo editar: incluir contraseña solo si se ingresó una nueva
         if (this.currentEditId) {
             const newPwd = (document.getElementById('password-new')?.value || '').trim();
-            if (newPwd) {
-                data.password = newPwd;
-            }
+            if (newPwd) data.password = newPwd;
         }
 
         setModalLoading('funcionario-modal', true);
@@ -441,15 +465,13 @@ class FuncionariosPage {
             }
 
             this.bsModal.hide();
-            this.showAlert('page-alert-container', 'success', `Instructor ${this.currentEditId ? 'actualizado' : 'creado'} correctamente.`);
-
+            this.showAlert('page-alert-container', 'success',
+                `Instructor ${this.currentEditId ? 'actualizado' : 'creado'} correctamente.`);
             await this.loadData();
 
         } catch (error) {
             document.getElementById('funcionario-modal-alert').innerHTML = AlertMessage({
-                id: 'modal-error',
-                type: 'danger',
-                message: error.message
+                id: 'modal-error', type: 'danger', message: error.message
             });
         } finally {
             setModalLoading('funcionario-modal', false);
@@ -458,16 +480,12 @@ class FuncionariosPage {
 
     // ── Ver Horario del Instructor ─────────────────────────────────────────
     async verHorario(idFuncionario, nombreInstructor) {
-        // Actualizar título del modal
         document.getElementById('modal-horario-instructor-title').innerHTML =
             '<i class="bi bi-calendar-week"></i> ' + (nombreInstructor || 'Instructor');
 
-        // Mostrar el modal
         const modalEl = document.getElementById('modalHorarioInstructor');
-        const bsModal  = bootstrap.Modal.getOrCreateInstance(modalEl);
-        bsModal.show();
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
 
-        // Mostrar spinner mientras carga
         const body = document.getElementById('modal-horario-body');
         body.innerHTML = `
             <div class="text-center py-5 text-muted">
@@ -499,61 +517,58 @@ class FuncionariosPage {
             return;
         }
 
-        // Mapa para convertir nombre de día a fecha de referencia (semana fija)
         const dayMap = {
-            'Lunes': '2024-01-01', 'Martes': '2024-01-02', 'Miercoles': '2024-01-03',
-            'Jueves': '2024-01-04', 'Viernes': '2024-01-05', 'Sabado': '2024-01-06', 'Domingo': '2024-01-07'
+            'Lunes':     '2024-01-01', 'Martes':    '2024-01-02', 'Miercoles': '2024-01-03',
+            'Jueves':    '2024-01-04', 'Viernes':   '2024-01-05', 'Sabado':    '2024-01-06',
+            'Domingo':   '2024-01-07'
         };
 
-        // Construir eventos de FullCalendar desde las clases del instructor
         const events = [];
         clases.forEach(asig => {
             const bloque = asig.bloque;
             if (!bloque) return;
-            const dias = bloque.dias || [];
-            const ficha = asig.ficha;
-            const isVirtual = bloque.modalidad === 'virtual';
-            const color  = isVirtual ? '#0dcaf0' : '#7e57c2';
-            const bgColor = isVirtual ? 'rgba(13,202,240,0.1)' : 'rgba(126,87,194,0.1)';
+            const ficha      = asig.ficha;
+            const isVirtual  = bloque.modalidad === 'virtual';
+            const color      = isVirtual ? '#0dcaf0'              : '#7e57c2';
+            const bgColor    = isVirtual ? 'rgba(13,202,240,0.1)' : 'rgba(126,87,194,0.1)';
             const ambienteLabel = bloque.ambiente
-                ? (bloque.ambiente.codigo + ' - No.' + bloque.ambiente.numero)
+                ? `${bloque.ambiente.codigo} - No.${bloque.ambiente.numero}`
                 : 'Virtual';
-            const fichaLabel = ficha ? 'Ficha ' + (ficha.codigoFicha || '') : '';
-            const progLabel  = ficha && ficha.programa ? ficha.programa.nombre : '';
+            const fichaLabel = ficha ? `Ficha ${ficha.codigoFicha || ''}` : '';
+            const progLabel  = ficha?.programa?.nombre ?? '';
 
-            dias.forEach(dia => {
+            (bloque.dias || []).forEach(dia => {
                 const dateStr = dayMap[dia.nombre];
                 if (!dateStr) return;
                 events.push({
-                    id: `${asig.idAsignacion}_${dia.idDia}`,
-                    start: `${dateStr}T${bloque.hora_inicio}`,
-                    end:   `${dateStr}T${bloque.hora_fin}`,
+                    id:              `${asig.idAsignacion}_${dia.idDia}`,
+                    start:           `${dateStr}T${bloque.hora_inicio}`,
+                    end:             `${dateStr}T${bloque.hora_fin}`,
                     backgroundColor: bgColor,
-                    borderColor: color,
-                    textColor: color,
-                    extendedProps: { ambienteLabel, fichaLabel, progLabel, modalidad: bloque.modalidad, tipoDeFormacion: bloque.tipoDeFormacion }
+                    borderColor:     color,
+                    textColor:       color,
+                    extendedProps:   { ambienteLabel, fichaLabel, progLabel, modalidad: bloque.modalidad, tipoDeFormacion: bloque.tipoDeFormacion }
                 });
             });
         });
 
         container.innerHTML = '<div id="cal-instructor" style="height:560px;"></div>';
 
-        const calendarEl = document.getElementById('cal-instructor');
-        const calendar   = new FullCalendar.Calendar(calendarEl, {
-            initialView:   'timeGridWeek',
-            initialDate:   '2024-01-01',
-            headerToolbar: false,
-            allDaySlot:    false,
-            slotMinTime:   '06:00:00',
-            slotMaxTime:   '24:00:00',
-            expandRows:    true,
-            hiddenDays:    [],
+        const calendar = new FullCalendar.Calendar(document.getElementById('cal-instructor'), {
+            initialView:     'timeGridWeek',
+            initialDate:     '2024-01-01',
+            headerToolbar:   false,
+            allDaySlot:      false,
+            slotMinTime:     '06:00:00',
+            slotMaxTime:     '24:00:00',
+            expandRows:      true,
+            hiddenDays:      [],
             dayHeaderFormat: { weekday: 'long' },
-            locale: 'es',
+            locale:          'es',
             events,
             eventContent(arg) {
-                const p     = arg.event.extendedProps;
-                const icon  = p.modalidad === 'virtual' ? 'bi-laptop' : 'bi-building';
+                const p    = arg.event.extendedProps;
+                const icon = p.modalidad === 'virtual' ? 'bi-laptop' : 'bi-building';
                 const badge = p.tipoDeFormacion
                     ? `<div class="mt-auto pt-1"><span class="badge bg-secondary bg-opacity-25 text-dark" style="font-size:0.65rem;">${p.tipoDeFormacion}</span></div>`
                     : '';
@@ -577,15 +592,14 @@ class FuncionariosPage {
         if (!funcionario) return;
 
         const confirm = await ConfirmDialog({
-            title: '¿Mover a papelera?',
-            message: `Vas a eliminar permanentemente al instructor <strong>${funcionario.nombre}</strong>. Esta acción no se puede deshacer.`,
+            title:       '¿Mover a papelera?',
+            message:     `Vas a eliminar permanentemente al instructor <strong>${funcionario.nombre}</strong>. Esta acción no se puede deshacer.`,
             confirmText: 'Sí, eliminar',
-            cancelText: 'Cancelar'
+            cancelText:  'Cancelar'
         });
 
         if (confirm) {
             try {
-                const prev = [...this.funcionarios];
                 this.funcionarios = this.funcionarios.filter(f => String(f.idFuncionario) !== String(id));
                 this.renderTable();
 
@@ -602,9 +616,7 @@ class FuncionariosPage {
         const container = document.getElementById(containerId);
         if (container) {
             container.innerHTML = AlertMessage({ id: `alert-${Date.now()}`, type, message });
-            if (type === 'success') {
-                setTimeout(() => { container.innerHTML = ''; }, 5000);
-            }
+            if (type === 'success') setTimeout(() => { container.innerHTML = ''; }, 5000);
         }
     }
 }

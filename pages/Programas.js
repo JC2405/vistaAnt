@@ -8,6 +8,9 @@ import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
 import { getProgramas, createPrograma, updatePrograma, deletePrograma, getTiposFormacion } from '../utils/api.js';
 
+// Helper: extrae el nombre del tipo sin importar qué campo devuelva el API
+const getTipoNombre = (tipo) => tipo ? (tipo.nombreTipoFormacion || tipo.nombre || 'N/A') : null;
+
 class ProgramasPage {
     constructor() {
         new ProtectedRoute();
@@ -86,7 +89,6 @@ class ProgramasPage {
 
         document.getElementById('btn-add-programa').addEventListener('click', () => this.openModal());
 
-        // Search filter
         const searchInput = document.getElementById('search-input');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
@@ -112,10 +114,11 @@ class ProgramasPage {
             return;
         }
         const filtered = this.programas.filter(p => {
+            const tipo = p.tipoFormacion || p.tipo_formacion;
+            const tipoNombre = getTipoNombre(tipo) || '';
             return (p.nombre && p.nombre.toLowerCase().includes(q)) ||
                 (p.codigo && p.codigo.toLowerCase().includes(q)) ||
-                (p.tipo_formacion && p.tipo_formacion.nombre && p.tipo_formacion.nombre.toLowerCase().includes(q)) ||
-                (p.tipoFormacion && p.tipoFormacion.nombre && p.tipoFormacion.nombre.toLowerCase().includes(q));
+                tipoNombre.toLowerCase().includes(q);
         });
         this.renderTable(filtered);
     }
@@ -144,7 +147,8 @@ class ProgramasPage {
                 icon: 'mortarboard',
                 render: (row) => {
                     const tipo = row.tipoFormacion || row.tipo_formacion;
-                    return tipo ? tipo.nombre : '<span class="text-muted">N/A</span>';
+                    const nombre = getTipoNombre(tipo);
+                    return nombre ? nombre : '<span class="text-muted">N/A</span>';
                 }
             },
             {
@@ -178,7 +182,6 @@ class ProgramasPage {
             data: displayData
         });
 
-        // Inicializar DataTables con botones
         if (typeof $ !== 'undefined' && $.fn.dataTable) {
             this.dtInstance = $('#programas-table').DataTable({
                 responsive: true,
@@ -197,7 +200,6 @@ class ProgramasPage {
             this.bindToolbarButtons();
         }
 
-        // Event Listeners
         document.querySelectorAll('.btn-edit').forEach(btn => {
             btn.addEventListener('click', (e) => this.openModal(e.currentTarget.dataset.id));
         });
@@ -222,8 +224,9 @@ class ProgramasPage {
     }
 
     setupModal() {
+        // Use getTipoNombre helper so options render correctly regardless of API field name
         const tipoOptions = this.tiposFormacion.map(t =>
-            '<option value="' + t.idTipoFormacion + '">' + t.nombre + '</option>'
+            '<option value="' + t.idTipoFormacion + '">' + getTipoNombre(t) + '</option>'
         ).join('');
 
         const formContent = `
@@ -351,7 +354,6 @@ class ProgramasPage {
 
         if (confirm) {
             try {
-                // Optimistic UI update
                 const prev = [...this.programas];
                 this.programas = this.programas.filter(p => String(p.idPrograma) !== String(id));
                 this.renderTable();
@@ -360,7 +362,7 @@ class ProgramasPage {
                 this.showAlert('page-alert-container', 'success', 'Programa eliminado del sistema.');
             } catch (error) {
                 this.showAlert('page-alert-container', 'danger', 'Error al eliminar: ' + error.message);
-                await this.loadData(); // revert
+                await this.loadData();
             }
         }
     }
