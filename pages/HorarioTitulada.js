@@ -189,14 +189,19 @@ class HorarioTitulada {
             this.sedes.map(s => `<option value="${s.idSede}">${s.nombre}</option>`).join('');
     }
 
-    renderAmbientes(idSede) {
-        const sel = document.getElementById('idAmbiente');
-        if (!sel) return;
-        if (!idSede) { sel.innerHTML = '<option value="">Seleccionar ambiente...</option>'; return; }
-        const filtered = this.ambientes.filter(a => String(a.idSede) === String(idSede));
-        sel.innerHTML = '<option value="">Seleccionar ambiente...</option>' +
-            filtered.map(a => `<option value="${a.idAmbiente}">Blq ${a.bloque} - Amb ${a.numero} (${a.area?.nombreArea ?? 'Sin área'})</option>`).join('');
-    }
+   renderAmbientes(idSede) {
+    const sel = document.getElementById('idAmbiente');
+    if (!sel) return;
+    if (!idSede) { sel.innerHTML = '<option value="">Seleccionar ambiente...</option>'; return; }
+    const filtered = this.ambientes.filter(a => String(a.idSede) === String(idSede));
+    sel.innerHTML = '<option value="">Seleccionar ambiente...</option>' +
+        filtered.map(a => {
+            // 👇 Agrega esto temporalmente para ver la estructura real
+            console.log('Ambiente:', a);
+            const numero = a.numero ?? a.numeroAmbiente ?? a.num ?? a.number ?? '?';
+            return `<option value="${a.idAmbiente}">Blq ${a.bloque} (${a.area?.nombreArea ?? 'Sin área'})</option>`;
+        }).join('');
+}
 
     setupEventListeners() {
         document.getElementById('modalidad_clase')?.addEventListener('change', e => {

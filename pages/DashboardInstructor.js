@@ -71,15 +71,16 @@ class DashboardInstructor {
             if (!bloque) return;
 
             if (asig.ficha?.idFicha) fichasIds.add(asig.ficha.idFicha);
-            if (bloque.idAmbiente)   ambientesIds.add(bloque.idAmbiente);
+            if (asig.idAmbiente)     ambientesIds.add(asig.idAmbiente);
 
             // Horas de la semana actual: contar sólo los días que caen en esta semana
-            const inicioMin = this.timeToMinutes(bloque.hora_inicio);
-            const finMin    = this.timeToMinutes(bloque.hora_fin);
+            const inicioMin = this.timeToMinutes(bloque.horaInicio ?? bloque.hora_inicio);
+            const finMin    = this.timeToMinutes(bloque.horaFin    ?? bloque.hora_fin);
             const duracion  = finMin - inicioMin;
 
             (bloque.dias || []).forEach(dia => {
-                if (diasSemana.has(dia.nombre)) {
+                const nombreDia = dia.nombreDia ?? dia.nombre;
+                if (diasSemana.has(nombreDia)) {
                     minutosTotales += duracion;
                 }
             });
@@ -178,7 +179,7 @@ class DashboardInstructor {
 
         const stats = [
             { title: 'Fichas Asignadas',   value: fichas,       icon: 'bi-folder-fill',     color: 'primary' },
-            { title: 'Clases Registradas',  value: totalClases,  icon: 'bi-journal-bookmark', color: 'success' },
+            { title: 'Horarios Registrados',  value: totalClases,  icon: 'bi-journal-bookmark', color: 'success' },
             { title: 'Horas esta Semana',   value: horasSemana,  icon: 'bi-clock-fill',       color: 'warning' },
             { title: 'Ambientes',           value: ambientes,    icon: 'bi-building',         color: 'info'    },
         ];
@@ -221,19 +222,17 @@ class DashboardInstructor {
             seen.add(bloque.idBloque);
 
             const ficha    = asig.ficha;
-            const dias     = (bloque.dias || []).map(d => d.nombre.substring(0, 2)).join(', ');
-            const ambiente = bloque.ambiente
-                ? `${bloque.ambiente.codigo} No.${bloque.ambiente.numero}`
+            const dias     = (bloque.dias || []).map(d => (d.nombreDia ?? d.nombre ?? '').substring(0, 2)).join(', ');
+            const ambiente = asig.ambiente
+                ? asig.ambiente.codigo
                 : '<span class="badge bg-info text-dark fw-normal">Virtual</span>';
-            const horaInicio = bloque.hora_inicio ? bloque.hora_inicio.substring(0, 5) : '--';
-            const horaFin    = bloque.hora_fin    ? bloque.hora_fin.substring(0, 5)    : '--';
-            const isVirtual  = bloque.modalidad === 'virtual';
+            const horaInicio = (bloque.horaInicio ?? bloque.hora_inicio ?? '').substring(0, 5) || '--';
+            const horaFin    = (bloque.horaFin    ?? bloque.hora_fin    ?? '').substring(0, 5) || '--';
+            const isVirtual  = asig.modalidad === 'virtual';
             const modBadge   = isVirtual
                 ? '<span class="badge bg-info text-dark fw-normal">Virtual</span>'
                 : '<span class="badge bg-primary text-white fw-normal">Presencial</span>';
-            const tipoBadge  = bloque.tipoDeFormacion
-                ? `<span class="badge bg-secondary text-white fw-normal ms-1">${bloque.tipoDeFormacion}</span>`
-                : '';
+            const tipoBadge  = '';
 
             rows.push(`
                 <tr>

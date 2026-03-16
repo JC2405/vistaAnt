@@ -113,26 +113,31 @@ class MiHorarioPage {
             if (!bloque) return;
 
             const ficha     = asig.ficha;
-            const isVirtual = bloque.modalidad === 'virtual';
+            const isVirtual = asig.modalidad === 'virtual';
             const color     = isVirtual ? '#0dcaf0' : '#7e57c2';
             const bgColor   = isVirtual ? 'rgba(13,202,240,0.1)' : 'rgba(126,87,194,0.1)';
-            const ambienteLabel = bloque.ambiente
-                ? `${bloque.ambiente.codigo} - No.${bloque.ambiente.numero}`
+            const ambienteLabel = asig.ambiente
+                ? `${asig.ambiente.codigo} - No.${asig.ambiente.numero}`
                 : 'Virtual';
             const fichaLabel = ficha ? `Ficha ${ficha.codigoFicha || ''}` : '';
             const progLabel  = ficha?.programa?.nombre || '';
 
+            const horaIni = bloque.horaInicio ?? bloque.hora_inicio ?? null;
+            const horaFin = bloque.horaFin    ?? bloque.hora_fin    ?? null;
+            if (!horaIni || !horaFin) return;
+
             (bloque.dias || []).forEach(dia => {
-                const dateStr = DAY_MAP[dia.nombre];
+                const nombreDia = dia.nombreDia ?? dia.nombre;
+                const dateStr = DAY_MAP[nombreDia];
                 if (!dateStr) return;
                 events.push({
                     id: `${asig.idAsignacion}_${dia.idDia}`,
-                    start: `${dateStr}T${bloque.hora_inicio}`,
-                    end:   `${dateStr}T${bloque.hora_fin}`,
+                    start: `${dateStr}T${horaIni}`,
+                    end:   `${dateStr}T${horaFin}`,
                     backgroundColor: bgColor,
                     borderColor: color,
                     textColor: color,
-                    extendedProps: { ambienteLabel, fichaLabel, progLabel, modalidad: bloque.modalidad, tipoDeFormacion: bloque.tipoDeFormacion }
+                    extendedProps: { ambienteLabel, fichaLabel, progLabel, modalidad: asig.modalidad, tipoDeFormacion: asig.tipoDeFormacion }
                 });
             });
         });
