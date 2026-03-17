@@ -6,7 +6,7 @@ import { ModalForm, setModalLoading } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
-import { getFichas, createFicha, updateFicha, deleteFicha, getProgramas } from '../utils/api.js';
+import { getFichas, createFicha, updateFicha, deleteFicha, getProgramas, exportarFichas, exportarAprendicesDeFicha, importarAprendices } from '../utils/api.js';
 
 class FichasPage {
     constructor() {
@@ -60,10 +60,9 @@ class FichasPage {
 
                     <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                         <div class="btn-group btn-group-sm" role="group">
-                            <button id="btn-colvis" class="btn btn-dark rounded-start-pill px-3">Columnas <i class="bi bi-chevron-down ms-1"></i></button>
-                            <button id="btn-excel"  class="btn btn-dark px-3">Excel</button>
-                            <button id="btn-pdf"    class="btn btn-dark px-3">PDF</button>
-                            <button id="btn-print"  class="btn btn-dark rounded-end-pill px-3">Print</button>
+                            <button id="btn-export-db" class="btn btn-success rounded-end-pill px-3" title="Exportar DB" style="border-left: 1px solid rgba(255,255,255,0.2);">
+                                <i class="bi bi-download"></i> Exportar
+                            </button>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <label class="mb-0 fw-medium" style="color: var(--text-muted); font-size: 0.85rem;">Search:</label>
@@ -78,6 +77,39 @@ class FichasPage {
             </div>
             
             <div id="modal-container"></div>
+            
+            <!-- Modal: Aprendices de la Ficha -->
+            <div class="modal fade" id="modalAprendicesFicha" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-md modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
+                        <!-- Header -->
+                        <div class="modal-header text-white border-0 px-4 py-3"
+                             style="background:linear-gradient(135deg,var(--primary) 0%,hsl(280,60%,55%) 100%);">
+                            <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modal-aprendices-title">
+                                <i class="bi bi-people"></i> Aprendices de la Ficha
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <!-- Body -->
+                        <div class="modal-body p-4 text-center" style="background:var(--bg-page);">
+                            <p class="mb-4">Gestiona los aprendices vinculados a esta ficha usando Excel.</p>
+                            
+                            <div class="d-flex flex-column gap-3 mx-auto" style="max-width: 300px;">
+                                <button id="btn-export-aprendices" class="btn btn-success d-flex align-items-center justify-content-center gap-2 py-2">
+                                    <i class="bi bi-download"></i> Exportar Aprendices
+                                </button>
+                                
+                                <button id="btn-import-aprendices" class="btn btn-primary d-flex align-items-center justify-content-center gap-2 py-2">
+                                    <i class="bi bi-upload"></i> Importar Aprendices
+                                </button>
+                                <input type="file" id="file-import-aprendices" accept=".xlsx, .xls, .csv" style="display:none;">
+                            </div>
+                            
+                            <div id="alert-aprendices-container" class="mt-3 text-start"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
 
         document.getElementById('btn-add-ficha').addEventListener('click', () => this.openModal());
@@ -86,6 +118,50 @@ class FichasPage {
         if (searchInput) {
             searchInput.addEventListener('input', (e) => this.filterTable(e.target.value));
         }
+
+        document.getElementById('btn-export-db').addEventListener('click', async () => {
+            try {
+                this.showAlert('page-alert-container', 'info', 'Descargando archivo...');
+                await exportarFichas();
+            } catch (err) {
+                this.showAlert('page-alert-container', 'danger', err.message || 'Error al descargar');
+            }
+        });
+
+        document.getElementById('btn-export-aprendices').addEventListener('click', async () => {
+            if (!this.currentFichaIdAprendices) return;
+            try {
+                this.showAlert('alert-aprendices-container', 'info', 'Descargando archivo...');
+                await exportarAprendicesDeFicha(this.currentFichaIdAprendices);
+                this.showAlert('alert-aprendices-container', 'success', 'Archivo exportado con éxito.');
+            } catch (err) {
+                this.showAlert('alert-aprendices-container', 'danger', err.message || 'Error al exportar aprendices');
+            }
+        });
+
+        const fileImportAp = document.getElementById('file-import-aprendices');
+        document.getElementById('btn-import-aprendices').addEventListener('click', () => {
+            fileImportAp.click();
+        });
+
+        fileImportAp.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || !this.currentFichaIdAprendices) return;
+
+            try {
+                this.showAlert('alert-aprendices-container', 'info', 'Importando aprendices... Por favor espera.');
+                const res = await importarAprendices(file, this.currentFichaIdAprendices);
+                let msg = `Importación exitosa. Agregados/Actualizados: ${res.importados || 0}.`;
+                if (res.con_errores > 0) {
+                    msg += ` Filas con problemas: ${res.con_errores}. Revisa el log o datos.`;
+                }
+                this.showAlert('alert-aprendices-container', res.con_errores > 0 ? 'warning' : 'success', msg);
+            } catch (err) {
+                this.showAlert('alert-aprendices-container', 'danger', err.message || 'Error al importar');
+            } finally {
+                e.target.value = ''; // Reset input
+            }
+        });
     }
 
     async loadDependencies() {
@@ -167,6 +243,9 @@ class FichasPage {
                 label: '',
                 render: (row) => `
                     <div class="d-flex gap-1 justify-content-end">
+                        <button class="btn-action btn-aprendices" data-id="${row.idFicha}" data-codigo="${row.codigoFicha || ''}" title="Aprendices de la Ficha">
+                            <i class="bi bi-people" style="color:var(--primary);"></i>
+                        </button>
                         <button class="btn-action edit btn-edit" data-id="${row.idFicha}" title="Editar">
                             <i class="bi bi-pencil-square"></i>
                         </button>
@@ -191,12 +270,6 @@ class FichasPage {
                 info: false,
                 searching: false,
                 dom: 'rt',
-                buttons: [
-                    { extend: 'colvis', text: 'Columnas' },
-                    { extend: 'excel',  text: 'Excel' },
-                    { extend: 'pdf',    text: 'PDF' },
-                    { extend: 'print',  text: 'Print' }
-                ],
                 columnDefs: [{ orderable: false, targets: -1 }]
             });
             this.bindToolbarButtons();
@@ -209,6 +282,19 @@ class FichasPage {
         document.querySelectorAll('.btn-delete').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleDelete(e.currentTarget.dataset.id));
         });
+
+        document.querySelectorAll('.btn-aprendices').forEach(btn => {
+            btn.addEventListener('click', (e) => this.abrirModalAprendices(e.currentTarget.dataset.id, e.currentTarget.dataset.codigo));
+        });
+    }
+
+    abrirModalAprendices(idFicha, codigoFicha) {
+        this.currentFichaIdAprendices = idFicha;
+        document.getElementById('modal-aprendices-title').innerHTML = `<i class="bi bi-people"></i> Aprendices - Ficha ${codigoFicha}`;
+        document.getElementById('alert-aprendices-container').innerHTML = '';
+
+        const modalEl = document.getElementById('modalAprendicesFicha');
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
     }
 
     bindToolbarButtons() {

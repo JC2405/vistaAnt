@@ -62,10 +62,6 @@ class SedesPage {
                     <!-- Toolbar -->
                     <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                         <div class="btn-group btn-group-sm" role="group">
-                            <button id="btn-colvis" class="btn btn-dark rounded-start-pill px-3">Columnas <i class="bi bi-chevron-down ms-1"></i></button>
-                            <button id="btn-excel"  class="btn btn-dark px-3">Excel</button>
-                            <button id="btn-pdf"    class="btn btn-dark px-3">PDF</button>
-                            <button id="btn-print"  class="btn btn-dark rounded-end-pill px-3">Print</button>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <label class="mb-0 fw-medium" style="color: var(--text-muted); font-size: 0.85rem;">Search:</label>
@@ -186,12 +182,6 @@ class SedesPage {
                 info: false,
                 searching: false,
                 dom: 'rt',
-                buttons: [
-                    { extend: 'colvis', text: 'Columnas' },
-                    { extend: 'excel',  text: 'Excel' },
-                    { extend: 'pdf',    text: 'PDF' },
-                    { extend: 'print',  text: 'Print' }
-                ],
                 columnDefs: [{ orderable: false, targets: -1 }]
             });
             this.bindToolbarButtons();

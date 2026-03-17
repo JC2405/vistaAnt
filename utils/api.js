@@ -1,6 +1,6 @@
-//export const API_BASE_URL = 'http://localhost:8000/api';
+export const API_BASE_URL = 'http://localhost:8000/api';
 
-export const API_BASE_URL = 'https://backend-manejohorarioscimm.sgdis.cloud/api';
+//export const API_BASE_URL = 'https://backend-manejohorarioscimm.sgdis.cloud/api';
 import { getToken, logout } from './auth.js';
 
 /**
@@ -307,4 +307,92 @@ export async function deleteFicha(id) {
 export async function getHorarioPorInstructor(idFuncionario) {
     return apiFetch(`/horarioPorInstructor/${idFuncionario}`);
 }
+
+// ==========================================
+// EXPORTAR E IMPORTAR EXCEL API
+// ==========================================
+
+export async function apiDownload(endpoint, filename) {
+    const token = getToken();
+    const headers = {};
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'GET',
+        headers
+    });
+
+    if (response.status === 401) {
+        logout();
+        throw new Error('Sesión expirada.');
+    }
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+}
+
+export async function apiUpload(endpoint, formData) {
+    const token = getToken();
+    const headers = {
+        'Accept': 'application/json'
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers,
+        body: formData
+    });
+
+    if (response.status === 401) {
+        logout();
+        throw new Error('Sesión expirada.');
+    }
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(data.message || `Error ${response.status}`);
+    }
+
+    return data;
+}
+
+export function exportarFuncionarios() { return apiDownload('/exportar/funcionarios', 'funcionarios.xlsx'); }
+export function exportarFichas() { return apiDownload('/exportar/fichas', 'fichas.xlsx'); }
+export function exportarAprendices() { return apiDownload('/exportar/aprendices', 'aprendices.xlsx'); }
+export function exportarAprendicesDeFicha(idFicha) { return apiDownload(`/exportar/aprendices/${idFicha}`, `aprendices_ficha_${idFicha}.xlsx`); }
+export function exportarProgramas() { return apiDownload('/exportar/programas', 'programas.xlsx'); }
+
+export function importarFuncionarios(file) {
+    const formData = new FormData();
+    formData.append('archivo', file);
+    return apiUpload('/importar/funcionarios', formData);
+}
+
+export function importarAprendices(file, idFicha = null) {
+    const formData = new FormData();
+    formData.append('archivo', file);
+    if (idFicha) {
+        formData.append('id_ficha', idFicha);
+    }
+    return apiUpload('/importar/aprendices', formData);
+}
+
 

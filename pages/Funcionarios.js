@@ -6,7 +6,7 @@ import { ModalForm, setModalLoading, FormSelect } from '../components/ModalForm.
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
-import { getFuncionarios, createFuncionario, updateFuncionario, deleteFuncionario, getTiposContrato, getAreas, getHorarioPorInstructor } from '../utils/api.js';
+import { getFuncionarios, createFuncionario, updateFuncionario, deleteFuncionario, getTiposContrato, getAreas, getHorarioPorInstructor, importarFuncionarios, exportarFuncionarios } from '../utils/api.js';
 
 class FuncionariosPage {
     constructor() {
@@ -62,10 +62,13 @@ class FuncionariosPage {
                     <!-- Toolbar -->
                     <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                         <div class="btn-group btn-group-sm" role="group">
-                            <button id="btn-colvis" class="btn btn-dark rounded-start-pill px-3">Columnas <i class="bi bi-chevron-down ms-1"></i></button>
-                            <button id="btn-excel"  class="btn btn-dark px-3">Excel</button>
-                            <button id="btn-pdf"    class="btn btn-dark px-3">PDF</button>
-                            <button id="btn-print"  class="btn btn-dark rounded-end-pill px-3">Print</button>
+                            <button id="btn-export-db" class="btn btn-success px-3" title="Exportar DB" style="border-left: 1px solid rgba(255,255,255,0.2);">
+                                <i class="bi bi-download"></i> Exportar
+                            </button>
+                            <button id="btn-import-db" class="btn btn-primary rounded-end-pill px-3" title="Importar DB">
+                                <i class="bi bi-upload"></i> Importar
+                            </button>
+                            <input type="file" id="file-import-db" accept=".xlsx, .xls, .csv" style="display:none;">
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <label class="mb-0 fw-medium" style="color: var(--text-muted); font-size: 0.85rem;">Search:</label>
@@ -117,6 +120,42 @@ class FuncionariosPage {
                 this.filterTable(e.target.value);
             });
         }
+
+        document.getElementById('btn-export-db').addEventListener('click', async () => {
+            try {
+                this.showAlert('page-alert-container', 'info', 'Descargando archivo...');
+                await exportarFuncionarios();
+            } catch (err) {
+                this.showAlert('page-alert-container', 'danger', err.message || 'Error al descargar');
+            }
+        });
+
+        const fileInput = document.getElementById('file-import-db');
+        document.getElementById('btn-import-db').addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                this.showAlert('page-alert-container', 'info', 'Importando... Por favor espera.');
+                const res = await importarFuncionarios(file);
+                
+                let msg = `Importación exitosa. Agregados/Actualizados: ${res.importados || 0}.`;
+                if (res.con_errores > 0) {
+                    msg += ` Filas con problemas: ${res.con_errores}. Revisa el log o datos.`;
+                }
+                
+                this.showAlert('page-alert-container', res.con_errores > 0 ? 'warning' : 'success', msg);
+                await this.loadData();
+            } catch (err) {
+                this.showAlert('page-alert-container', 'danger', err.message || 'Error al importar');
+            } finally {
+                e.target.value = ''; // Reset input
+            }
+        });
     }
 
     filterTable(query) {
@@ -252,12 +291,6 @@ class FuncionariosPage {
                 info:       false,
                 searching:  false,
                 dom:        'rt',
-                buttons: [
-                    { extend: 'colvis', text: 'Columnas' },
-                    { extend: 'excel',  text: 'Excel'    },
-                    { extend: 'pdf',    text: 'PDF'      },
-                    { extend: 'print',  text: 'Print'    }
-                ],
                 columnDefs: [{ orderable: false, targets: -1 }]
             });
             this.bindToolbarButtons();

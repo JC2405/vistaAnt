@@ -6,7 +6,7 @@ import { ModalForm, setModalLoading } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
-import { getProgramas, createPrograma, updatePrograma, deletePrograma, getTiposFormacion } from '../utils/api.js';
+import { getProgramas, createPrograma, updatePrograma, deletePrograma, getTiposFormacion, exportarProgramas } from '../utils/api.js';
 
 // Helper: extrae el nombre del tipo sin importar qué campo devuelva el API
 const getTipoNombre = (tipo) => tipo ? (tipo.nombreTipoFormacion || tipo.nombre || 'N/A') : null;
@@ -65,10 +65,9 @@ class ProgramasPage {
                     <!-- Toolbar -->
                     <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                         <div class="btn-group btn-group-sm" role="group">
-                            <button id="btn-colvis" class="btn btn-dark rounded-start-pill px-3">Columnas <i class="bi bi-chevron-down ms-1"></i></button>
-                            <button id="btn-excel"  class="btn btn-dark px-3">Excel</button>
-                            <button id="btn-pdf"    class="btn btn-dark px-3">PDF</button>
-                            <button id="btn-print"  class="btn btn-dark rounded-end-pill px-3">Print</button>
+                            <button id="btn-export-db" class="btn btn-success rounded-end-pill px-3" title="Exportar DB" style="border-left: 1px solid rgba(255,255,255,0.2);">
+                                <i class="bi bi-download"></i> Exportar
+                            </button>
                         </div>
                         <div class="d-flex align-items-center gap-2">
                             <label class="mb-0 fw-medium" style="color: var(--text-muted); font-size: 0.85rem;">Search:</label>
@@ -95,6 +94,15 @@ class ProgramasPage {
                 this.filterTable(e.target.value);
             });
         }
+
+        document.getElementById('btn-export-db').addEventListener('click', async () => {
+            try {
+                this.showAlert('page-alert-container', 'info', 'Descargando archivo...');
+                await exportarProgramas();
+            } catch (err) {
+                this.showAlert('page-alert-container', 'danger', err.message || 'Error al descargar');
+            }
+        });
     }
 
     async loadDependencies() {
@@ -189,12 +197,6 @@ class ProgramasPage {
                 info: false,
                 searching: false,
                 dom: 'rt',
-                buttons: [
-                    { extend: 'colvis', text: 'Columnas' },
-                    { extend: 'excel',  text: 'Excel' },
-                    { extend: 'pdf',    text: 'PDF' },
-                    { extend: 'print',  text: 'Print' }
-                ],
                 columnDefs: [{ orderable: false, targets: -1 }]
             });
             this.bindToolbarButtons();
