@@ -1,35 +1,37 @@
-//export const API_BASE_URL = 'http://localhost:8000/api';
-
+// export const API_BASE_URL = 'http://localhost:8000/api';
 export const API_BASE_URL = 'https://backend-manejohorarioscimm.sgdis.cloud/api';
+
 import { getToken, logout } from './auth.js';
 
 /**
- * Realiza una petición GET/POST/PUT/DELETE autenticada
+ * Realiza una petición GET/POST/PUT/DELETE autenticada con JSON
  */
 export async function apiFetch(endpoint, options = {}) {
     const token = getToken();
+
     const headers = {
         'Accept': 'application/json',
-        ...options.headers
+        ...options.headers,
     };
 
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    if (!(options.body instanceof FormData)) {
+    // Solo agregar Content-Type JSON si hay body y NO es FormData
+    if (options.body && !(options.body instanceof FormData)) {
         headers['Content-Type'] = 'application/json';
     }
 
     const config = {
         ...options,
-        headers
+        headers,
     };
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
     if (response.status === 401) {
-        logout(); // Token expirado o inválido
+        logout();
         throw new Error('Sesión expirada. Por favor ingresa nuevamente.');
     }
 
@@ -44,284 +46,47 @@ export async function apiFetch(endpoint, options = {}) {
 
 export const apiCall = apiFetch;
 
-/**
- * Realiza una petición POST al endpoint de login
- * @param {Object} credentials - Las credenciales del usuario { correo, password }
- * @returns {Promise<Object>} - La respuesta de la API (token y datos del usuario)
- */
+// ==========================================
+// AUTH API
+// ==========================================
+
 export async function loginApi(credentials) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(credentials)
-        });
+    const response = await fetch(`${API_BASE_URL}/login`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify(credentials),
+    });
 
-        const data = await response.json();
+    const data = await response.json().catch(() => ({}));
 
-        if (!response.ok) {
-            throw new Error(data.message || 'Error al autenticar. Verifica tus credenciales.');
-        }
-
-        return data; // { ok: true, token, usuario, sidebar, ... }
-    } catch (error) {
-        throw error;
+    if (!response.ok) {
+        throw new Error(data.message || 'Error al autenticar. Verifica tus credenciales.');
     }
+
+    return data;
 }
 
 // ==========================================
-// FUNCIONARIOS API
-// ==========================================
-
-export async function getFuncionarios() {
-    return apiFetch('/listarFuncionario');
-}
-
-export async function createFuncionario(data) {
-    return apiFetch('/crearFuncionario', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function updateFuncionario(id, data) {
-    return apiFetch(`/editarFuncionario/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function deleteFuncionario(id) {
-    return apiFetch(`/eliminarFuncionario/${id}`, {
-        method: 'DELETE'
-    });
-}
-
-export async function getTiposContrato() {
-    return apiFetch('/listarTipoContrato');
-}
-
-export async function createTipoContrato(data) {
-    return apiFetch('/crearTipoContrato', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function updateTipoContrato(id, data) {
-    return apiFetch(`/editarTipoContrato/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function deleteTipoContrato(id) {
-    return apiFetch(`/eliminarTipoContrato/${id}`, {
-        method: 'DELETE'
-    });
-}
-
-// ==========================================
-// ÁREAS API
-// ==========================================
-
-export async function getAreas() {
-    return apiFetch('/listarArea');
-}
-
-export async function createArea(data) {
-    return apiFetch('/crearArea', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function updateArea(id, data) {
-    return apiFetch(`/editarArea/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function deleteArea(id) {
-    return apiFetch(`/eliminarArea/${id}`, {
-        method: 'DELETE'
-    });
-}
-
-// ==========================================
-// MUNICIPIOS API
-// ==========================================
-
-export async function getMunicipios() {
-    return apiFetch('/listarMunicipio');
-}
-
-// ==========================================
-// SEDES API
-// ==========================================
-
-export async function getSedes() {
-    return apiFetch('/listarSedes');
-}
-
-export async function createSede(data) {
-    return apiFetch('/crearSede', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function updateSede(id, data) {
-    return apiFetch(`/editarSede/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function deleteSede(id) {
-    return apiFetch(`/eliminarSede/${id}`, {
-        method: 'DELETE'
-    });
-}
-
-// ==========================================
-// TIPO DE FORMACION API
-// ==========================================
-
-export async function getTiposFormacion() {
-    return apiFetch('/listarTipoFormacion');
-}
-
-export async function createTipoFormacion(data) {
-    return apiFetch('/crearTipoFormacion', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function updateTipoFormacion(id, data) {
-    return apiFetch(`/editarTipoFormacion/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function deleteTipoFormacion(id) {
-    return apiFetch(`/eliminarTipoFormacion/${id}`, {
-        method: 'DELETE'
-    });
-}
-
-// ==========================================
-// PROGRAMAS API
-// ==========================================
-
-export async function getProgramas() {
-    return apiFetch('/listarPrograma');
-}
-
-export async function createPrograma(data) {
-    return apiFetch('/crearPrograma', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function updatePrograma(id, data) {
-    return apiFetch(`/editarPrograma/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function deletePrograma(id) {
-    return apiFetch(`/eliminarPrograma/${id}`, {
-        method: 'DELETE'
-    });
-}
-
-// ==========================================
-// AMBIENTES API
-// ==========================================
-
-export async function getAmbientes() {
-    return apiFetch('/listarAmbiente');
-}
-
-export async function createAmbiente(data) {
-    return apiFetch('/crearAmbiente', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function updateAmbiente(id, data) {
-    return apiFetch(`/editarAmbiente/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function deleteAmbiente(id) {
-    return apiFetch(`/eliminarAmbiente/${id}`, {
-        method: 'DELETE'
-    });
-}
-
-// ==========================================
-// FICHAS API
-// ==========================================
-
-export async function getFichas() {
-    return apiFetch('/listarFicha');
-}
-
-export async function createFicha(data) {
-    return apiFetch('/crearFicha', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function updateFicha(id, data) {
-    return apiFetch(`/editarFicha/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-    });
-}
-
-export async function deleteFicha(id) {
-    return apiFetch(`/eliminarFicha/${id}`, {
-        method: 'DELETE'
-    });
-}
-
-// ==========================================
-// HORARIO POR INSTRUCTOR API
-// ==========================================
-
-export async function getHorarioPorInstructor(idFuncionario) {
-    return apiFetch(`/horarioPorInstructor/${idFuncionario}`);
-}
-
-// ==========================================
-// EXPORTAR E IMPORTAR EXCEL API
+// DOWNLOAD (exportar archivos Excel)
 // ==========================================
 
 export async function apiDownload(endpoint, filename) {
     const token = getToken();
-    const headers = {};
+
+    const headers = {
+        'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/octet-stream, */*',
+    };
+
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'GET',
-        headers
+        headers,
     });
 
     if (response.status === 401) {
@@ -335,9 +100,9 @@ export async function apiDownload(endpoint, filename) {
     }
 
     const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
+    const url  = window.URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
@@ -345,11 +110,19 @@ export async function apiDownload(endpoint, filename) {
     a.remove();
 }
 
+// ==========================================
+// UPLOAD (importar archivos Excel)
+// ==========================================
+
 export async function apiUpload(endpoint, formData) {
     const token = getToken();
+
+    // IMPORTANTE: NO incluir Content-Type manual.
+    // El navegador lo agrega automáticamente con el boundary correcto para FormData.
     const headers = {
-        'Accept': 'application/json'
+        'Accept': 'application/json',
     };
+
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
@@ -357,7 +130,7 @@ export async function apiUpload(endpoint, formData) {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers,
-        body: formData
+        body: formData,
     });
 
     if (response.status === 401) {
@@ -374,25 +147,282 @@ export async function apiUpload(endpoint, formData) {
     return data;
 }
 
-export function exportarFuncionarios() { return apiDownload('/exportar/funcionarios', 'funcionarios.xlsx'); }
-export function exportarFichas() { return apiDownload('/exportar/fichas', 'fichas.xlsx'); }
-export function exportarAprendices() { return apiDownload('/exportar/aprendices', 'aprendices.xlsx'); }
-export function exportarAprendicesDeFicha(idFicha) { return apiDownload(`/exportar/aprendices/${idFicha}`, `aprendices_ficha_${idFicha}.xlsx`); }
-export function exportarProgramas() { return apiDownload('/exportar/programas', 'programas.xlsx'); }
+// ==========================================
+// FUNCIONARIOS API
+// ==========================================
 
+export function getFuncionarios() {
+    return apiFetch('/listarFuncionario');
+}
+
+export function createFuncionario(data) {
+    return apiFetch('/crearFuncionario', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export function updateFuncionario(id, data) {
+    return apiFetch(`/editarFuncionario/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+export function deleteFuncionario(id) {
+    return apiFetch(`/eliminarFuncionario/${id}`, { method: 'DELETE' });
+}
+
+// ==========================================
+// TIPOS DE CONTRATO API
+// ==========================================
+
+export function getTiposContrato() {
+    return apiFetch('/listarTipoContrato');
+}
+
+export function createTipoContrato(data) {
+    return apiFetch('/crearTipoContrato', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export function updateTipoContrato(id, data) {
+    return apiFetch(`/editarTipoContrato/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+export function deleteTipoContrato(id) {
+    return apiFetch(`/eliminarTipoContrato/${id}`, { method: 'DELETE' });
+}
+
+// ==========================================
+// ÁREAS API
+// ==========================================
+
+export function getAreas() {
+    return apiFetch('/listarArea');
+}
+
+export function createArea(data) {
+    return apiFetch('/crearArea', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export function updateArea(id, data) {
+    return apiFetch(`/editarArea/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+export function deleteArea(id) {
+    return apiFetch(`/eliminarArea/${id}`, { method: 'DELETE' });
+}
+
+// ==========================================
+// MUNICIPIOS API
+// ==========================================
+
+export function getMunicipios() {
+    return apiFetch('/listarMunicipio');
+}
+
+// ==========================================
+// SEDES API
+// ==========================================
+
+export function getSedes() {
+    return apiFetch('/listarSedes');
+}
+
+export function createSede(data) {
+    return apiFetch('/crearSede', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export function updateSede(id, data) {
+    return apiFetch(`/editarSede/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+export function deleteSede(id) {
+    return apiFetch(`/eliminarSede/${id}`, { method: 'DELETE' });
+}
+
+// ==========================================
+// TIPO DE FORMACIÓN API
+// ==========================================
+
+export function getTiposFormacion() {
+    return apiFetch('/listarTipoFormacion');
+}
+
+export function createTipoFormacion(data) {
+    return apiFetch('/crearTipoFormacion', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export function updateTipoFormacion(id, data) {
+    return apiFetch(`/editarTipoFormacion/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+export function deleteTipoFormacion(id) {
+    return apiFetch(`/eliminarTipoFormacion/${id}`, { method: 'DELETE' });
+}
+
+// ==========================================
+// PROGRAMAS API
+// ==========================================
+
+export function getProgramas() {
+    return apiFetch('/listarPrograma');
+}
+
+export function createPrograma(data) {
+    return apiFetch('/crearPrograma', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export function updatePrograma(id, data) {
+    return apiFetch(`/editarPrograma/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+export function deletePrograma(id) {
+    return apiFetch(`/eliminarPrograma/${id}`, { method: 'DELETE' });
+}
+
+// ==========================================
+// AMBIENTES API
+// ==========================================
+
+export function getAmbientes() {
+    return apiFetch('/listarAmbiente');
+}
+
+export function createAmbiente(data) {
+    return apiFetch('/crearAmbiente', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export function updateAmbiente(id, data) {
+    return apiFetch(`/editarAmbiente/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+export function deleteAmbiente(id) {
+    return apiFetch(`/eliminarAmbiente/${id}`, { method: 'DELETE' });
+}
+
+// ==========================================
+// FICHAS API
+// ==========================================
+
+export function getFichas() {
+    return apiFetch('/listarFicha');
+}
+
+export function createFicha(data) {
+    return apiFetch('/crearFicha', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export function updateFicha(id, data) {
+    return apiFetch(`/editarFicha/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+export function deleteFicha(id) {
+    return apiFetch(`/eliminarFicha/${id}`, { method: 'DELETE' });
+}
+
+// ==========================================
+// HORARIO POR INSTRUCTOR API
+// ==========================================
+
+export function getHorarioPorInstructor(idFuncionario) {
+    return apiFetch(`/horarioPorInstructor/${idFuncionario}`);
+}
+
+// ==========================================
+// EXPORTAR EXCEL
+// ==========================================
+
+export function exportarFuncionarios() {
+    const fecha = new Date().toISOString().split('T')[0];
+    return apiDownload('/exportar/funcionarios', `funcionarios_${fecha}.xlsx`);
+}
+
+export function exportarFichas() {
+    const fecha = new Date().toISOString().split('T')[0];
+    return apiDownload('/exportar/fichas', `fichas_${fecha}.xlsx`);
+}
+
+export function exportarAprendices() {
+    const fecha = new Date().toISOString().split('T')[0];
+    return apiDownload('/exportar/aprendices', `aprendices_${fecha}.xlsx`);
+}
+
+export function exportarAprendicesDeFicha(idFicha) {
+    const fecha = new Date().toISOString().split('T')[0];
+    return apiDownload(`/exportar/aprendices/${idFicha}`, `aprendices_ficha_${idFicha}_${fecha}.xlsx`);
+}
+
+export function exportarProgramas() {
+    const fecha = new Date().toISOString().split('T')[0];
+    return apiDownload('/exportar/programas', `programas_${fecha}.xlsx`);
+}
+
+// ==========================================
+// IMPORTAR EXCEL
+// ==========================================
+
+/**
+ * Importa funcionarios desde un archivo Excel.
+ * El backend espera el campo 'archivo' en multipart/form-data.
+ */
 export function importarFuncionarios(file) {
     const formData = new FormData();
-    formData.append('archivo', file);
+    formData.append('archivo', file); // ← debe coincidir con lo que valida Laravel
     return apiUpload('/importar/funcionarios', formData);
 }
 
+/**
+ * Importa aprendices desde un archivo Excel.
+ * El backend espera 'archivo' e 'id_ficha' en multipart/form-data.
+ */
 export function importarAprendices(file, idFicha = null) {
     const formData = new FormData();
     formData.append('archivo', file);
     if (idFicha) {
-        formData.append('id_ficha', idFicha);
+        formData.append('id_ficha', String(idFicha)); // ← enviar como string es más seguro con FormData
     }
     return apiUpload('/importar/aprendices', formData);
 }
-
-
