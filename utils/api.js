@@ -1,5 +1,5 @@
-// export const API_BASE_URL = 'http://localhost:8000/api';
-export const API_BASE_URL = 'https://backend-manejohorarioscimm.sgdis.cloud/api';
+ export const API_BASE_URL = 'http://localhost:8000/api';
+//export const API_BASE_URL = 'https://backend-manejohorarioscimm.sgdis.cloud/api';
 
 import { getToken, logout } from './auth.js';
 
@@ -425,4 +425,40 @@ export function importarAprendices(file, idFicha = null) {
         formData.append('id_ficha', String(idFicha)); // ← enviar como string es más seguro con FormData
     }
     return apiUpload('/importar/aprendices', formData);
+}
+
+export function exportarCompetencias(idTipoFormacion = null) {
+    const fecha = new Date().toISOString().split('T')[0];
+    const url = idTipoFormacion ? `/exportar/competencias?id_tipo_formacion=${idTipoFormacion}` : '/exportar/competencias';
+    return apiDownload(url, `competencias_${fecha}.xlsx`);
+}
+
+export function importarCompetencias(file, idTipoFormacion = null) {
+    const formData = new FormData();
+    formData.append('archivo', file);
+    if (idTipoFormacion) {
+        formData.append('id_tipo_formacion', String(idTipoFormacion));
+    }
+    return apiUpload('/importar/competencias', formData);
+}
+
+export function exportarResultados(idTipoFormacion = null) {
+    const fecha = new Date().toISOString().split('T')[0];
+    const url = idTipoFormacion ? `/exportar/resultados?id_tipo_formacion=${idTipoFormacion}` : '/exportar/resultados';
+    return apiDownload(url, `resultados_${fecha}.xlsx`);
+}
+
+export function importarResultados(file, idTipoFormacion = null) {
+    const formData = new FormData();
+    formData.append('archivo', file);
+    if (idTipoFormacion) {
+        formData.append('id_tipo_formacion', String(idTipoFormacion));
+    }
+    return apiUpload('/importar/resultados', formData);
+}
+
+export function analizarJuicios(file) {
+    const formData = new FormData();
+    formData.append('archivo', file);
+    return apiUpload('/analizar/juicios', formData);
 }

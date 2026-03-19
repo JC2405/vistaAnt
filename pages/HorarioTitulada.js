@@ -1,7 +1,7 @@
 import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
-import { apiFetch, getFichas, getAmbientes, getFuncionarios, getSedes } from '../utils/api.js';
+import { apiFetch, getFichas, getAmbientes, getFuncionarios, getSedes, analizarJuicios } from '../utils/api.js';
 
 async function apiCall(endpoint, method = 'GET', body = null) {
     return apiFetch(endpoint, { method, body: body ? JSON.stringify(body) : undefined });
@@ -74,6 +74,23 @@ class HorarioTitulada {
                                     <div class="col-6"><label class="form-label small text-muted">Fecha Fin</label><input type="date" class="form-control" id="fecha_fin" required></div>
                                 </div>
                                 <p class="fw-semibold text-dark mb-2"><i class="bi bi-briefcase me-2 text-muted"></i>2. Detalles de la Formacion</p>
+                                <div class="mb-3">
+                                    <label class="form-label small text-muted">Tipo de Formación</label>
+                                    <select class="form-select" id="tipoDeFormacion" required>
+                                        <option value="Titulada">Titulada</option>
+                                        <option value="Transversal">Transversal</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3 d-none p-3 border rounded bg-light" id="container-juicios">
+                                    <label class="form-label small text-muted"><i class="bi bi-file-earmark-arrow-up text-primary"></i> Subir Juicios Evaluativos (Excel)</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="file" class="form-control form-control-sm" id="juicios_file" accept=".xlsx,.xls">
+                                        <button type="button" class="btn btn-sm btn-info text-white text-nowrap" id="btn-analizar-juicios">
+                                            <i class="bi bi-search"></i> Analizar
+                                        </button>
+                                    </div>
+                                    <div id="juicios-results" class="mt-2" style="font-size:0.85rem;"></div>
+                                </div>
                                 <div class="mb-3">
                                     <label class="form-label small text-muted">Modalidad</label>
                                     <select class="form-select" id="modalidad_clase" required>
@@ -227,6 +244,61 @@ class HorarioTitulada {
             const amb = this.ambientes.find(a => String(a.idAmbiente) === String(e.target.value));
             this.renderInstructores(amb?.idArea ?? null);
         });
+        document.getElementById('tipoDeFormacion')?.addEventListener('change', e => {
+            const isTransversal = e.target.value === 'Transversal';
+            const containerJuicios = document.getElementById('container-juicios');
+            if (isTransversal) {
+                containerJuicios.classList.remove('d-none');
+            } else {
+                containerJuicios.classList.add('d-none');
+                document.getElementById('juicios-results').innerHTML = '';
+            }
+        });
+
+        document.getElementById('btn-analizar-juicios')?.addEventListener('click', async () => {
+            const fileInput = document.getElementById('juicios_file');
+            const file = fileInput.files[0];
+            if (!file) {
+                this.showAlert('offcanvas-alert', 'warning', 'Por favor selecciona un archivo Excel.');
+                return;
+            }
+            
+            const btn = document.getElementById('btn-analizar-juicios');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            btn.disabled = true;
+
+            try {
+                const resultsContainer = document.getElementById('juicios-results');
+                resultsContainer.innerHTML = '<span class="text-muted">Analizando archivo, por favor espera...</span>';
+                
+                const response = await analizarJuicios(file);
+                
+                let html = `<div class="p-2 bg-white rounded border">
+                    <strong class="text-dark">Ficha en archivo:</strong> ${response.metadata?.['Ficha de Caracterización'] || 'N/A'}<br>
+                    <strong class="text-dark">Competencias Faltantes:</strong> <span class="badge bg-danger">${response.resumen?.competencias_necesitan_horario || 0}</span><br>
+                    <ul class="mb-0 mt-2 list-unstyled" style="max-height: 150px; overflow-y: auto;">`;
+                
+                if (response.competencias && response.competencias.length > 0) {
+                    const faltantes = response.competencias.filter(c => c.necesita_horario);
+                    if (faltantes.length > 0) {
+                        faltantes.forEach(c => {
+                            html += `<li class="border-bottom py-1 text-truncate"><span class="text-danger"><i class="bi bi-x-circle-fill"></i> ${c.codigo}</span> - ${c.nombre_completo}</li>`;
+                        });
+                    } else {
+                        html += `<li><span class="text-success"><i class="bi bi-check-circle-fill"></i> Ficha al día, no hay transversales pendientes.</span></li>`;
+                    }
+                }
+                html += `</ul></div>`;
+                
+                resultsContainer.innerHTML = html;
+            } catch (err) {
+                document.getElementById('juicios-results').innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Error: ${err.message}</span>`;
+            } finally {
+                btn.innerHTML = '<i class="bi bi-search"></i> Analizar';
+                btn.disabled = false;
+            }
+        });
+
         document.getElementById('form-horario')?.addEventListener('submit', e => { e.preventDefault(); this.handleSubmit(); });
     }
 
@@ -619,7 +691,7 @@ class HorarioTitulada {
                 horaInicio:      document.getElementById('hora_inicio').value + ':00',
                 horaFin:         document.getElementById('hora_fin').value   + ':00',
                 modalidad,
-                tipoDeFormacion: 'Titulada',
+                tipoDeFormacion: document.getElementById('tipoDeFormacion').value,
                 idFuncionario:   parseInt(document.getElementById('idFuncionario').value),
                 dias,
                 idAmbiente:      modalidad === 'presencial' ? idAmbiente : null,

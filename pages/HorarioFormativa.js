@@ -1,7 +1,7 @@
 import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
-import { apiFetch, getFichas, getAmbientes, getFuncionarios, getSedes } from '../utils/api.js';
+import { apiFetch, getFichas, getAmbientes, getFuncionarios, getSedes, analizarJuicios } from '../utils/api.js';
 
 async function apiCall(endpoint, method = 'GET', body = null) {
     return apiFetch(endpoint, { method, body: body ? JSON.stringify(body) : undefined });
@@ -53,70 +53,101 @@ class HorarioFormativa {
                     </div>
                     <div id="main-content" class="fade-in"></div>
 
-                    <!-- Offcanvas -->
-                    <div class="offcanvas offcanvas-end shadow-lg" tabindex="-1" id="offcanvasHorario" style="width:460px;">
-                        <div class="offcanvas-header text-white p-4"
-                             style="background:linear-gradient(135deg,hsl(280,60%,55%) 0%,var(--primary) 100%);">
-                            <h5 class="offcanvas-title fw-bold d-flex align-items-center gap-2">
-                                <i class="bi bi-calendar-plus"></i> Asignar Formacion
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-                        </div>
-                        <div class="offcanvas-body p-4" style="background:var(--bg-page)">
-                            <form id="form-horario" novalidate>
-                                <div class="mb-4 p-3 bg-white rounded-3 border">
-                                    <p class="mb-1 text-muted small fw-semibold text-uppercase">Ficha Seleccionada</p>
-                                    <h6 class="mb-0 fw-bold text-primary" id="lbl-ficha-context">...</h6>
+                    <!-- Modal: Asignar Formacion (Reemplazo del viejo Panel Lateral) -->
+                    <div class="modal fade" tabindex="-1" id="modalHorario" aria-hidden="true">
+                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
+                                <div class="modal-header text-white p-4"
+                                     style="background:linear-gradient(135deg,hsl(280,60%,55%) 0%,var(--primary) 100%);">
+                                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                                        <i class="bi bi-calendar-plus"></i> Asignar Formación
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                 </div>
-                                <p class="fw-semibold text-dark mb-2"><i class="bi bi-calendar-range me-2 text-muted"></i>1. Rango de Fechas</p>
-                                <div class="row g-3 mb-4">
-                                    <div class="col-6"><label class="form-label small text-muted">Fecha Inicio</label><input type="date" class="form-control" id="fecha_inicio" required></div>
-                                    <div class="col-6"><label class="form-label small text-muted">Fecha Fin</label><input type="date" class="form-control" id="fecha_fin" required></div>
+                                <div class="modal-body p-4" style="background:var(--bg-page)">
+                                    <form id="form-horario" novalidate>
+                                        <div class="mb-4 p-3 bg-white rounded-3 border">
+                                            <p class="mb-1 text-muted small fw-semibold text-uppercase">Ficha Seleccionada</p>
+                                            <h6 class="mb-0 fw-bold text-primary" id="lbl-ficha-context">...</h6>
+                                        </div>
+                                        
+                                        <div class="row g-4">
+                                            <div class="col-md-6 border-end pe-4">
+                                                <p class="fw-semibold text-dark mb-2"><i class="bi bi-briefcase me-2 text-muted"></i>1. Detalles de la Formación</p>
+                                                <div class="mb-3">
+                                                    <label class="form-label small text-muted">Modalidad</label>
+                                                    <select class="form-select" id="modalidad_clase" required>
+                                                        <option value="presencial">Presencial</option>
+                                                        <option value="virtual">Virtual</option>
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3" id="container-sede">
+                                                    <label class="form-label small text-muted">Sede</label>
+                                                    <select class="form-select" id="idSede" required><option value="">Seleccionar sede...</option></select>
+                                                </div>
+                                                <div class="mb-3" id="container-ambiente">
+                                                    <label class="form-label small text-muted">Ambiente</label>
+                                                    <select class="form-select" id="idAmbiente" required><option value="">Seleccionar ambiente...</option></select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label small text-muted">Instructor</label>
+                                                    <select class="form-select" id="idFuncionario" required><option value="">Seleccionar instructor...</option></select>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 ps-4">
+                                                <p class="fw-semibold text-dark mb-2"><i class="bi bi-calendar-range me-2 text-muted"></i>2. Rango de Fechas</p>
+                                                <div class="row g-2 mb-4">
+                                                    <div class="col-6"><label class="form-label small text-muted">Inicio</label><input type="date" class="form-control form-control-sm" id="fecha_inicio" required></div>
+                                                    <div class="col-6"><label class="form-label small text-muted">Fin</label><input type="date" class="form-control form-control-sm" id="fecha_fin" required></div>
+                                                </div>
+                                                
+                                                <p class="fw-semibold text-dark mb-2"><i class="bi bi-clock-history me-2 text-muted"></i>3. Franja Horaria</p>
+                                                <div class="row g-2 mb-4">
+                                                    <div class="col-6"><label class="form-label small text-muted">Hora Inicio</label><input type="time" class="form-control form-control-sm" id="hora_inicio" required></div>
+                                                    <div class="col-6"><label class="form-label small text-muted">Hora Fin</label><input type="time" class="form-control form-control-sm" id="hora_fin" required></div>
+                                                </div>
+
+                                                <div class="mb-4">
+                                                    <label class="form-label small text-muted d-block mb-2">4. Días de la semana</label>
+                                                    <div class="d-flex flex-wrap gap-2" id="dias-container"></div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label small text-muted mb-2">Observación (Opcional)</label>
+                                                    <textarea class="form-control" id="observacion" rows="1" placeholder="Ej. Bloque práctico..."></textarea>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="modal-alert"></div>
+                                    </form>
                                 </div>
-                                <p class="fw-semibold text-dark mb-2"><i class="bi bi-briefcase me-2 text-muted"></i>2. Detalles de la Formacion</p>
-                                <div class="mb-3">
-                                    <label class="form-label small text-muted">Modalidad</label>
-                                    <select class="form-select" id="modalidad_clase" required>
-                                        <option value="presencial">Presencial</option>
-                                        <option value="virtual">Virtual</option>
-                                    </select>
+                                <div class="modal-footer p-3 bg-white border-top d-flex gap-2">
+                                    <button type="button" class="btn btn-light flex-grow-1 rounded-3" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" form="form-horario" id="btn-asignar"
+                                            class="btn btn-purple flex-grow-1 rounded-3 d-flex justify-content-center align-items-center gap-2">
+                                        <i class="bi bi-calendar-check"></i> Asignar
+                                    </button>
                                 </div>
-                                <div class="mb-3" id="container-sede">
-                                    <label class="form-label small text-muted">Sede</label>
-                                    <select class="form-select" id="idSede" required><option value="">Seleccionar sede...</option></select>
-                                </div>
-                                <div class="mb-3" id="container-ambiente">
-                                    <label class="form-label small text-muted">Ambiente</label>
-                                    <select class="form-select" id="idAmbiente" required><option value="">Seleccionar ambiente...</option></select>
-                                </div>
-                                <div class="mb-4">
-                                    <label class="form-label small text-muted">Instructor</label>
-                                    <select class="form-select" id="idFuncionario" required><option value="">Seleccionar instructor...</option></select>
-                                </div>
-                                <p class="fw-semibold text-dark mb-2"><i class="bi bi-clock-history me-2 text-muted"></i>3. Franja Horaria</p>
-                                <div class="row g-3 mb-3">
-                                    <div class="col-6"><label class="form-label small text-muted">Hora Inicio</label><input type="time" class="form-control" id="hora_inicio" required></div>
-                                    <div class="col-6"><label class="form-label small text-muted">Hora Fin</label><input type="time" class="form-control" id="hora_fin" required></div>
-                                </div>
-                                <div class="mb-4">
-                                    <label class="form-label small text-muted d-block mb-2">4. Días de la semana</label>
-                                    <div class="d-flex flex-wrap gap-2" id="dias-container"></div>
-                                </div>
-                                <div class="mb-4">
-                                    <label class="form-label small text-muted mb-2">Observación (Opcional)</label>
-                                    <textarea class="form-control" id="observacion" rows="2" placeholder="Ej. Bloque con enfoque práctico..."></textarea>
-                                </div>
-                                <div id="offcanvas-alert"></div>
-                            </form>
-                        </div>
-                        <div class="p-3 bg-white border-top d-flex gap-2">
-                            <button type="button" class="btn btn-light flex-grow-1 rounded-3" data-bs-dismiss="offcanvas">Cancelar</button>
-                            <button type="submit" form="form-horario" id="btn-asignar"
-                                    class="btn btn-purple flex-grow-1 rounded-3 d-flex justify-content-center align-items-center gap-2">
-                                <i class="bi bi-calendar-check"></i> Asignar
-                            </button>
+                            </div>
                         </div>
                     </div>
+                    
+                    <!-- Modal: Analisis de Juicios Evaluativos -->
+                    <div class="modal fade" id="modalAnalisisJuicios" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                            <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
+                                <div class="modal-header text-white border-0 px-4 py-3" style="background:linear-gradient(135deg, #198754 0%, #146c43 100%);">
+                                    <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                                        <i class="bi bi-bar-chart-fill"></i> Análisis de Juicios Evaluativos
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body p-4 bg-light" id="body-analisis-juicios">
+                                    <!-- Contenido inyectado dinámicamente -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                 </main>
             </div>`;
     }
@@ -417,16 +448,23 @@ class HorarioFormativa {
         const isEmpty = !Object.keys(grilla).length;
 
         const header = `
-            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-4 pb-2 px-4">
+            <div class="card-header bg-white border-0 d-flex flex-wrap justify-content-between align-items-center pt-4 pb-2 px-4 gap-3">
                 <div>
                     <h5 class="fw-bold mb-0" style="color:var(--text-dark)">Ficha ${ficha.codigoFicha}</h5>
                     <p class="small mb-0" style="color:var(--text-muted)">${ficha.programa?.nombre ?? ''}</p>
                 </div>
-                <button class="btn btn-purple rounded-pill px-4 d-flex align-items-center gap-2 shadow-sm"
-                        data-bs-toggle="offcanvas" data-bs-target="#offcanvasHorario">
-                    <i class="bi bi-plus-lg"></i><span>Agregar Formacion</span>
-                </button>
-            </div>`;
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-success rounded-pill px-4 d-flex align-items-center gap-2 shadow-sm" id="btn-juicios-evaluativos" title="Analizar Excel de Juicios Evaluativos">
+                        <i class="bi bi-file-earmark-excel"></i><span>Analizar Juicios</span>
+                    </button>
+                    <button class="btn btn-purple rounded-pill px-4 d-flex align-items-center gap-2 shadow-sm"
+                            data-bs-toggle="modal" data-bs-target="#modalHorario">
+                        <i class="bi bi-plus-lg"></i><span>Agregar Formación</span>
+                    </button>
+                </div>
+            </div>
+            <!-- INPUT OCULTO PARA SUBIR EL EXCEL DEL SENA -->
+            <input type="file" id="file-juicios" accept=".xlsx, .xls" class="d-none">`;
 
         if (isEmpty) {
             card.innerHTML = header + `
@@ -548,6 +586,8 @@ class HorarioFormativa {
                 btn.dataset.nombredia, parseInt(btn.dataset.idasignacion)
             );
         });
+
+        this.initJuiciosEvents();
     }
 
     async eliminarDiaDeBloque(idBloque, idDia, nombreDia, idAsignacion) {
@@ -580,6 +620,136 @@ class HorarioFormativa {
             }
         }
     }
+    
+    // ==========================================
+    // JS Logic for Analizar Juicios Evaluativos
+    // ==========================================
+    initJuiciosEvents() {
+        const btnJuicios = document.getElementById('btn-juicios-evaluativos');
+        const fileInput = document.getElementById('file-juicios');
+        
+        if (btnJuicios && fileInput) {
+            // Remove previous event listeners
+            const elClone = fileInput.cloneNode(true);
+            fileInput.parentNode.replaceChild(elClone, fileInput);
+            
+            btnJuicios.addEventListener('click', () => elClone.click());
+            
+            elClone.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                try {
+                    this.showAlert('page-alert-container', 'info', 'Analizando archivo de juicios...');
+                    const data = await analizarJuicios(file);
+                    this.renderAnalisisJuicios(data);
+                    
+                } catch (err) {
+                    this.showAlert('page-alert-container', 'danger', 'Error al analizar: ' + err.message);
+                } finally {
+                    e.target.value = ''; // Reset
+                }
+            });
+        }
+    }
+
+    renderAnalisisJuicios(data) {
+        let html = '';
+        
+        // Metadata & Summary Cards
+        html += `
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card border-0 bg-success text-white shadow-sm h-100">
+                        <div class="card-body">
+                            <h6 class="card-title fw-bold mb-1 opacity-75">Competencias Cubiertas</h6>
+                            <h2 class="mb-0 fw-bold">${data.resumen?.competencias_cubiertas || 0}</h2>
+                            <small>Alumnos superan el ${data.umbral_usado}% umbral de juicio Aprobado</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 bg-danger text-white shadow-sm h-100">
+                        <div class="card-body">
+                            <h6 class="card-title fw-bold mb-1 opacity-75">Faltan por Horario</h6>
+                            <h2 class="mb-0 fw-bold">${data.resumen?.competencias_necesitan_horario || 0}</h2>
+                            <small>Competencias donde hay fallos / estudiantes pendientes</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 border-start border-primary border-4 shadow-sm h-100 bg-white">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted fw-bold mb-1">Total Aprendices</h6>
+                            <h2 class="mb-0 fw-bold text-dark">${data.total_aprendices || 0}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Competencias table
+        html += `<div class="accordion" id="accordionJuicios">`;
+        
+        if (data.competencias && data.competencias.length > 0) {
+            data.competencias.forEach((comp, idx) => {
+                const isPendiente = comp.estado === 'PENDIENTE';
+                const badgeComp = isPendiente 
+                    ? `<span class="badge bg-danger rounded-pill">Falta Horario / Evaluacion</span>` 
+                    : `<span class="badge bg-success rounded-pill">Cubierto</span>`;
+                
+                const tableRows = comp.resultados.map(res => {
+                    const rowClass = res.necesita_horario ? 'table-warning' : '';
+                    const badgeRes = res.necesita_horario 
+                        ? `<span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Pendiente</span>`
+                        : `<span class="badge bg-success"><i class="bi bi-check"></i> Superado</span>`;
+                        
+                    return `
+                        <tr class="${rowClass}">
+                            <td><small>${res.nombre_completo}</small></td>
+                            <td class="text-center">${res.aprobados}</td>
+                            <td class="text-center">${res.total_con_juicio}</td>
+                            <td class="text-center"><strong>${res.porcentaje_aprobacion}%</strong></td>
+                            <td class="text-center">${badgeRes}</td>
+                        </tr>
+                    `;
+                }).join('');
+                
+                html += `
+                    <div class="accordion-item mb-2 border rounded-3 shadow-sm" style="overflow:hidden;">
+                        <h2 class="accordion-header" id="heading-${idx}">
+                            <button class="accordion-button ${isPendiente ? '' : 'collapsed'} d-flex justify-content-between" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${idx}">
+                                <div class="d-flex w-100 justify-content-between me-3">
+                                    <span class="fw-semibold text-truncate" style="max-width:400px;">${comp.nombre_completo}</span>
+                                    <span>${badgeComp}</span>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse-${idx}" class="accordion-collapse collapse ${isPendiente ? 'show' : ''}" data-bs-parent="#accordionJuicios">
+                            <div class="accordion-body p-0">
+                                <table class="table table-sm table-striped m-0" style="font-size:0.85rem;">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th>Resultado</th>
+                                            <th class="text-center" width="10%">Aprobados</th>
+                                            <th class="text-center" width="10%">Evaluados</th>
+                                            <th class="text-center" width="15%">% Aprobación</th>
+                                            <th class="text-center" width="15%">Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${tableRows}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        html += `</div>`;
+        document.getElementById('body-analisis-juicios').innerHTML = html;
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAnalisisJuicios')).show();
+    }
 
     async deleteAsignacion(id, skipConfirm = false) {
         if (!skipConfirm && !confirm('¿Eliminar esta clase del horario por completo?')) return;
@@ -596,14 +766,14 @@ class HorarioFormativa {
         const dias = Array.from(document.querySelectorAll('#dias-container .btn-check:checked'))
             .map(c => parseInt(c.value));
         if (!dias.length) {
-            this.showAlert('offcanvas-alert', 'warning', 'Selecciona al menos un día de la semana.');
+            this.showAlert('modal-alert', 'warning', 'Selecciona al menos un día de la semana.');
             return;
         }
 
         const modalidad  = document.getElementById('modalidad_clase').value;
         const idAmbiente = parseInt(document.getElementById('idAmbiente').value);
         if (modalidad === 'presencial' && !idAmbiente) {
-            this.showAlert('offcanvas-alert', 'warning', 'Selecciona un ambiente para la modalidad presencial.');
+            this.showAlert('modal-alert', 'warning', 'Selecciona un ambiente para la modalidad presencial.');
             return;
         }
 
@@ -628,16 +798,16 @@ class HorarioFormativa {
                 estado:          'activo',
             });
 
-            bootstrap.Offcanvas.getInstance(document.getElementById('offcanvasHorario'))?.hide();
+            bootstrap.Modal.getInstance(document.getElementById('modalHorario'))?.hide();
             document.getElementById('form-horario').reset();
-            document.getElementById('offcanvas-alert').innerHTML = '';
+            document.getElementById('modal-alert').innerHTML = '';
             this.showAlert('page-alert-container', 'success', 'Clase asignada correctamente al horario.');
             this.selectFicha(this.selectedFicha.idFicha);
         } catch (err) {
             let msg = err.message;
             if (msg.toLowerCase().includes('conflicto'))
                 msg = '<i class="bi bi-exclamation-triangle-fill me-2"></i>' + msg;
-            this.showAlert('offcanvas-alert', 'danger', msg);
+            this.showAlert('modal-alert', 'danger', msg);
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-calendar-check"></i> Asignar';

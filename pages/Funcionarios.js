@@ -575,8 +575,8 @@ class FuncionariosPage {
                 if (!dateStr) return;
                 events.push({
                     id:              `${asig.idAsignacion}_${dia.idDia}`,
-                    start:           `${dateStr}T${bloque.hora_inicio}`,
-                    end:             `${dateStr}T${bloque.hora_fin}`,
+                    start:           `${dateStr}T${bloque.horaInicio ?? bloque.hora_inicio}`,
+                    end:             `${dateStr}T${bloque.horaFin ?? bloque.hora_fin}`,
                     backgroundColor: bgColor,
                     borderColor:     color,
                     textColor:       color,
