@@ -1,5 +1,5 @@
-// export const API_BASE_URL = 'http://localhost:8000/api';
-export const API_BASE_URL = 'https://backend-manejohorarioscimm.sgdis.cloud/api';
+ export const API_BASE_URL = 'http://localhost:8000/api';
+//export const API_BASE_URL = 'https://backend-manejohorarioscimm.sgdis.cloud/api';
 
 import { getToken, logout } from './auth.js';
 
@@ -461,4 +461,20 @@ export function analizarJuicios(file) {
     const formData = new FormData();
     formData.append('archivo', file);
     return apiUpload('/analizar/juicios', formData);
+}
+
+/**
+ * Analiza el Excel de Juicios Evaluativos cruzando contra la BD:
+ *  - Toma la ficha → programa → tipoFormacion
+ *  - Carga las competencias (con sus resultados) de ese tipoFormacion en BD
+ *  - Cruza con el Excel para determinar qué competencias están Pendientes vs Cubiertas
+ *
+ * Endpoint: POST /api/reportes/competencias-pendientes
+ * Body: multipart/form-data  → archivo + id_ficha
+ */
+export function analizarJuiciosConFicha(file, idFicha) {
+    const formData = new FormData();
+    formData.append('archivo', file);
+    formData.append('id_ficha', String(idFicha));
+    return apiUpload('/reportes/competencias-pendientes', formData);
 }

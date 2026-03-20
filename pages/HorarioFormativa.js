@@ -1,7 +1,7 @@
 import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
-import { apiFetch, getFichas, getAmbientes, getFuncionarios, getSedes, analizarJuicios } from '../utils/api.js';
+import { apiFetch, getFichas, getAmbientes, getFuncionarios, getSedes, analizarJuiciosConFicha } from '../utils/api.js';
 
 async function apiCall(endpoint, method = 'GET', body = null) {
     return apiFetch(endpoint, { method, body: body ? JSON.stringify(body) : undefined });
@@ -626,129 +626,195 @@ class HorarioFormativa {
     // ==========================================
     initJuiciosEvents() {
         const btnJuicios = document.getElementById('btn-juicios-evaluativos');
-        const fileInput = document.getElementById('file-juicios');
-        
-        if (btnJuicios && fileInput) {
-            // Remove previous event listeners
-            const elClone = fileInput.cloneNode(true);
-            fileInput.parentNode.replaceChild(elClone, fileInput);
-            
-            btnJuicios.addEventListener('click', () => elClone.click());
-            
-            elClone.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                
-                try {
-                    this.showAlert('page-alert-container', 'info', 'Analizando archivo de juicios...');
-                    const data = await analizarJuicios(file);
-                    this.renderAnalisisJuicios(data);
-                    
-                } catch (err) {
-                    this.showAlert('page-alert-container', 'danger', 'Error al analizar: ' + err.message);
-                } finally {
-                    e.target.value = ''; // Reset
-                }
-            });
-        }
+        const fileInput  = document.getElementById('file-juicios');
+
+        if (!btnJuicios || !fileInput) return;
+
+        // Clonar para evitar listeners acumulados entre renders
+        const elClone = fileInput.cloneNode(true);
+        fileInput.parentNode.replaceChild(elClone, fileInput);
+
+        btnJuicios.addEventListener('click', () => elClone.click());
+
+        elClone.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Necesitamos la ficha actualmente seleccionada para cruzar con BD
+            const idFicha = this.selectedFicha?.idFicha;
+            if (!idFicha) {
+                this.showAlert('page-alert-container', 'warning', 'Selecciona primero una ficha para analizar los juicios.');
+                e.target.value = '';
+                return;
+            }
+
+            try {
+                this.showAlert('page-alert-container', 'info',
+                    `Analizando juicios vs competencias de la ficha ${this.selectedFicha.codigoFicha}...`);
+                // Llamamos al endpoint que cruza Excel + BD (competencias y resultados)
+                const data = await analizarJuiciosConFicha(file, idFicha);
+                this.renderAnalisisJuicios(data);
+            } catch (err) {
+                this.showAlert('page-alert-container', 'danger', 'Error al analizar: ' + err.message);
+            } finally {
+                e.target.value = '';
+            }
+        });
     }
 
     renderAnalisisJuicios(data) {
-        let html = '';
-        
-        // Metadata & Summary Cards
-        html += `
+        // data viene de ReporteCompetenciasService:
+        // { ok, ficha, programa, tipo_formacion, total_aprendices, umbral_usado,
+        //   total_competencias_bd, total_pendientes, total_cubiertas,
+        //   competencias_pendientes: [...], competencias_cubiertas: [...] }
+
+        const pendientes = data.competencias_pendientes || [];
+        const cubiertas  = data.competencias_cubiertas  || [];
+        const umbral     = data.umbral_usado ?? 80;
+
+        // ── Tarjetas de resumen ───────────────────────────────────────────────
+        let html = `
+            <div class="alert alert-light border mb-3 py-2 px-3" style="font-size:0.85rem;">
+                <i class="bi bi-info-circle me-1 text-primary"></i>
+                <strong>Ficha:</strong> ${data.ficha || '—'}
+                &nbsp;·&nbsp;
+                <strong>Programa:</strong> ${data.programa || '—'}
+                &nbsp;·&nbsp;
+                <strong>Tipo Formación:</strong> ${data.tipo_formacion || '—'}
+            </div>
             <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <div class="card border-0 bg-success text-white shadow-sm h-100">
-                        <div class="card-body">
-                            <h6 class="card-title fw-bold mb-1 opacity-75">Competencias Cubiertas</h6>
-                            <h2 class="mb-0 fw-bold">${data.resumen?.competencias_cubiertas || 0}</h2>
-                            <small>Alumnos superan el ${data.umbral_usado}% umbral de juicio Aprobado</small>
-                        </div>
-                    </div>
-                </div>
                 <div class="col-md-4">
                     <div class="card border-0 bg-danger text-white shadow-sm h-100">
                         <div class="card-body">
-                            <h6 class="card-title fw-bold mb-1 opacity-75">Faltan por Horario</h6>
-                            <h2 class="mb-0 fw-bold">${data.resumen?.competencias_necesitan_horario || 0}</h2>
-                            <small>Competencias donde hay fallos / estudiantes pendientes</small>
+                            <h6 class="card-title fw-bold mb-1 opacity-75">Pendientes (falta horario)</h6>
+                            <h2 class="mb-0 fw-bold">${pendientes.length}</h2>
+                            <small>Competencias con resultados por debajo del ${umbral}%</small>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="card border-0 border-start border-primary border-4 shadow-sm h-100 bg-white">
+                    <div class="card border-0 bg-success text-white shadow-sm h-100">
                         <div class="card-body">
-                            <h6 class="card-title text-muted fw-bold mb-1">Total Aprendices</h6>
-                            <h2 class="mb-0 fw-bold text-dark">${data.total_aprendices || 0}</h2>
+                            <h6 class="card-title fw-bold mb-1 opacity-75">Cubiertas</h6>
+                            <h2 class="mb-0 fw-bold">${cubiertas.length}</h2>
+                            <small>Competencias que superan el umbral de aprobación</small>
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
-        
-        // Competencias table
-        html += `<div class="accordion" id="accordionJuicios">`;
-        
-        if (data.competencias && data.competencias.length > 0) {
-            data.competencias.forEach((comp, idx) => {
-                const isPendiente = comp.estado === 'PENDIENTE';
-                const badgeComp = isPendiente 
-                    ? `<span class="badge bg-danger rounded-pill">Falta Horario / Evaluacion</span>` 
-                    : `<span class="badge bg-success rounded-pill">Cubierto</span>`;
-                
-                const tableRows = comp.resultados.map(res => {
-                    const rowClass = res.necesita_horario ? 'table-warning' : '';
-                    const badgeRes = res.necesita_horario 
-                        ? `<span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Pendiente</span>`
-                        : `<span class="badge bg-success"><i class="bi bi-check"></i> Superado</span>`;
-                        
-                    return `
-                        <tr class="${rowClass}">
-                            <td><small>${res.nombre_completo}</small></td>
-                            <td class="text-center">${res.aprobados}</td>
-                            <td class="text-center">${res.total_con_juicio}</td>
-                            <td class="text-center"><strong>${res.porcentaje_aprobacion}%</strong></td>
-                            <td class="text-center">${badgeRes}</td>
-                        </tr>
-                    `;
-                }).join('');
-                
-                html += `
+                <div class="col-md-4">
+                    <div class="card border-0 bg-white border-start border-primary border-4 shadow-sm h-100">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted fw-bold mb-1">Total Aprendices</h6>
+                            <h2 class="mb-0 fw-bold text-dark">${data.total_aprendices || 0}</h2>
+                            <small class="text-muted">Umbral: ${umbral}%</small>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        // ── Función helper de filas de resultados ─────────────────────────────
+        const filaResultado = (res) => {
+            const estado    = res.estado ?? (res.necesita_horario ? 'pendiente' : 'evaluado');
+            const rowClass  = estado === 'sin_datos' ? 'table-secondary'
+                            : estado === 'pendiente' ? 'table-warning' : '';
+            const badge = estado === 'evaluado'
+                ? `<span class="badge bg-success"><i class="bi bi-check"></i> Evaluado</span>`
+                : estado === 'pendiente'
+                ? `<span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Pendiente</span>`
+                : `<span class="badge bg-secondary"><i class="bi bi-dash"></i> Sin datos</span>`;
+            const pct      = res.porcentaje_aprobacion ?? res.porcentaje ?? 0;
+            const aprobados = res.aprobados ?? 0;
+            const totalJuicio = res.total_con_juicio ?? 0;
+            const nombre    = res.nombre || res.nombre_completo || res.codigo || '—';
+            return `
+                <tr class="${rowClass}">
+                    <td><small>${nombre}</small></td>
+                    <td class="text-center">${aprobados}</td>
+                    <td class="text-center">${totalJuicio}</td>
+                    <td class="text-center"><strong>${pct}%</strong></td>
+                    <td class="text-center">${badge}</td>
+                </tr>`;
+        };
+
+        // ── Helper para renderizar un bloque de competencias ──────────────────
+        const bloqueCompetencias = (lista, tipo) => {
+            if (!lista.length) {
+                return `<p class="text-muted fst-italic text-center py-3">Ninguna competencia ${tipo === 'pendiente' ? 'pendiente' : 'cubierta'}.</p>`;
+            }
+            let out = `<div class="accordion" id="accordion-${tipo}">`;
+            lista.forEach((comp, idx) => {
+                const isPend   = tipo === 'pendiente';
+                const pct      = (comp.porcentaje ?? comp.porcentaje_minimo ?? 0);
+                const resumen  = comp.resumen_resultados;
+                const badge    = isPend
+                    ? `<span class="badge bg-danger rounded-pill">Pendiente ${Number(pct).toFixed(1)}%</span>`
+                    : `<span class="badge bg-success rounded-pill">Cubierto ${Number(pct).toFixed(1)}%</span>`;
+
+                const resumenHtml = resumen
+                    ? `<div class="text-muted small mt-1">
+                            Resultados BD: ${resumen.total} total
+                            &nbsp;·&nbsp; <span class="text-success">${resumen.evaluados} evaluados</span>
+                            &nbsp;·&nbsp; <span class="text-warning">${resumen.pendientes} pendientes</span>
+                            &nbsp;·&nbsp; <span class="text-secondary">${resumen.sin_datos} sin datos del Excel</span>
+                       </div>` : '';
+
+                const tableRows = (comp.resultados || []).map(filaResultado).join('');
+
+                out += `
                     <div class="accordion-item mb-2 border rounded-3 shadow-sm" style="overflow:hidden;">
-                        <h2 class="accordion-header" id="heading-${idx}">
-                            <button class="accordion-button ${isPendiente ? '' : 'collapsed'} d-flex justify-content-between" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${idx}">
-                                <div class="d-flex w-100 justify-content-between me-3">
-                                    <span class="fw-semibold text-truncate" style="max-width:400px;">${comp.nombre_completo}</span>
-                                    <span>${badgeComp}</span>
+                        <h2 class="accordion-header">
+                            <button class="accordion-button ${isPend ? '' : 'collapsed'} flex-column align-items-start"
+                                    type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapse-${tipo}-${idx}">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <span class="fw-semibold" style="max-width:420px;">${comp.codigo} — ${comp.nombre || comp.nombre_completo || ''}</span>
+                                    <span>${badge}</span>
                                 </div>
+                                ${resumenHtml}
                             </button>
                         </h2>
-                        <div id="collapse-${idx}" class="accordion-collapse collapse ${isPendiente ? 'show' : ''}" data-bs-parent="#accordionJuicios">
+                        <div id="collapse-${tipo}-${idx}" class="accordion-collapse collapse ${isPend ? 'show' : ''}"
+                             data-bs-parent="#accordion-${tipo}">
                             <div class="accordion-body p-0">
                                 <table class="table table-sm table-striped m-0" style="font-size:0.85rem;">
                                     <thead class="bg-light">
                                         <tr>
-                                            <th>Resultado</th>
+                                            <th>Resultado de Aprendizaje</th>
                                             <th class="text-center" width="10%">Aprobados</th>
                                             <th class="text-center" width="10%">Evaluados</th>
-                                            <th class="text-center" width="15%">% Aprobación</th>
-                                            <th class="text-center" width="15%">Estado</th>
+                                            <th class="text-center" width="14%">% Aprobación</th>
+                                            <th class="text-center" width="14%">Estado</th>
                                         </tr>
                                     </thead>
-                                    <tbody>${tableRows}</tbody>
+                                    <tbody>${tableRows || '<tr><td colspan="5" class="text-center text-muted">Sin resultados registrados en BD</td></tr>'}</tbody>
                                 </table>
                             </div>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
-        }
-        
-        html += `</div>`;
+            out += '</div>';
+            return out;
+        };
+
+        // ── Sección PENDIENTES ────────────────────────────────────────────────
+        html += `
+            <h6 class="fw-bold text-danger mb-2 mt-1">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                Competencias Pendientes (${pendientes.length})
+            </h6>
+            ${bloqueCompetencias(pendientes, 'pendiente')}
+
+            <hr class="my-4">
+            <h6 class="fw-bold text-success mb-2">
+                <i class="bi bi-check-circle-fill me-1"></i>
+                Competencias Cubiertas (${cubiertas.length})
+            </h6>
+            ${bloqueCompetencias(cubiertas, 'cubierta')}`;
+
         document.getElementById('body-analisis-juicios').innerHTML = html;
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAnalisisJuicios')).show();
+        bootstrap.Modal.getOrCreateInstance(
+            document.getElementById('modalAnalisisJuicios')
+        ).show();
     }
 
     async deleteAsignacion(id, skipConfirm = false) {
