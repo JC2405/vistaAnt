@@ -117,7 +117,7 @@ class MiHorarioPage {
             const color     = isVirtual ? '#0dcaf0' : '#7e57c2';
             const bgColor   = isVirtual ? 'rgba(13,202,240,0.1)' : 'rgba(126,87,194,0.1)';
             const ambienteLabel = asig.ambiente
-                ? `${asig.ambiente.codigo} - No.${asig.ambiente.numero}`
+                ? `${asig.ambiente.codigo} - No.${asig.ambiente}`
                 : 'Virtual';
             const fichaLabel = ficha ? `Ficha ${ficha.codigoFicha || ''}` : '';
             const progLabel  = ficha?.programa?.nombre || '';

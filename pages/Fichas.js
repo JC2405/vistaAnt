@@ -110,6 +110,7 @@ class FichasPage {
                     </div>
                 </div>
             </div>
+
         `;
 
         document.getElementById('btn-add-ficha').addEventListener('click', () => this.openModal());
@@ -312,125 +313,141 @@ class FichasPage {
     }
 
     setupModal() {
-        // Código del programa al frente del nombre
-        const programaOptions = this.programas.map(p =>
-            `<option value="${p.idPrograma}">${p.codigo ? p.codigo + ' - ' : ''}${p.nombre}</option>`
-        ).join('');
-
         const formContent = `
             <style>
-                .form-section { display: none; }
-                .form-section.active { display: block; animation: fadeIn 0.3s ease; }
-                .section-title { color: var(--text-dark); font-weight: 600; margin-bottom: 1.25rem; border-bottom: 2px solid #eeecf5; padding-bottom: 0.5rem; }
-                .form-label { color: #4b5563; font-weight: 500; font-size: 0.9rem; margin-bottom: 0.5rem; }
-                .form-control, .form-select { border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.6rem 1rem; color: #1f2937; }
-                .form-control:focus, .form-select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(107, 70, 193, 0.1); }
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                #ficha-modal .section-title { color: var(--text-dark); font-weight: 600; margin-bottom: 0.6rem; border-bottom: 1px solid #eeecf5; padding-bottom: 0.35rem; font-size: 0.82rem; text-transform: uppercase; letter-spacing: .04em; }
+                #ficha-modal .form-label { color: #4b5563; font-weight: 500; font-size: 0.8rem; margin-bottom: 0.2rem; }
+                #ficha-modal .form-control, #ficha-modal .form-select { border: 1px solid #d1d5db; border-radius: 0.4rem; padding: 0.35rem 0.65rem; color: #1f2937; font-size: 0.82rem; }
+                #ficha-modal .form-control:focus, #ficha-modal .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(107,70,193,0.08); }
+                #ficha-modal .compact-section { background: var(--bg-page, #f9fafb); padding: 0.75rem; border-radius: 0.4rem; margin-bottom: 0.6rem; border: 1px solid #e2e8f0; }
+                #ficha-modal .view-slide { display: none; }
+                #ficha-modal .view-slide.active { display: block; animation: fichaFadeIn 0.18s ease; }
+                @keyframes fichaFadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
             </style>
-            
-            <div class="row g-4">
-              <div class="col-lg-12">
 
-                <!-- SECCIÓN 1: INFORMACIÓN BÁSICA -->
-                <div class="form-section active" id="section1">
-                  <h5 class="section-title">
-                    <i class="bi bi-info-circle text-primary me-2"></i> Información Básica
-                  </h5>
-                  <div class="row g-3">
-                    <div class="col-md-6">
-                      <label for="codigoFicha" class="form-label"><i class="bi bi-hash text-muted me-1"></i> Código de la Ficha</label>
+            <!-- VISTA 1: FORMULARIO PRINCIPAL -->
+            <div class="view-slide active" id="view-ficha-form">
+              <div class="row g-3">
+                <!-- Columna Izquierda -->
+                <div class="col-md-6">
+                  <div class="compact-section shadow-sm">
+                    <h6 class="section-title"><i class="bi bi-info-circle text-primary me-1"></i>1. Detalles de la Ficha</h6>
+                    <div class="mb-2">
+                      <label for="codigoFicha" class="form-label">Código de la Ficha</label>
                       <input type="text" class="form-control" id="codigoFicha" placeholder="Ej: 2866432" required>
-                      <div class="form-text mt-1 text-muted" style="font-size: 0.8rem;">Código único de identificación</div>
                     </div>
-                    <div class="col-md-6">
-                      <label for="jornada" class="form-label"><i class="bi bi-clock text-muted me-1"></i> Jornada</label>
-                      <select class="form-select" id="jornada" required>
-                        <option value="">Seleccionar jornada...</option>
-                        <option value="Diurna">🌅 Diurna</option>
-                        <option value="Mixta">🌙 Mixta</option>
-                      </select>
-                    </div>
-                    <div class="col-md-6">
-                      <label for="modalidad" class="form-label"><i class="bi bi-laptop text-muted me-1"></i> Modalidad de Formación</label>
-                      <select class="form-select" id="modalidad" required>
-                        <option value="">Seleccionar modalidad...</option>
-                        <option value="Presencial">🏫 Presencial</option>
-                        <option value="Virtual">💻 Virtual</option>
-                      </select>
-                    </div>
-                    <div class="col-md-6">
-                      <label for="estado" class="form-label"><i class="bi bi-toggle-on text-muted me-1"></i> Estado</label>
-                      <select class="form-select" id="estado" required>
-                        <option value="Activo">🟢 Activo</option>
-                        <option value="Inactivo">🔴 Inactivo</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="d-flex justify-content-end mt-4 pt-3 border-top">
-                    <button type="button" class="btn btn-primary d-flex align-items-center gap-2 px-4 shadow-sm" onclick="document.getElementById('ficha-modal-form').goToSection(2)">
-                      Siguiente <i class="bi bi-arrow-right"></i>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- SECCIÓN 2: PROGRAMA -->
-                <div class="form-section" id="section2">
-                  <h5 class="section-title">
-                    <i class="bi bi-mortarboard text-primary me-2"></i> Programa de Formación
-                  </h5>
-                  <div class="row g-3">
-                    <div class="col-12">
-                      <label for="idPrograma" class="form-label"><i class="bi bi-book text-muted me-1"></i> Seleccionar Programa</label>
-                      <select class="form-select" id="idPrograma" required>
-                        <option value="">Seleccione un programa...</option>
-                        ${programaOptions}
-                      </select>
-                    </div>
-                    <div class="col-12" id="programa-info" style="display:none;">
-                      <div class="alert alert-info d-flex align-items-center gap-2 py-2 mb-0" style="font-size:0.85rem;">
-                        <i class="bi bi-info-circle-fill"></i>
-                        <span id="programa-info-text"></span>
+                    <div>
+                      <label class="form-label">Programa de Formación</label>
+                      <div class="input-group input-group-sm" id="btn-select-programa" style="cursor:pointer; border-radius:0.4rem; overflow:hidden; border:1px solid #d1d5db;">
+                        <input type="text" class="form-control border-0" id="programaNombreDisplay" placeholder="Clic para buscar programa..." readonly style="cursor:pointer; background:#fff; font-size:0.82rem;" required>
+                        <input type="hidden" id="idPrograma" required>
+                        <button class="btn border-0 px-2" type="button" style="pointer-events:none; background:#fff;">
+                          <i class="bi bi-search text-primary" style="font-size:0.8rem;"></i>
+                        </button>
+                      </div>
+                      <div id="programa-info" class="mt-1" style="display:none;">
+                        <div class="alert alert-info py-1 px-2 mb-0 d-flex align-items-center gap-1" style="font-size:0.75rem; border-radius:0.4rem;">
+                          <i class="bi bi-info-circle-fill text-primary" style="font-size:0.9rem;"></i>
+                          <span id="programa-info-text"></span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div class="d-flex justify-content-between mt-4 pt-3 border-top">
-                    <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-2 px-4" onclick="document.getElementById('ficha-modal-form').goToSection(1)">
-                      <i class="bi bi-arrow-left"></i> Anterior
-                    </button>
-                    <button type="button" class="btn btn-primary d-flex align-items-center gap-2 px-4 shadow-sm" onclick="document.getElementById('ficha-modal-form').goToSection(3)">
-                      Siguiente <i class="bi bi-arrow-right"></i>
-                    </button>
+
+                  <div class="compact-section shadow-sm mb-0">
+                    <h6 class="section-title"><i class="bi bi-gear text-primary me-1"></i>2. Configuración</h6>
+                    <div class="row g-2">
+                      <div class="col-6">
+                        <label for="jornada" class="form-label">Jornada</label>
+                        <select class="form-select" id="jornada" required>
+                          <option value="">Seleccionar...</option>
+                          <option value="Diurna">🌅 Diurna</option>
+                          <option value="Mixta">🌙 Mixta</option>
+                        </select>
+                      </div>
+                      <div class="col-6">
+                        <label for="modalidad" class="form-label">Modalidad</label>
+                        <select class="form-select" id="modalidad" required>
+                          <option value="">Seleccionar...</option>
+                          <option value="Presencial">🏫 Presencial</option>
+                          <option value="Virtual">💻 Virtual</option>
+                        </select>
+                      </div>
+                      <div class="col-12">
+                        <label for="estado" class="form-label">Estado</label>
+                        <select class="form-select" id="estado" required>
+                          <option value="Activo">🟢 Activo</option>
+                          <option value="Inactivo">🔴 Inactivo</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <!-- SECCIÓN 3: FECHAS -->
-                <div class="form-section" id="section3">
-                  <h5 class="section-title">
-                    <i class="bi bi-calendar-range text-primary me-2"></i> Fechas de Formación
-                  </h5>
-                  <div class="row g-3">
-                    <div class="col-md-6">
-                      <label for="fechaInicio" class="form-label"><i class="bi bi-calendar-event text-muted me-1"></i> Fecha de Inicio</label>
-                      <input type="date" class="form-control" id="fechaInicio" required>
-                    </div>
-                    <div class="col-md-6">
-                      <label for="fechaFin" class="form-label"><i class="bi bi-calendar-check text-muted me-1"></i> Fecha de Finalización</label>
-                      <input type="date" class="form-control" id="fechaFin" style="background-color:#e9ecef; pointer-events:none;" readonly>
-                      <div class="form-text mt-1 text-muted" style="font-size: 0.8rem;">Se calcula automáticamente según la duración del programa.</div>
+                <!-- Columna Derecha -->
+                <div class="col-md-6 d-flex flex-column">
+                  <div class="compact-section shadow-sm flex-grow-1 mb-2">
+                    <h6 class="section-title"><i class="bi bi-calendar-range text-primary me-1"></i>3. Rango de Fechas</h6>
+                    <div class="row g-2">
+                      <div class="col-6">
+                        <label for="fechaInicio" class="form-label">Fecha de Inicio</label>
+                        <input type="date" class="form-control" id="fechaInicio" required>
+                      </div>
+                      <div class="col-6">
+                        <label for="fechaFin" class="form-label">Fecha Fin (Auto)</label>
+                        <input type="date" class="form-control" id="fechaFin" style="background:#e9ecef; pointer-events:none;" readonly>
+                      </div>
+                      <div class="col-12">
+                        <div class="d-flex align-items-center gap-2 text-muted py-1 px-2 rounded" style="background:#fffbeb; border:1px solid #fde68a; font-size:0.75rem;">
+                          <i class="bi bi-lightbulb-fill text-warning"></i>
+                          <span>La fecha fin se calcula según la duración del programa.</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div class="d-flex justify-content-between mt-4 pt-3 border-top">
-                    <button type="button" class="btn btn-outline-secondary d-flex align-items-center gap-2 px-4" onclick="document.getElementById('ficha-modal-form').goToSection(2)">
-                      <i class="bi bi-arrow-left"></i> Anterior
-                    </button>
-                    <button type="submit" class="btn btn-success d-flex align-items-center gap-2 px-4 shadow-sm" id="ficha-modal-submit">
-                      <span class="btn-text d-flex align-items-center gap-2"><i class="bi bi-check-circle"></i> Crear Ficha</span>
-                      <span class="btn-spinner d-none spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+
+                  <div class="d-flex justify-content-end gap-2 mt-auto">
+                    <button type="button" class="btn btn-light border btn-sm px-3" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 shadow-sm" id="ficha-modal-submit" style="background-color:var(--primary);">
+                      <span class="btn-text d-flex align-items-center gap-2"><i class="bi bi-check-circle"></i> Guardar Ficha</span>
+                      <span class="btn-spinner d-none spinner-border spinner-border-sm" role="status"></span>
                     </button>
                   </div>
                 </div>
-
               </div>
+            </div><!-- /VISTA 1 -->
+
+            <!-- VISTA 2: SELECTOR DE PROGRAMAS -->
+            <div class="view-slide" id="view-program-search">
+                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                    <button type="button" class="btn btn-light btn-sm px-3 rounded-pill shadow-sm d-flex align-items-center gap-1" id="btn-back-to-form">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </button>
+                    <h6 class="mb-0 fw-bold text-dark ms-1"><i class="bi bi-journals text-primary me-1"></i> Buscar Programa</h6>
+                </div>
+                <div class="mb-2">
+                    <div class="input-group input-group-sm shadow-sm" style="border-radius:0.4rem; overflow:hidden; border:1px solid #d1d5db;">
+                        <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control border-0" id="search-programa-input" placeholder="Buscar por nombre, código o tipo..." autocomplete="off">
+                    </div>
+                </div>
+                <div class="table-responsive bg-white shadow-sm border" style="border-radius:0.4rem; max-height:380px; overflow-y:auto;">
+                    <table class="table table-hover table-sm align-middle mb-0">
+                        <thead class="table-light text-secondary sticky-top" style="z-index:10; font-size:0.78rem;">
+                            <tr>
+                                <th>CÓDIGO</th>
+                                <th>PROGRAMA</th>
+                                <th>TIPO</th>
+                                <th class="text-end">ACCIÓN</th>
+                            </tr>
+                        </thead>
+                        <tbody id="programas-list-body"></tbody>
+                    </table>
+                    <div id="programas-empty-state" class="text-center py-4 d-none text-muted" style="font-size:0.85rem;">
+                        <i class="bi bi-clipboard-x fs-3 d-block mb-1 opacity-50"></i>
+                        No se encontraron programas.
+                    </div>
+                </div>
             </div>
         `;
 
@@ -438,30 +455,11 @@ class FichasPage {
             id: 'ficha-modal',
             title: 'Ficha',
             formContent: formContent,
-            hideFooter: true
+            hideFooter: true,
+            size: 'modal-lg'
         });
 
         const formEl = document.getElementById('ficha-modal-form');
-
-        formEl.goToSection = (stepNumber) => {
-            if (stepNumber > 1) {
-                const currentSection = document.querySelector('.form-section.active');
-                if (currentSection) {
-                    let isValid = true;
-                    currentSection.querySelectorAll('input[required], select[required]').forEach(input => {
-                        if (!input.value) {
-                            input.classList.add('is-invalid');
-                            isValid = false;
-                        } else {
-                            input.classList.remove('is-invalid');
-                        }
-                    });
-                    if (!isValid) return;
-                }
-            }
-            document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
-            document.getElementById('section' + stepNumber).classList.add('active');
-        };
 
         // Listener único con delegación — se registra UNA sola vez sobre el form
         // Así no se acumulan listeners ni se pierde por cloneNode
@@ -474,6 +472,90 @@ class FichasPage {
         formEl.addEventListener('submit', this.handleFormSubmit.bind(this));
 
         this.bsModal = new bootstrap.Modal(document.getElementById('ficha-modal'));
+
+        // =======================
+        // Lógica Selección Programa
+        // =======================
+        document.getElementById('btn-select-programa').addEventListener('click', () => {
+            this.renderProgramasList();
+            document.getElementById('search-programa-input').value = '';
+            
+            // Cambiar de vista
+            document.getElementById('view-ficha-form').classList.remove('active');
+            document.getElementById('view-program-search').classList.add('active');
+            
+            setTimeout(() => document.getElementById('search-programa-input').focus(), 200);
+        });
+
+        document.getElementById('btn-back-to-form').addEventListener('click', () => {
+            document.getElementById('view-program-search').classList.remove('active');
+            document.getElementById('view-ficha-form').classList.add('active');
+        });
+
+        document.getElementById('search-programa-input').addEventListener('input', (e) => {
+            this.renderProgramasList(e.target.value);
+        });
+
+        document.getElementById('programas-list-body').addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-select-prog');
+            if (btn) {
+                const id = btn.dataset.id;
+                const nombre = btn.dataset.nombre;
+                const codigo = btn.dataset.codigo;
+                
+                // Set data
+                document.getElementById('idPrograma').value = id;
+                document.getElementById('programaNombreDisplay').value = codigo ? `${codigo} - ${nombre}` : nombre;
+                
+                // Recalculate dates
+                this._recalcularFechaFin();
+                document.getElementById('programaNombreDisplay').classList.remove('is-invalid');
+                
+                // Switch view back to main form
+                document.getElementById('view-program-search').classList.remove('active');
+                document.getElementById('view-ficha-form').classList.add('active');
+            }
+        });
+    }
+
+    renderProgramasList(query = '') {
+        const tbody = document.getElementById('programas-list-body');
+        const emptyState = document.getElementById('programas-empty-state');
+        if (!tbody) return;
+
+        const q = query.toLowerCase().trim();
+        const filtered = this.programas.filter(p => {
+            if (!q) return true;
+            return (p.nombre && p.nombre.toLowerCase().includes(q)) || 
+                   (p.codigo && p.codigo.toLowerCase().includes(q)) ||
+                   (p.tipoFormacion && p.tipoFormacion.nombreTipoFormacion && p.tipoFormacion.nombreTipoFormacion.toLowerCase().includes(q)) ||
+                   (p.tipo_formacion && p.tipo_formacion.nombreTipoFormacion && p.tipo_formacion.nombreTipoFormacion.toLowerCase().includes(q));
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = '';
+            emptyState.classList.remove('d-none');
+        } else {
+            emptyState.classList.add('d-none');
+            tbody.innerHTML = filtered.map(p => {
+                const tipo = p.tipoFormacion?.nombreTipoFormacion || p.tipo_formacion?.nombreTipoFormacion || '<span class="text-muted">N/A</span>';
+                return `
+                    <tr>
+                        <td class="fw-medium text-secondary">${p.codigo || 'N/A'}</td>
+                        <td class="fw-bold text-dark" style="font-size: 0.9rem;">${p.nombre || 'Sin nombre'}</td>
+                        <td style="font-size: 0.85rem;"><span class="badge bg-light text-dark border">${tipo}</span></td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-primary btn-select-prog px-3 shadow-sm" style="border-radius: 0.4rem;"
+                                data-id="${p.idPrograma}" 
+                                data-nombre="${p.nombre ? p.nombre.replace(/"/g, '&quot;') : ''}" 
+                                data-codigo="${p.codigo ? p.codigo.replace(/"/g, '&quot;') : ''}">
+                                Seleccionar
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
     }
 
     // Método dedicado al cálculo — fácil de llamar desde cualquier lugar
@@ -529,7 +611,23 @@ class FichasPage {
         document.getElementById('estado').value      = ficha ? (ficha.estado    || 'Activo') : 'Activo';
         document.getElementById('fechaInicio').value = ficha ? (ficha.fechaInicio || '') : '';
         document.getElementById('fechaFin').value    = ficha ? (ficha.fechaFin    || '') : '';
-        document.getElementById('idPrograma').value  = ficha ? (ficha.idPrograma  || '') : '';
+        
+        const progValue = ficha ? (ficha.idPrograma || '') : '';
+        document.getElementById('idPrograma').value = progValue;
+        
+        const progDisplay = document.getElementById('programaNombreDisplay');
+        if (progDisplay) {
+            if (progValue) {
+                const p = this.programas.find(x => String(x.idPrograma) === String(progValue));
+                if (p) {
+                    progDisplay.value = `${p.codigo ? p.codigo + ' - ' : ''}${p.nombre}`;
+                } else {
+                    progDisplay.value = 'Programa seleccionado';
+                }
+            } else {
+                progDisplay.value = '';
+            }
+        }
 
         // Ocultar info box
         const infoBox = document.getElementById('programa-info');
@@ -561,9 +659,14 @@ class FichasPage {
             }
         }
 
-        // Reset wizard al paso 1
-        document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
-        document.getElementById('section1').classList.add('active');
+        // Formulario reseteado visualmente
+        // Asegurar que siempre se abra en la vista principal
+        const formElView = document.getElementById('ficha-modal-form');
+        if (formElView) {
+            formElView.querySelectorAll('.view-slide').forEach(s => s.classList.remove('active'));
+            const mainView = document.getElementById('view-ficha-form');
+            if (mainView) mainView.classList.add('active');
+        }
     }
 
     openModal(id = null) {

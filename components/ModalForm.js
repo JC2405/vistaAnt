@@ -36,7 +36,7 @@ export function FormSelect({ id, label, options = [], valueKey = 'id', textKey =
  * @param {string} [props.submitText='Guardar']
  * @returns {string} HTML string
  */
-export function ModalForm({ id, title, formContent, submitText = 'Guardar', hideFooter = false }) {
+export function ModalForm({ id, title, formContent, submitText = 'Guardar', hideFooter = false, size = 'modal-lg' }) {
     const footerHtml = hideFooter ? '' : `
         <div class="modal-footer bg-light border-top-0 py-3">
             <button type="button" class="btn btn-light rounded-3 px-4" data-bs-dismiss="modal">Cancelar</button>
@@ -49,7 +49,7 @@ export function ModalForm({ id, title, formContent, submitText = 'Guardar', hide
 
     return `
         <div class="modal fade" id="${id}" tabindex="-1" aria-labelledby="${id}-title" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-dialog modal-dialog-centered ${size}">
                 <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                     <div class="modal-header bg-gradient-primary text-white border-0 py-3" style="background: linear-gradient(135deg, hsl(256, 72%, 58%) 0%, hsl(280, 60%, 55%) 100%) !important;">
                         <h5 class="modal-title fw-bold" id="${id}-title">${title}</h5>
@@ -57,7 +57,7 @@ export function ModalForm({ id, title, formContent, submitText = 'Guardar', hide
                     </div>
                     
                     <form id="${id}-form" novalidate>
-                        <div class="modal-body p-4 bg-white">
+                        <div class="modal-body p-3 bg-white">
                             <div id="${id}-alert"></div>
                             ${formContent}
                         </div>

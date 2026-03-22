@@ -53,80 +53,130 @@ class HorarioFormativa {
                     </div>
                     <div id="main-content" class="fade-in"></div>
 
-                    <!-- Modal: Asignar Formacion (Reemplazo del viejo Panel Lateral) -->
+                    <!-- Modal: Asignar Formacion -->
                     <div class="modal fade" tabindex="-1" id="modalHorario" aria-hidden="true">
                         <div class="modal-dialog modal-lg modal-dialog-centered">
                             <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
-                                <div class="modal-header text-white p-4"
+                                <div class="modal-header text-white py-3 px-4"
                                      style="background:linear-gradient(135deg,hsl(280,60%,55%) 0%,var(--primary) 100%);">
                                     <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
                                         <i class="bi bi-calendar-plus"></i> Asignar Formación
                                     </h5>
                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                 </div>
-                                <div class="modal-body p-4" style="background:var(--bg-page)">
-                                    <form id="form-horario" novalidate>
-                                        <div class="mb-4 p-3 bg-white rounded-3 border">
-                                            <p class="mb-1 text-muted small fw-semibold text-uppercase">Ficha Seleccionada</p>
-                                            <h6 class="mb-0 fw-bold text-primary" id="lbl-ficha-context">...</h6>
-                                        </div>
-                                        
-                                        <div class="row g-4">
-                                            <div class="col-md-6 border-end pe-4">
-                                                <p class="fw-semibold text-dark mb-2"><i class="bi bi-briefcase me-2 text-muted"></i>1. Detalles de la Formación</p>
-                                                <div class="mb-3">
-                                                    <label class="form-label small text-muted">Modalidad</label>
-                                                    <select class="form-select" id="modalidad_clase" required>
-                                                        <option value="presencial">Presencial</option>
-                                                        <option value="virtual">Virtual</option>
-                                                    </select>
-                                                </div>
-                                                <div class="mb-3" id="container-sede">
-                                                    <label class="form-label small text-muted">Sede</label>
-                                                    <select class="form-select" id="idSede" required><option value="">Seleccionar sede...</option></select>
-                                                </div>
-                                                <div class="mb-3" id="container-ambiente">
-                                                    <label class="form-label small text-muted">Ambiente</label>
-                                                    <select class="form-select" id="idAmbiente" required><option value="">Seleccionar ambiente...</option></select>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label small text-muted">Instructor</label>
-                                                    <select class="form-select" id="idFuncionario" required><option value="">Seleccionar instructor...</option></select>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6 ps-4">
-                                                <p class="fw-semibold text-dark mb-2"><i class="bi bi-calendar-range me-2 text-muted"></i>2. Rango de Fechas</p>
-                                                <div class="row g-2 mb-4">
-                                                    <div class="col-6"><label class="form-label small text-muted">Inicio</label><input type="date" class="form-control form-control-sm" id="fecha_inicio" required></div>
-                                                    <div class="col-6"><label class="form-label small text-muted">Fin</label><input type="date" class="form-control form-control-sm" id="fecha_fin" required></div>
-                                                </div>
-                                                
-                                                <p class="fw-semibold text-dark mb-2"><i class="bi bi-clock-history me-2 text-muted"></i>3. Franja Horaria</p>
-                                                <div class="row g-2 mb-4">
-                                                    <div class="col-6"><label class="form-label small text-muted">Hora Inicio</label><input type="time" class="form-control form-control-sm" id="hora_inicio" required></div>
-                                                    <div class="col-6"><label class="form-label small text-muted">Hora Fin</label><input type="time" class="form-control form-control-sm" id="hora_fin" required></div>
-                                                </div>
+                                <style>
+                                    #modalHorario .view-slide { display: none; }
+                                    #modalHorario .view-slide.active { display: block; animation: slideIn 0.18s ease; }
+                                    @keyframes slideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+                                </style>
 
-                                                <div class="mb-4">
-                                                    <label class="form-label small text-muted d-block mb-2">4. Días de la semana</label>
-                                                    <div class="d-flex flex-wrap gap-2" id="dias-container"></div>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label small text-muted mb-2">Observación (Opcional)</label>
-                                                    <textarea class="form-control" id="observacion" rows="1" placeholder="Ej. Bloque práctico..."></textarea>
+                                <!-- VISTA 1: Formulario principal -->
+                                <div class="view-slide active" id="view-horario-form">
+                                    <div class="modal-body p-3" style="background:var(--bg-page)">
+                                        <form id="form-horario" novalidate>
+                                            <div class="mb-3 p-2 bg-white rounded-3 border d-flex align-items-center gap-3">
+                                                <i class="bi bi-card-text text-primary fs-5"></i>
+                                                <div>
+                                                    <p class="mb-0 text-muted" style="font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.04em;">Ficha Seleccionada</p>
+                                                    <h6 class="mb-0 fw-bold text-primary" id="lbl-ficha-context" style="font-size:0.95rem;">...</h6>
                                                 </div>
                                             </div>
+
+                                            <div class="row g-3">
+                                                <div class="col-md-6 border-end pe-3">
+                                                    <p class="fw-semibold text-dark mb-2" style="font-size:0.82rem;"><i class="bi bi-briefcase me-2 text-muted"></i>1. Detalles</p>
+                                                    <div class="mb-2">
+                                                        <label class="form-label small text-muted mb-1">Modalidad</label>
+                                                        <select class="form-select form-select-sm" id="modalidad_clase" required>
+                                                            <option value="presencial">Presencial</option>
+                                                            <option value="virtual">Virtual</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="mb-2" id="container-sede">
+                                                        <label class="form-label small text-muted mb-1">Sede</label>
+                                                        <select class="form-select form-select-sm" id="idSede" required><option value="">Seleccionar sede...</option></select>
+                                                    </div>
+                                                    <div class="mb-2" id="container-ambiente">
+                                                        <label class="form-label small text-muted mb-1">Ambiente</label>
+                                                        <select class="form-select form-select-sm" id="idAmbiente" required><option value="">Seleccionar ambiente...</option></select>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <label class="form-label small text-muted mb-1">Instructor</label>
+                                                        <div class="input-group input-group-sm" id="btn-select-instructor" style="cursor:pointer; border-radius:0.4rem; overflow:hidden; border:1px solid #d1d5db;">
+                                                            <input type="text" class="form-control border-0" id="instructorNombreDisplay" placeholder="Clic para buscar instructor..." readonly style="cursor:pointer; background:#fff; font-size:0.82rem;" required>
+                                                            <input type="hidden" id="idFuncionario" required>
+                                                            <button class="btn border-0 px-2" type="button" style="pointer-events:none; background:#fff;">
+                                                                <i class="bi bi-search text-primary" style="font-size:0.8rem;"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6 ps-3">
+                                                    <p class="fw-semibold text-dark mb-2" style="font-size:0.82rem;"><i class="bi bi-calendar-range me-2 text-muted"></i>2. Fechas y Horario</p>
+                                                    <div class="row g-2 mb-2">
+                                                        <div class="col-6"><label class="form-label small text-muted mb-1">Inicio</label><input type="date" class="form-control form-control-sm" id="fecha_inicio" required></div>
+                                                        <div class="col-6"><label class="form-label small text-muted mb-1">Fin</label><input type="date" class="form-control form-control-sm" id="fecha_fin" required></div>
+                                                    </div>
+                                                    <div class="row g-2 mb-2">
+                                                        <div class="col-6"><label class="form-label small text-muted mb-1">Hora Inicio</label><input type="time" class="form-control form-control-sm" id="hora_inicio" required></div>
+                                                        <div class="col-6"><label class="form-label small text-muted mb-1">Hora Fin</label><input type="time" class="form-control form-control-sm" id="hora_fin" required></div>
+                                                    </div>
+                                                    <div class="mb-2">
+                                                        <label class="form-label small text-muted mb-1">Días de la semana</label>
+                                                        <div class="d-flex flex-wrap gap-1" id="dias-container"></div>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label small text-muted mb-1">Observación (Opcional)</label>
+                                                        <textarea class="form-control form-control-sm" id="observacion" rows="1" placeholder="Ej. Bloque práctico..."></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div id="modal-alert" class="mt-2"></div>
+                                        </form>
+                                    </div>
+                                    <div class="modal-footer py-2 px-3 bg-white border-top d-flex gap-2">
+                                        <button type="button" class="btn btn-light flex-grow-1 rounded-3 btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" form="form-horario" id="btn-asignar"
+                                                class="btn btn-purple flex-grow-1 rounded-3 btn-sm d-flex justify-content-center align-items-center gap-2">
+                                            <i class="bi bi-calendar-check"></i> Asignar
+                                        </button>
+                                    </div>
+                                </div><!-- /VISTA 1 -->
+
+                                <!-- VISTA 2: Selector de Instructor -->
+                                <div class="view-slide" id="view-instructor-search">
+                                    <div class="modal-body p-3" style="background:var(--bg-page)">
+                                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                                            <button type="button" class="btn btn-light btn-sm px-3 rounded-pill shadow-sm d-flex align-items-center gap-1" id="btn-back-to-form-instructor">
+                                                <i class="bi bi-arrow-left"></i> Volver
+                                            </button>
+                                            <h6 class="mb-0 fw-bold text-dark ms-1"><i class="bi bi-person-bounding-box text-primary me-1"></i> Buscar Instructor</h6>
                                         </div>
-                                        <div id="modal-alert"></div>
-                                    </form>
-                                </div>
-                                <div class="modal-footer p-3 bg-white border-top d-flex gap-2">
-                                    <button type="button" class="btn btn-light flex-grow-1 rounded-3" data-bs-dismiss="modal">Cancelar</button>
-                                    <button type="submit" form="form-horario" id="btn-asignar"
-                                            class="btn btn-purple flex-grow-1 rounded-3 d-flex justify-content-center align-items-center gap-2">
-                                        <i class="bi bi-calendar-check"></i> Asignar
-                                    </button>
-                                </div>
+                                        <div class="mb-2">
+                                            <div class="input-group input-group-sm shadow-sm" style="border-radius:0.4rem; overflow:hidden; border:1px solid #d1d5db;">
+                                                <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+                                                <input type="text" class="form-control border-0" id="search-instructor-input" placeholder="Buscar por nombre o área..." autocomplete="off">
+                                            </div>
+                                        </div>
+                                        <div class="table-responsive bg-white shadow-sm border" style="border-radius:0.4rem; max-height:380px; overflow-y:auto;">
+                                            <table class="table table-hover table-sm align-middle mb-0">
+                                                <thead class="table-light text-secondary sticky-top" style="z-index:10; font-size:0.78rem;">
+                                                    <tr>
+                                                        <th>INSTRUCTOR</th>
+                                                        <th>ÁREA</th>
+                                                        <th class="text-end">ACCIÓN</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="instructores-list-body"></tbody>
+                                            </table>
+                                            <div id="instructores-empty-state" class="text-center py-4 d-none text-muted" style="font-size:0.85rem;">
+                                                <i class="bi bi-person-x fs-3 d-block mb-1 opacity-50"></i>
+                                                No se encontraron instructores.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!-- /VISTA 2 -->
+
                             </div>
                         </div>
                     </div>
@@ -194,8 +244,24 @@ class HorarioFormativa {
         }).join('');
     }
 
-    renderInstructores(idAreaPreferida = null) {
+    renderInstructores(idAreaPreferida = null, query = '') {
+        const tbody = document.getElementById('instructores-list-body');
+        const emptyState = document.getElementById('instructores-empty-state');
+        if (!tbody) return;
+
         let sorted = [...this.instructores];
+        
+        // Filtrar por query
+        const q = query.toLowerCase().trim();
+        if (q) {
+            sorted = sorted.filter(i => {
+                const nombre = (i.nombre || '').toLowerCase();
+                const areas = i.areas?.map(a => (a.nombreArea || '').toLowerCase()).join(' ') || '';
+                return nombre.includes(q) || areas.includes(q);
+            });
+        }
+
+        // Ordenar por área preferida
         if (idAreaPreferida) {
             sorted.sort((a, b) => {
                 const aH = a.areas?.some(ar => String(ar.idArea) === String(idAreaPreferida));
@@ -203,15 +269,35 @@ class HorarioFormativa {
                 return (aH && !bH) ? -1 : (!aH && bH) ? 1 : 0;
             });
         }
-        const sel = document.getElementById('idFuncionario');
-        if (!sel) return;
-        sel.innerHTML = '<option value="">Seleccionar instructor...</option>' +
-            sorted.map(i => {
+
+        if (sorted.length === 0) {
+            tbody.innerHTML = '';
+            emptyState.classList.remove('d-none');
+        } else {
+            emptyState.classList.add('d-none');
+            tbody.innerHTML = sorted.map(i => {
                 const nombre  = i.nombre || 'Sin nombre';
                 const areas   = i.areas?.length ? i.areas.map(a => a.nombreArea).join(', ') : 'Sin área';
                 const isMatch = idAreaPreferida && i.areas?.some(a => String(a.idArea) === String(idAreaPreferida));
-                return `<option value="${i.idFuncionario}">${isMatch ? '★ ' : ''}${nombre} (${areas})</option>`;
+                
+                return `
+                    <tr class="align-middle" style="cursor: pointer;">
+                        <td class="fw-bold text-dark" style="font-size: 0.9rem;">
+                            ${isMatch ? '<i class="bi bi-star-fill text-warning me-1" title="Área Recomendada"></i>' : ''}
+                            ${nombre}
+                        </td>
+                        <td style="font-size: 0.85rem;"><span class="badge bg-light text-dark border">${areas}</span></td>
+                        <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-primary btn-select-inst px-3 shadow-sm" style="border-radius: 0.4rem;"
+                                data-id="${i.idFuncionario}" 
+                                data-nombre="${nombre.replace(/"/g, '&quot;')}">
+                                Seleccionar
+                            </button>
+                        </td>
+                    </tr>
+                `;
             }).join('');
+        }
     }
 
     renderSedesSelect() {
@@ -236,6 +322,38 @@ class HorarioFormativa {
 }
 
     setupEventListeners() {
+        document.getElementById('btn-select-instructor')?.addEventListener('click', () => {
+            document.getElementById('search-instructor-input').value = '';
+            const idAmbiente = document.getElementById('idAmbiente')?.value;
+            const amb = this.ambientes.find(a => String(a.idAmbiente) === String(idAmbiente));
+            this.renderInstructores(amb?.idArea ?? null);
+
+            document.getElementById('view-horario-form').classList.remove('active');
+            document.getElementById('view-instructor-search').classList.add('active');
+            setTimeout(() => document.getElementById('search-instructor-input').focus(), 200);
+        });
+
+        document.getElementById('btn-back-to-form-instructor')?.addEventListener('click', () => {
+            document.getElementById('view-instructor-search').classList.remove('active');
+            document.getElementById('view-horario-form').classList.add('active');
+        });
+
+        document.getElementById('search-instructor-input')?.addEventListener('input', (e) => {
+            const idAmbiente = document.getElementById('idAmbiente')?.value;
+            const amb = this.ambientes.find(a => String(a.idAmbiente) === String(idAmbiente));
+            this.renderInstructores(amb?.idArea ?? null, e.target.value);
+        });
+
+        document.getElementById('instructores-list-body')?.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-select-inst');
+            if (btn) {
+                document.getElementById('idFuncionario').value = btn.dataset.id;
+                document.getElementById('instructorNombreDisplay').value = btn.dataset.nombre;
+                
+                document.getElementById('view-instructor-search').classList.remove('active');
+                document.getElementById('view-horario-form').classList.add('active');
+            }
+        });
         document.getElementById('modalidad_clase')?.addEventListener('change', e => {
             const isVirtual = e.target.value === 'virtual';
             ['container-ambiente', 'container-sede'].forEach(id => {
@@ -428,6 +546,15 @@ class HorarioFormativa {
         if (this.selectedFicha.fechaFin)    document.getElementById('fecha_fin').value    = this.selectedFicha.fechaFin;
 
         document.getElementById('idSede').value = '';
+        document.getElementById('idFuncionario').value = '';
+        const insDisplay = document.getElementById('instructorNombreDisplay');
+        if (insDisplay) insDisplay.value = '';
+
+        // Reset views
+        document.querySelectorAll('.view-slide').forEach(s => s.classList.remove('active'));
+        const mainView = document.getElementById('view-horario-form');
+        if (mainView) mainView.classList.add('active');
+
         this.renderAmbientes('');
         this.renderInstructores();
 
