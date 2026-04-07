@@ -1,7 +1,6 @@
 # Instaladores y archivos pesados
 *.exe
 *.msi
-docker/
 
 # Dependencias
 node_modules/
