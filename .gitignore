@@ -1,0 +1,21 @@
+# Instaladores y archivos pesados
+*.exe
+*.msi
+docker/
+
+# Dependencias
+node_modules/
+vendor/
+vista/node_modules/
+vista/vendor/
+
+# Entorno y secretos
+.env
+.env.backup
+vista/.env
+
+# IDEs y Sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
