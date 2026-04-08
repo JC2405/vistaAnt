@@ -6,7 +6,9 @@ import { ModalForm, setModalLoading } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
-import { getFichas, createFicha, updateFicha, deleteFicha, getProgramas, getMunicipios, exportarFichas, exportarAprendicesDeFicha, importarAprendices, getHorariosPorFicha, enviarHorarioAprendiz } from '../utils/api.js';
+import { getFichas, createFicha, updateFicha, deleteFicha, getProgramas, getSedes,
+         exportarFichas, exportarAprendicesDeFicha, importarAprendices,
+         getHorariosPorFicha, enviarHorarioAprendiz } from '../utils/api.js';
 
 function showDateRangeModal(titulo = 'Seleccionar período', subtitulo = '') {
     return new Promise((resolve) => {
@@ -107,7 +109,7 @@ class FichasPage {
         this.appContainer = document.getElementById('app');
         this.fichas = [];
         this.programas = [];
-        this.municipios = [];
+        this.sedes = [];
         this.currentEditId = null;
 
         this.init();
@@ -303,12 +305,12 @@ class FichasPage {
 
     async loadDependencies() {
         try {
-            const [progData, munData] = await Promise.all([
+            const [progData, sedesData] = await Promise.all([
                 getProgramas(),
-                getMunicipios()
+                getSedes()
             ]);
-            this.programas  = progData.data || (Array.isArray(progData)  ? progData  : []);
-            this.municipios = munData.data  || (Array.isArray(munData)   ? munData   : []);
+            this.programas = progData.data || (Array.isArray(progData)  ? progData  : []);
+            this.sedes     = sedesData.data || (Array.isArray(sedesData) ? sedesData : []);
         } catch (error) {
             console.error('Error al cargar dependencias:', error);
             this.showAlert('page-alert-container', 'warning', 'No se pudieron cargar los datos de soporte.');
@@ -355,38 +357,30 @@ class FichasPage {
         const displayData = data || this.fichas;
 
         const columns = [
-            { key: 'codigoFicha', label: 'Código', icon: 'hash' },
-            {
-                key: 'programa',
-                label: 'Programa',
-                icon: 'book',
-                render: (row) => row.programa
-                    ? (row.programa.codigo
-                        ? `<span class="text-muted me-1" style="font-size:0.8rem;">${row.programa.codigo}</span> ${row.programa.nombre}`
-                        : row.programa.nombre)
-                    : '<span class="text-muted">N/A</span>'
-            },
-            {
-                key: 'municipio',
-                label: 'Municipio',
-                icon: 'geo-alt',
-                render: (row) => row.municipio
-                    ? `<span class="badge bg-light text-dark border fw-normal">${row.municipio.nombreMunicipio}</span>`
-                    : '<span class="text-muted small">N/A</span>'
-            },
-            { key: 'jornada',   label: 'Jornada',   icon: 'clock'  },
-            { key: 'modalidad', label: 'Modalidad', icon: 'laptop' },
-            { key: 'fechaInicio', label: 'Inicio', icon: 'calendar-event' },
-            { key: 'fechaFin', label: 'Fin', icon: 'calendar-check' },
-            {
-                key: 'estado',
-                label: 'Estado',
-                icon: 'toggle-on',
-                render: (row) => {
-                    const badgeClass = row.estado === 'Activo' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger';
-                    return `<span class="badge rounded-pill ${badgeClass}">${row.estado || 'N/A'}</span>`;
-                }
-            },
+    { key: 'codigoFicha', label: 'Código', icon: 'hash' },
+    {
+        key: 'programa',
+        label: 'Programa',
+        icon: 'book',
+        render: (row) => row.programa
+            ? (row.programa.codigo
+                ? `<span class="text-muted me-1" style="font-size:0.8rem;">${row.programa.codigo}</span> ${row.programa.nombre}`
+                : row.programa.nombre)
+            : '<span class="text-muted">N/A</span>'
+    },
+    { key: 'jornada',   label: 'Jornada',   icon: 'clock'  },
+    { key: 'modalidad', label: 'Modalidad', icon: 'laptop' },
+    { key: 'fechaInicio', label: 'Inicio', icon: 'calendar-event' },
+    { key: 'fechaFin', label: 'Fin', icon: 'calendar-check' },
+    {
+        key: 'estado',
+        label: 'Estado',
+        icon: 'toggle-on',
+        render: (row) => {
+            const badgeClass = row.estado === 'Activo' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger';
+            return `<span class="badge rounded-pill ${badgeClass}">${row.estado || 'N/A'}</span>`;
+        }
+    },
             {
                 key: 'acciones',
                 label: '',
@@ -515,10 +509,13 @@ class FichasPage {
                         </select>
                       </div>
                       <div class="col-6">
-                        <label class="form-label">Municipio</label>
-                        <div class="input-group input-group-sm" id="btn-select-municipio" style="cursor:pointer; border-radius:0.4rem; overflow:hidden; border:1px solid #d1d5db;">
-                          <input type="text" class="form-control border-0" id="municipioNombreDisplay" placeholder="Clic para buscar municipio..." readonly style="cursor:pointer; background:#fff; font-size:0.82rem;" required>
-                          <input type="hidden" id="idMunicipio" required>
+                        <label for="idSede" class="form-label">Sede</label>
+                        <div id="btn-select-sede"
+                             style="border-radius:0.4rem; overflow:hidden; border:1px solid #d1d5db; background:#fff;">
+                          <input type="text" class="form-control border-0" id="sedeNombreDisplay"
+                                 placeholder="Clic para buscar sede..." readonly
+                                 style="cursor:pointer; background:#fff; font-size:0.82rem;" required>
+                          <input type="hidden" id="idSede" required>
                           <button class="btn border-0 px-2" type="button" style="pointer-events:none; background:#fff;">
                             <i class="bi bi-search text-primary" style="font-size:0.8rem;"></i>
                           </button>
@@ -595,36 +592,38 @@ class FichasPage {
             </div>
             <!-- /VISTA 2 -->
 
-            <!-- VISTA 3: SELECTOR DE MUNICIPIOS -->
-            <div class="view-slide" id="view-municipio-search">
+            <!-- VISTA 3: SELECTOR DE SEDES -->
+            <div class="view-slide" id="view-sede-search">
                 <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                    <button type="button" class="btn btn-light btn-sm px-3 rounded-pill shadow-sm d-flex align-items-center gap-1" id="btn-back-from-municipio">
+                    <button type="button" class="btn btn-light btn-sm px-3 rounded-pill shadow-sm d-flex align-items-center gap-1" id="btn-back-from-sede">
                         <i class="bi bi-arrow-left"></i> Volver
                     </button>
-                    <h6 class="mb-0 fw-bold text-dark ms-1"><i class="bi bi-geo-alt text-primary me-1"></i> Buscar Municipio</h6>
+                    <h6 class="mb-0 fw-bold text-dark ms-1"><i class="bi bi-building text-primary me-1"></i> Buscar Sede</h6>
                 </div>
                 <div class="mb-2">
                     <div class="input-group input-group-sm shadow-sm" style="border-radius:0.4rem; overflow:hidden; border:1px solid #d1d5db;">
                         <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
-                        <input type="text" class="form-control border-0" id="search-municipio-input" placeholder="Buscar municipio..." autocomplete="off">
+                        <input type="text" class="form-control border-0" id="search-sede-input" placeholder="Buscar sede..." autocomplete="off">
                     </div>
                 </div>
                 <div class="table-responsive bg-white shadow-sm border" style="border-radius:0.4rem; max-height:380px; overflow-y:auto;">
                     <table class="table table-hover table-sm align-middle mb-0">
                         <thead class="table-light text-secondary sticky-top" style="z-index:10; font-size:0.78rem;">
                             <tr>
+                                <th>SEDE</th>
                                 <th>MUNICIPIO</th>
                                 <th class="text-end">ACCIÓN</th>
                             </tr>
                         </thead>
-                        <tbody id="municipios-list-body"></tbody>
+                        <tbody id="sedes-list-body"></tbody>
                     </table>
-                    <div id="municipios-empty-state" class="text-center py-4 d-none text-muted" style="font-size:0.85rem;">
-                        <i class="bi bi-geo fs-3 d-block mb-1 opacity-50"></i>
-                        No se encontraron municipios.
+                    <div id="sedes-empty-state" class="text-center py-4 d-none text-muted" style="font-size:0.85rem;">
+                        <i class="bi bi-building fs-3 d-block mb-1 opacity-50"></i>
+                        No se encontraron sedes.
                     </div>
                 </div>
             </div>
+            <!-- /VISTA 3 -->
         `;
 
         document.getElementById('modal-container').innerHTML = ModalForm({
@@ -637,8 +636,6 @@ class FichasPage {
 
         const formEl = document.getElementById('ficha-modal-form');
 
-        // Listener único con delegación — se registra UNA sola vez sobre el form
-        // Así no se acumulan listeners ni se pierde por cloneNode
         formEl.addEventListener('change', (e) => {
             if (e.target.id === 'idPrograma' || e.target.id === 'fechaInicio') {
                 this._recalcularFechaFin();
@@ -655,11 +652,8 @@ class FichasPage {
         document.getElementById('btn-select-programa').addEventListener('click', () => {
             this.renderProgramasList();
             document.getElementById('search-programa-input').value = '';
-            
-            // Cambiar de vista
             document.getElementById('view-ficha-form').classList.remove('active');
             document.getElementById('view-program-search').classList.add('active');
-            
             setTimeout(() => document.getElementById('search-programa-input').focus(), 200);
         });
 
@@ -678,76 +672,70 @@ class FichasPage {
                 const id = btn.dataset.id;
                 const nombre = btn.dataset.nombre;
                 const codigo = btn.dataset.codigo;
-                
-                // Set data
                 document.getElementById('idPrograma').value = id;
                 document.getElementById('programaNombreDisplay').value = codigo ? `${codigo} - ${nombre}` : nombre;
-                
-                // Recalculate dates
                 this._recalcularFechaFin();
                 document.getElementById('programaNombreDisplay').classList.remove('is-invalid');
-                
-                // Switch view back to main form
                 document.getElementById('view-program-search').classList.remove('active');
                 document.getElementById('view-ficha-form').classList.add('active');
             }
         });
 
         // =======================
-        // Lógica Selección Municipio
+        // Lógica Selección Sede
         // =======================
-        document.getElementById('btn-select-municipio').addEventListener('click', () => {
-            this.renderMunicipiosList();
-            document.getElementById('search-municipio-input').value = '';
+        document.getElementById('btn-select-sede').addEventListener('click', () => {
+            this.renderSedesList();
+            document.getElementById('search-sede-input').value = '';
             document.getElementById('view-ficha-form').classList.remove('active');
-            document.getElementById('view-municipio-search').classList.add('active');
-            setTimeout(() => document.getElementById('search-municipio-input').focus(), 200);
+            document.getElementById('view-sede-search').classList.add('active');
+            setTimeout(() => document.getElementById('search-sede-input').focus(), 200);
         });
 
-        document.getElementById('btn-back-from-municipio').addEventListener('click', () => {
-            document.getElementById('view-municipio-search').classList.remove('active');
+        document.getElementById('btn-back-from-sede').addEventListener('click', () => {
+            document.getElementById('view-sede-search').classList.remove('active');
             document.getElementById('view-ficha-form').classList.add('active');
         });
 
-        document.getElementById('search-municipio-input').addEventListener('input', (e) => {
-            this.renderMunicipiosList(e.target.value);
+        document.getElementById('search-sede-input').addEventListener('input', (e) => {
+            this.renderSedesList(e.target.value);
         });
 
-        document.getElementById('municipios-list-body').addEventListener('click', (e) => {
-            const btn = e.target.closest('.btn-select-mun');
+        document.getElementById('sedes-list-body').addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-select-sede-item');
             if (btn) {
-                document.getElementById('idMunicipio').value = btn.dataset.id;
-                document.getElementById('municipioNombreDisplay').value = btn.dataset.nombre;
-                document.getElementById('municipioNombreDisplay').classList.remove('is-invalid');
-                document.getElementById('view-municipio-search').classList.remove('active');
+                document.getElementById('idSede').value = btn.dataset.id;
+                document.getElementById('sedeNombreDisplay').value = btn.dataset.nombre;
+                document.getElementById('sedeNombreDisplay').classList.remove('is-invalid');
+                document.getElementById('view-sede-search').classList.remove('active');
                 document.getElementById('view-ficha-form').classList.add('active');
             }
         });
     }
 
-    renderMunicipiosList(query = '') {
-        const tbody      = document.getElementById('municipios-list-body');
-        const emptyState = document.getElementById('municipios-empty-state');
+    renderSedesList(query = '') {
+        const tbody      = document.getElementById('sedes-list-body');
+        const emptyState = document.getElementById('sedes-empty-state');
         if (!tbody) return;
-
         const q = query.toLowerCase().trim();
-        const filtered = this.municipios.filter(m =>
-            !q || (m.nombreMunicipio && m.nombreMunicipio.toLowerCase().includes(q))
+        const filtered = this.sedes.filter(s =>
+            !q || (s.nombre && s.nombre.toLowerCase().includes(q)) ||
+            (s.municipio?.nombreMunicipio && s.municipio.nombreMunicipio.toLowerCase().includes(q))
         );
-
         if (filtered.length === 0) {
             tbody.innerHTML = '';
             emptyState.classList.remove('d-none');
         } else {
             emptyState.classList.add('d-none');
-            tbody.innerHTML = filtered.map(m => `
+            tbody.innerHTML = filtered.map(s => `
                 <tr>
-                    <td class="fw-medium text-dark">${m.nombreMunicipio}</td>
+                    <td class="fw-medium text-dark">${s.nombre}</td>
+                    <td class="text-muted">${s.municipio?.nombreMunicipio || '—'}</td>
                     <td class="text-end">
-                        <button type="button" class="btn btn-sm btn-primary btn-select-mun px-3 shadow-sm"
+                        <button type="button" class="btn btn-sm btn-primary btn-select-sede-item px-3 shadow-sm"
                             style="border-radius:0.4rem;"
-                            data-id="${m.idMunicipio}"
-                            data-nombre="${m.nombreMunicipio.replace(/"/g, '&quot;')}">
+                            data-id="${s.idSede}"
+                            data-nombre="${(s.nombre + (s.municipio ? ' — ' + s.municipio.nombreMunicipio : '')).replace(/"/g, '&quot;')}">
                             Seleccionar
                         </button>
                     </td>
@@ -796,7 +784,6 @@ class FichasPage {
         }
     }
 
-    // Método dedicado al cálculo — fácil de llamar desde cualquier lugar
     _recalcularFechaFin() {
         const progSelect = document.getElementById('idPrograma');
         const startInput = document.getElementById('fechaInicio');
@@ -835,7 +822,6 @@ class FichasPage {
 
         const duracion = this.getProgramaDuracion(selectedProg);
         if (duracion > 0) {
-            // 'T00:00:00' evita desfase por zona horaria al parsear solo la fecha
             const startDate = new Date(startInput.value + 'T00:00:00');
             startDate.setMonth(startDate.getMonth() + duracion);
             endInput.value = startDate.toISOString().split('T')[0];
@@ -850,19 +836,21 @@ class FichasPage {
         document.getElementById('fechaInicio').value   = ficha ? (ficha.fechaInicio || '') : '';
         document.getElementById('fechaFin').value      = ficha ? (ficha.fechaFin    || '') : '';
 
-        // Municipio
-        const munValue = ficha ? (ficha.idMunicipio || '') : '';
-        document.getElementById('idMunicipio').value = munValue;
-        const munDisplay = document.getElementById('municipioNombreDisplay');
-        if (munDisplay) {
-            if (munValue) {
-                const m = this.municipios.find(x => String(x.idMunicipio) === String(munValue));
-                munDisplay.value = m ? m.nombreMunicipio : 'Municipio seleccionado';
+        // Sede
+        const sedeValue = ficha ? (ficha.idSede || '') : '';
+        document.getElementById('idSede').value = sedeValue;
+        const sedeDisplay = document.getElementById('sedeNombreDisplay');
+        if (sedeDisplay) {
+            if (sedeValue) {
+                const s = this.sedes.find(x => String(x.idSede) === String(sedeValue));
+                sedeDisplay.value = s
+                    ? s.nombre + (s.municipio ? ' — ' + s.municipio.nombreMunicipio : '')
+                    : 'Sede seleccionada';
             } else {
-                munDisplay.value = '';
+                sedeDisplay.value = '';
             }
         }
-        
+
         const progValue = ficha ? (ficha.idPrograma || '') : '';
         document.getElementById('idPrograma').value = progValue;
         
@@ -880,17 +868,14 @@ class FichasPage {
             }
         }
 
-        // Ocultar info box
         const infoBox = document.getElementById('programa-info');
         if (infoBox) infoBox.style.display = 'none';
 
-        // Resetear fechaFin a readonly por defecto
         const endInput = document.getElementById('fechaFin');
         endInput.setAttribute('readonly', 'true');
         endInput.style.backgroundColor = '#e9ecef';
         endInput.style.pointerEvents = 'none';
 
-        // Si es edición con programa y fecha, recalcular para mostrar info
         if (ficha && ficha.idPrograma && ficha.fechaInicio) {
             setTimeout(() => this._recalcularFechaFin(), 0);
         }
@@ -899,7 +884,6 @@ class FichasPage {
         formEl.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
         document.getElementById('ficha-modal-title').textContent = ficha ? 'Editar Ficha' : 'Nueva Ficha';
 
-        // Actualizar texto del botón submit según el modo
         const submitBtn = document.getElementById('ficha-modal-submit');
         if (submitBtn) {
             const btnText = submitBtn.querySelector('.btn-text');
@@ -910,8 +894,6 @@ class FichasPage {
             }
         }
 
-        // Formulario reseteado visualmente
-        // Asegurar que siempre se abra en la vista principal
         const formElView = document.getElementById('ficha-modal-form');
         if (formElView) {
             formElView.querySelectorAll('.view-slide').forEach(s => s.classList.remove('active'));
@@ -946,7 +928,7 @@ class FichasPage {
             fechaInicio : document.getElementById('fechaInicio').value,
             fechaFin    : document.getElementById('fechaFin').value,
             estado      : document.getElementById('estado').value,
-            idMunicipio : parseInt(document.getElementById('idMunicipio').value),
+            idSede      : parseInt(document.getElementById('idSede').value),
         };
 
         setModalLoading('ficha-modal', true);
@@ -1045,7 +1027,6 @@ class FichasPage {
 
     async enviarHorarioPorCorreoFicha(idFicha, btnElement) {
 
-    // 1. Pedir rango de fechas
     const rango = await showDateRangeModal(
         'Enviar horario a aprendices',
         'Selecciona el período de bloques'
@@ -1053,14 +1034,12 @@ class FichasPage {
 
     if (!rango) return;
 
-    // 2. Spinner
     const originalHtml = btnElement.innerHTML;
     btnElement.innerHTML = `
         <span class="spinner-border spinner-border-sm"></span> Enviando...`;
     btnElement.disabled = true;
 
     try {
-        // 3. Enviar con fechas
         const res = await enviarHorarioAprendiz(
             idFicha,
             rango.fechaInicio,
@@ -1117,7 +1096,6 @@ class FichasPage {
             'Jueves':4, 'Viernes':5, 'Sabado':6
         };
 
-        // ── Build weekly events (abstract dates) ──
         const buildEventsSemana = () => {
             const events = [];
             clases.forEach(asig => {
@@ -1155,7 +1133,6 @@ class FichasPage {
             return events;
         };
 
-        // ── Build monthly/daily events (real dates) ──
         const buildEventosMensual = () => {
             const events = [];
             clases.forEach(asig => {
@@ -1204,7 +1181,6 @@ class FichasPage {
             return events;
         };
 
-        // ── Calculate date range ──
         let fechaMin = null, fechaMax = null;
         clases.forEach(asig => {
             const bloque = asig.bloque;
@@ -1215,7 +1191,6 @@ class FichasPage {
             if (ff && (!fechaMax || ff > fechaMax)) fechaMax = ff;
         });
 
-        // ── Render toolbar + calendar ──
         let vistaActual = 'semanal';
 
         container.innerHTML = `
@@ -1281,7 +1256,6 @@ class FichasPage {
                 const p    = arg.event.extendedProps;
                 const icon = p.modalidad === 'virtual' ? 'bi-laptop' : 'bi-building';
 
-                // Compact view for monthly
                 if (vistaActual === 'mensual') {
                     return {
                         html: `<div class="p-1 h-100 d-flex flex-column overflow-hidden">
@@ -1321,7 +1295,6 @@ class FichasPage {
         calendar.render();
         setTimeout(() => calendar.updateSize(), 250);
 
-        // ── Vista buttons ──
         const btnSem = document.getElementById('ficha-btn-semanal');
         const btnMen = document.getElementById('ficha-btn-mensual');
         const btnDia = document.getElementById('ficha-btn-diario');
