@@ -896,7 +896,7 @@ class HorarioFormativa {
 
     _goToFicha(id) {
             //render ficha bug okey 
-        this.selectedFicha = this.fichas.find(f => String(f.idFicha) === String(idFicha));
+        this.selectedFicha = this.fichas.find(f => String(f.idFicha) === String(id));
         this.setViewState('horario');
         this.selectFicha(id);
     }

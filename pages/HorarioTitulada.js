@@ -899,7 +899,6 @@ class HorarioTitulada {
     }
 
     async selectFicha(idFicha) {
-        this.selectedFicha = this.fichas.find(f => String(f.idFicha) === String(id));
         if (!this.selectedFicha) {
             this.selectedFicha = { idFicha, codigoFicha: idFicha, jornada: '' };
         }
