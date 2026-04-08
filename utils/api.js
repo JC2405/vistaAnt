@@ -244,7 +244,7 @@ export function getFichasMunicipioPrograma(idMunicipio) {
     return apiFetch(`/fichas/programa-municipio/${idMunicipio}`);
 }
 
-// ── Flujo jerárquico Horario: Municipio → Programa → Ficha ────────────────────
+// ── Flujo jerárquico LEGACY: Municipio → Programa → Ficha ────────────────────
 export function getMunicipiosConFichas() {
     return apiFetch('/municipios-con-fichas');
 }
@@ -281,6 +281,24 @@ export function updateSede(id, data) {
 
 export function deleteSede(id) {
     return apiFetch(`/eliminarSede/${id}`, { method: 'DELETE' });
+}
+
+// ── Flujo jerárquico NUEVO: Sede → Programa → Ficha ──────────────────────────
+
+/**
+ * Devuelve los programas que tienen fichas activas en una sede dada.
+ * Endpoint: GET /api/listarProgramasPorSede/{idSede}
+ */
+export function getProgramasPorSede(idSede) {
+    return apiFetch(`/listarProgramasPorSede/${idSede}`);
+}
+
+/**
+ * Devuelve las fichas activas de un programa en una sede.
+ * Endpoint: GET /api/fichasPorProgramaSede/{idPrograma}/{idSede}
+ */
+export function getFichasPorProgramaSede(idPrograma, idSede) {
+    return apiFetch(`/fichasPorProgramaSede/${idPrograma}/${idSede}`);
 }
 
 // ==========================================
@@ -422,6 +440,7 @@ export function enviarHorario(idFuncionario, fechaInicio = null, fechaFin = null
         body: JSON.stringify(body),
     });
 }
+
 // ==========================================
 // EXPORTAR EXCEL
 // ==========================================
@@ -455,25 +474,17 @@ export function exportarProgramas() {
 // IMPORTAR EXCEL
 // ==========================================
 
-/**
- * Importa funcionarios desde un archivo Excel.
- * El backend espera el campo 'archivo' en multipart/form-data.
- */
 export function importarFuncionarios(file) {
     const formData = new FormData();
-    formData.append('archivo', file); // ← debe coincidir con lo que valida Laravel
+    formData.append('archivo', file);
     return apiUpload('/importar/funcionarios', formData);
 }
 
-/**
- * Importa aprendices desde un archivo Excel.
- * El backend espera 'archivo' e 'id_ficha' en multipart/form-data.
- */
 export function importarAprendices(file, idFicha = null) {
     const formData = new FormData();
     formData.append('archivo', file);
     if (idFicha) {
-        formData.append('id_ficha', String(idFicha)); // ← enviar como string es más seguro con FormData
+        formData.append('id_ficha', String(idFicha));
     }
     return apiUpload('/importar/aprendices', formData);
 }
@@ -514,15 +525,6 @@ export function analizarJuicios(file) {
     return apiUpload('/analizar/juicios', formData);
 }
 
-/**
- * Analiza el Excel de Juicios Evaluativos cruzando contra la BD:
- *  - Toma la ficha → programa → tipoFormacion
- *  - Carga las competencias (con sus resultados) de ese tipoFormacion en BD
- *  - Cruza con el Excel para determinar qué competencias están Pendientes vs Cubiertas
- *
- * Endpoint: POST /api/reportes/competencias-pendientes
- * Body: multipart/form-data  → archivo + id_ficha
- */
 export function analizarJuiciosConFicha(file, idFicha) {
     const formData = new FormData();
     formData.append('archivo', file);

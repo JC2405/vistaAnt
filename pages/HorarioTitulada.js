@@ -1,7 +1,8 @@
 import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
-import { apiFetch, getAmbientes, getFuncionarios, getSedes, getMunicipiosConFichas, getProgramasPorMunicipio, getFichasPorProgramaMunicipio } from '../utils/api.js';
+import { apiFetch, getAmbientes, getFuncionarios, getSedes,
+         getProgramasPorSede, getFichasPorProgramaSede } from '../utils/api.js';
 
 async function apiCall(endpoint, method = 'GET', body = null) {
     return apiFetch(endpoint, { method, body: body ? JSON.stringify(body) : undefined });
@@ -13,9 +14,7 @@ const DIA_ID_MAP = {
 };
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   SearchableDropdown — dropdown reutilizable con búsqueda integrada
-   Soporta teclado (↑↓ Enter Escape), highlight de coincidencias,
-   apertura hacia arriba/abajo según espacio disponible, y animación suave.
+   SearchableDropdown
 ────────────────────────────────────────────────────────────────────────────── */
 class SearchableDropdown {
     constructor({ triggerEl, inputId, displayId, placeholder = 'Buscar...', onSelect, onOpen, emptyText = 'Sin resultados' }) {
@@ -51,17 +50,13 @@ class SearchableDropdown {
             style.textContent = `
                 .sd-trigger-wrap { position: relative; }
                 .sd-trigger-input { cursor: pointer !important; background: #fff !important; user-select: none; }
-
                 .sd-chevron {
                     position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
                     color: #9ca3af; pointer-events: none; font-size: .78rem;
                     transition: transform .2s cubic-bezier(.4,0,.2,1);
                 }
                 .sd-chevron.open { transform: translateY(-50%) rotate(180deg); color: var(--primary, #7c3aed); }
-
                 .sd-trigger-wrap.sd-has-value .sd-chevron { color: var(--primary, #7c3aed); }
-                .sd-trigger-wrap[style*="pointer-events: none"] { opacity: .55; }
-
                 .sd-dropdown {
                     position: fixed; z-index: 9999;
                     background: #fff; border-radius: .8rem;
@@ -74,7 +69,6 @@ class SearchableDropdown {
                     from { opacity: 0; transform: translateY(-8px) scale(.97); }
                     to   { opacity: 1; transform: translateY(0)   scale(1);    }
                 }
-
                 .sd-search-wrap {
                     display: flex; align-items: center; gap: .5rem;
                     padding: .6rem .85rem; border-bottom: 1px solid #f0f0f0;
@@ -94,7 +88,6 @@ class SearchableDropdown {
                 }
                 .sd-clear.visible { opacity: 1; }
                 .sd-clear:hover { background: #f0f0f0; color: #555; }
-
                 .sd-list {
                     list-style: none; margin: 0; padding: .3rem 0;
                     max-height: 256px; overflow-y: auto;
@@ -102,7 +95,6 @@ class SearchableDropdown {
                 .sd-list::-webkit-scrollbar { width: 4px; }
                 .sd-list::-webkit-scrollbar-track { background: transparent; }
                 .sd-list::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
-
                 .sd-item {
                     display: flex; flex-direction: column; justify-content: center;
                     padding: .55rem 1rem; cursor: pointer;
@@ -118,21 +110,18 @@ class SearchableDropdown {
                 }
                 .sd-item .sd-label { line-height: 1.3; }
                 .sd-item .sd-sub   { font-size: .73rem; color: #9ca3af; margin-top: .1rem; }
-
                 .sd-empty {
                     display: flex; flex-direction: column; align-items: center;
                     gap: .4rem; padding: 1.5rem 1rem;
                     color: #9ca3af; font-size: .82rem;
                 }
                 .sd-empty i { font-size: 1.5rem; opacity: .35; }
-
                 .sd-loading {
                     display: flex; align-items: center; justify-content: center;
                     gap: .6rem; padding: 1.1rem; color: #9ca3af; font-size: .82rem;
                     list-style: none;
                 }
                 .sd-loading .spinner-border { width: .9rem; height: .9rem; border-width: 2px; }
-
                 mark.sd-hl {
                     background: #ede9fe; color: var(--primary, #7c3aed);
                     padding: 0; border-radius: 2px; font-weight: 600;
@@ -201,12 +190,11 @@ class SearchableDropdown {
 
     _reposition() {
         if (!this._isOpen()) return;
-        const rect     = this.triggerEl.getBoundingClientRect();
-        const ddH      = Math.min(this._dropdown.scrollHeight || 340, 340);
-        const below    = window.innerHeight - rect.bottom;
-        const above    = rect.top;
-        const goUp     = below < ddH + 8 && above > ddH + 8;
-
+        const rect  = this.triggerEl.getBoundingClientRect();
+        const ddH   = Math.min(this._dropdown.scrollHeight || 340, 340);
+        const below = window.innerHeight - rect.bottom;
+        const above = rect.top;
+        const goUp  = below < ddH + 8 && above > ddH + 8;
         this._dropdown.style.width = rect.width + 'px';
         this._dropdown.style.left  = rect.left + 'px';
         this._dropdown.style.top   = goUp
@@ -230,13 +218,6 @@ class SearchableDropdown {
         if (this._isOpen()) this._filter(this._dropdown.querySelector('.sd-search').value);
     }
 
-    showLoading() {
-        const list  = this._dropdown.querySelector('.sd-list');
-        const empty = this._dropdown.querySelector('.sd-empty');
-        list.innerHTML = `<li class="sd-loading"><div class="spinner-border text-primary"></div>Cargando...</li>`;
-        empty.classList.add('d-none');
-    }
-
     _highlight(str, q) {
         if (!q || !str) return str || '';
         const idx = str.toLowerCase().indexOf(q.toLowerCase());
@@ -250,13 +231,11 @@ class SearchableDropdown {
         const list  = this._dropdown.querySelector('.sd-list');
         const empty = this._dropdown.querySelector('.sd-empty');
         const lq    = q.trim();
-
         const filtered = lq
             ? this.items.filter(i =>
                 (i.label || '').toLowerCase().includes(lq.toLowerCase()) ||
                 (i.sub   || '').toLowerCase().includes(lq.toLowerCase()))
             : this.items;
-
         if (!filtered.length) {
             list.innerHTML = '';
             empty.classList.remove('d-none');
@@ -300,13 +279,13 @@ class SearchableDropdown {
     }
 
     setValue(id, label) {
-        if (this.inputEl)   this.inputEl.value  = id;
+        if (this.inputEl)   this.inputEl.value   = id;
         if (this.displayEl) this.displayEl.value = label;
         this.triggerEl.classList.toggle('sd-has-value', !!id);
     }
 
     reset(placeholder = '') {
-        if (this.inputEl)  this.inputEl.value   = '';
+        if (this.inputEl)   this.inputEl.value   = '';
         if (this.displayEl) {
             this.displayEl.value = '';
             if (placeholder) this.displayEl.placeholder = placeholder;
@@ -338,20 +317,21 @@ class SearchableDropdown {
 
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   HorarioTitulada
+   HorarioTitulada  —  flujo: Sede → Programa → Ficha
 ────────────────────────────────────────────────────────────────────────────── */
 class HorarioTitulada {
     constructor() {
         this.fichas        = [];
-        this.municipios    = [];
+        this.sedes         = [];
         this.ambientes     = [];
         this.instructores  = [];
-        this.sedes         = [];
         this.selectedFicha = null;
         this.viewState     = 'fichas';
 
-        this._ddMunicipio  = null;
+        // Dropdowns del panel de filtros (Sede, Programa)
+        this._ddSede       = null;
         this._ddPrograma   = null;
+        // Dropdown del modal (Instructor)
         this._ddInstructor = null;
 
         this.init();
@@ -480,10 +460,9 @@ class HorarioTitulada {
 
     async loadDependencies() {
         try {
-            const [aData, iData, sData, mData] = await Promise.all([
-                getAmbientes(), getFuncionarios(), getSedes(), getMunicipiosConFichas()
+            const [aData, iData, sData] = await Promise.all([
+                getAmbientes(), getFuncionarios(), getSedes()
             ]);
-            this.municipios   = Array.isArray(mData) ? mData : (mData.data || []);
             this.ambientes    = aData.data || (Array.isArray(aData) ? aData : []);
             this.sedes        = sData.data || (Array.isArray(sData) ? sData : []);
             const allFuncs    = iData.data || (Array.isArray(iData) ? iData : []);
@@ -499,7 +478,7 @@ class HorarioTitulada {
     }
 
     populateSelects() {
-        this.renderSedesSelect();
+        this.renderSedesSelectModal();
         const selAmb = document.getElementById('idAmbiente');
         if (selAmb) selAmb.innerHTML = '<option value="">Seleccionar ambiente...</option>';
         const cont = document.getElementById('dias-container');
@@ -542,18 +521,15 @@ class HorarioTitulada {
                 return (aH && !bH) ? -1 : (!aH && bH) ? 1 : 0;
             });
         }
-        return list.map(i => {
-            const nombre = i.nombre || '';
-            const apellido = i.apellido || '';
-            return {
-                id:    i.idFuncionario,
-                label: `${nombre} ${apellido}`.trim() || 'Sin nombre',
-                sub:   i.areas?.length ? i.areas.map(a => a.nombreArea).join(', ') : 'Sin área',
-            };
-        });
+        return list.map(i => ({
+            id:    i.idFuncionario,
+            label: `${i.nombre || ''} ${i.apellido || i.apellidos || ''}`.trim() || 'Sin nombre',
+            sub:   i.areas?.length ? i.areas.map(a => a.nombreArea).join(', ') : 'Sin área',
+        }));
     }
 
-    renderSedesSelect() {
+    // Select de sedes dentro del MODAL (para elegir sede/ambiente al asignar)
+    renderSedesSelectModal() {
         const sel = document.getElementById('idSede');
         if (!sel) return;
         sel.innerHTML = '<option value="">Seleccionar sede...</option>' +
@@ -566,10 +542,9 @@ class HorarioTitulada {
         if (!idSede) { sel.innerHTML = '<option value="">Seleccionar ambiente...</option>'; return; }
         const filtered = this.ambientes.filter(a => String(a.idSede) === String(idSede));
         sel.innerHTML = '<option value="">Seleccionar ambiente...</option>' +
-            filtered.map(a => {
-                const numero = a.numero ?? a.numeroAmbiente ?? a.num ?? a.number ?? '?';
-                return `<option value="${a.idAmbiente}">Blq ${a.bloque} -(${a.area?.nombreArea ?? 'Sin área'})</option>`;
-            }).join('');
+            filtered.map(a =>
+                `<option value="${a.idAmbiente}">Blq ${a.bloque} - (${a.area?.nombreArea ?? 'Sin área'})</option>`
+            ).join('');
     }
 
     setupEventListeners() {
@@ -622,30 +597,27 @@ class HorarioTitulada {
         if (this.viewState === 'horario') this.renderHorarioView(container);
     }
 
-    // ── VISTA FICHAS ──────────────────────────────────────────────────────────
+    // ── VISTA FICHAS  (Sede → Programa → Ficha) ───────────────────────────────
     renderFichasView(container) {
         const renderRows = (arr) => arr.map(f => {
             const prog         = f.programa?.nombre ?? 'Sin Programa';
             const tieneHorario = f.asignaciones?.length > 0;
-            
+
             let fechasPill = '';
             if (tieneHorario && f.asignaciones) {
-                let minDate = null;
-                let maxDate = null;
+                let minDate = null, maxDate = null;
                 f.asignaciones.forEach(asig => {
-                    if (asig.bloque && asig.bloque.fechaInicio && asig.bloque.fechaFin) {
-                        const start = new Date(asig.bloque.fechaInicio);
-                        const end = new Date(asig.bloque.fechaFin);
-                        if (!minDate || start < minDate) minDate = start;
-                        if (!maxDate || end > maxDate) maxDate = end;
+                    if (asig.bloque?.fechaInicio && asig.bloque?.fechaFin) {
+                        const s = new Date(asig.bloque.fechaInicio);
+                        const e = new Date(asig.bloque.fechaFin);
+                        if (!minDate || s < minDate) minDate = s;
+                        if (!maxDate || e > maxDate) maxDate = e;
                     }
                 });
-                
                 if (minDate && maxDate) {
-                    const formatDate = (d) => {
-                        return d.toISOString().split('T')[0];
-                    };
-                    fechasPill = `<div class="mt-1 small text-muted text-nowrap" style="font-size:0.75rem;"><i class="bi bi-calendar-range me-1"></i>${formatDate(minDate)} a ${formatDate(maxDate)}</div>`;
+                    fechasPill = `<div class="mt-1 small text-muted text-nowrap" style="font-size:0.75rem;">
+                        <i class="bi bi-calendar-range me-1"></i>${minDate.toISOString().split('T')[0]} a ${maxDate.toISOString().split('T')[0]}
+                    </div>`;
                 }
             }
 
@@ -658,6 +630,7 @@ class HorarioTitulada {
             const badgeMod = f.modalidad === 'virtual'
                 ? `<span class="badge rounded-pill bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3 py-2"><i class="bi bi-laptop me-1"></i>Virtual</span>`
                 : `<span class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2"><i class="bi bi-person-workspace me-1"></i>Presencial</span>`;
+
             return `
                 <tr class="fila-ficha align-middle" style="cursor:pointer;" data-id="${f.idFicha}">
                     <td class="ps-4 fw-semibold" style="color:var(--text-dark);">Ficha ${f.codigoFicha}</td>
@@ -674,27 +647,29 @@ class HorarioTitulada {
         }).join('');
 
         container.innerHTML = `
-        <!-- Filtros -->
+        <!-- Filtros: Sede → Programa → Ficha -->
         <div class="card border-0 shadow-sm rounded-4 mb-4">
             <div class="card-header bg-white border-0 pt-4 pb-3 px-4">
                 <h5 class="fw-bold mb-1" style="color:var(--text-dark);">Horario Titulada</h5>
-                <small class="text-muted">Selecciona el municipio y programa para filtrar las fichas disponibles.</small>
+                <small class="text-muted">Selecciona la sede y programa para filtrar las fichas disponibles.</small>
             </div>
             <div class="card-body px-4 pb-4">
                 <div class="row g-3 align-items-end">
 
+                    <!-- 1. Sede -->
                     <div class="col-md-4">
                         <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.04em;">
-                            <i class="bi bi-geo-alt text-primary me-1"></i>1. Municipio
+                            <i class="bi bi-building text-primary me-1"></i>1. Sede
                         </label>
-                        <div id="dd-municipio-trigger"
+                        <div id="dd-sede-trigger"
                              style="border-radius:0.5rem; overflow:hidden; border:1px solid #d1d5db; background:#fff;">
-                            <input type="text" id="municipioDisplay" class="form-control border-0"
-                                   placeholder="Seleccionar municipio..." readonly>
-                            <input type="hidden" id="hidMunicipio">
+                            <input type="text" id="sedeDisplay" class="form-control border-0"
+                                   placeholder="Seleccionar sede..." readonly>
+                            <input type="hidden" id="hidSede">
                         </div>
                     </div>
 
+                    <!-- 2. Programa -->
                     <div class="col-md-4">
                         <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.04em;">
                             <i class="bi bi-journals text-primary me-1"></i>2. Programa
@@ -702,11 +677,12 @@ class HorarioTitulada {
                         <div id="dd-programa-trigger"
                              style="border-radius:0.5rem; overflow:hidden; border:1px solid #d1d5db; background:#fff;">
                             <input type="text" id="programaDisplay" class="form-control border-0"
-                                   placeholder="Primero selecciona municipio..." readonly>
+                                   placeholder="Primero selecciona sede..." readonly>
                             <input type="hidden" id="hidPrograma">
                         </div>
                     </div>
 
+                    <!-- 3. Ficha -->
                     <div class="col-md-4">
                         <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.04em;">
                             <i class="bi bi-card-list text-primary me-1"></i>3. Ficha
@@ -725,7 +701,7 @@ class HorarioTitulada {
             <div class="card-header bg-white border-0 pt-4 pb-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div>
                     <h5 class="fw-bold mb-0" style="color:var(--text-dark);">Fichas disponibles</h5>
-                    <small class="text-muted" id="lbl-fichas-count">Selecciona municipio y programa para ver las fichas</small>
+                    <small class="text-muted" id="lbl-fichas-count">Selecciona sede y programa para ver las fichas</small>
                 </div>
                 <div class="input-group" style="max-width:280px;">
                     <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
@@ -748,7 +724,7 @@ class HorarioTitulada {
                         <tbody id="fichas-tbody">
                             <tr><td colspan="6" class="text-center py-5 text-muted">
                                 <i class="bi bi-funnel fs-3 d-block mb-2 opacity-25"></i>
-                                Selecciona un municipio y programa
+                                Selecciona una sede y programa
                             </td></tr>
                         </tbody>
                     </table>
@@ -756,7 +732,7 @@ class HorarioTitulada {
             </div>
         </div>`;
 
-        // ── Estado local ────────────────────────────────────────────────────────
+        // ── Estado local ────────────────────────────────────────────────────
         let programasDisponibles = [];
 
         const attachEvents = () => {
@@ -777,7 +753,7 @@ class HorarioTitulada {
             if (!this.fichas.length) {
                 el.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">
                     <i class="bi bi-inbox fs-3 d-block mb-2 opacity-25"></i>
-                    No hay fichas activas para este programa y municipio
+                    No hay fichas activas para este programa y sede
                 </td></tr>`;
                 if (lbl) lbl.textContent = '0 fichas encontradas';
                 return;
@@ -787,20 +763,21 @@ class HorarioTitulada {
             attachEvents();
         };
 
-        // ── Dropdown Municipio ───────────────────────────────────────────────────
-        this._ddMunicipio?.destroy();
-        this._ddMunicipio = new SearchableDropdown({
-            triggerEl:   'dd-municipio-trigger',
-            inputId:     'hidMunicipio',
-            displayId:   'municipioDisplay',
-            placeholder: 'Buscar municipio...',
-            emptyText:   'No se encontraron municipios',
+        // ── Dropdown Sede ───────────────────────────────────────────────────
+        this._ddSede?.destroy();
+        this._ddSede = new SearchableDropdown({
+            triggerEl:   'dd-sede-trigger',
+            inputId:     'hidSede',
+            displayId:   'sedeDisplay',
+            placeholder: 'Buscar sede...',
+            emptyText:   'No se encontraron sedes',
             onOpen: () => {
-                this._ddMunicipio.setItems(
-                    this.municipios.map(m => ({ id: m.idMunicipio, label: m.nombreMunicipio }))
+                this._ddSede.setItems(
+                    this.sedes.map(s => ({ id: s.idSede, label: s.nombre, sub: s.municipio?.nombreMunicipio || '' }))
                 );
             },
             onSelect: async (item) => {
+                // Resetear programa y ficha
                 this._ddPrograma.reset('Cargando programas...');
                 this._ddPrograma.disable('Cargando programas...');
                 const selFich = document.getElementById('sel-ficha');
@@ -813,7 +790,7 @@ class HorarioTitulada {
                 document.getElementById('lbl-fichas-count').textContent = 'Selecciona un programa para ver las fichas';
 
                 try {
-                    const programas = await getProgramasPorMunicipio(item.id);
+                    const programas = await getProgramasPorSede(item.id);
                     programasDisponibles = Array.isArray(programas) ? programas : (programas.data || []);
                     this._ddPrograma.setItems(
                         programasDisponibles.map(p => ({
@@ -829,7 +806,7 @@ class HorarioTitulada {
             }
         });
 
-        // ── Dropdown Programa ────────────────────────────────────────────────────
+        // ── Dropdown Programa ───────────────────────────────────────────────
         this._ddPrograma?.destroy();
         this._ddPrograma = new SearchableDropdown({
             triggerEl:   'dd-programa-trigger',
@@ -838,11 +815,11 @@ class HorarioTitulada {
             placeholder: 'Buscar programa...',
             emptyText:   'No se encontraron programas',
             onOpen: () => {
-                if (!document.getElementById('hidMunicipio').value) {
+                if (!document.getElementById('hidSede').value) {
                     this._ddPrograma.close();
-                    const t = document.getElementById('dd-municipio-trigger');
-                    t.style.transition = 'box-shadow .15s';
-                    t.style.boxShadow  = '0 0 0 3px rgba(220,53,69,.3)';
+                    const t = document.getElementById('dd-sede-trigger');
+                    t.style.transition  = 'box-shadow .15s';
+                    t.style.boxShadow   = '0 0 0 3px rgba(220,53,69,.3)';
                     t.style.borderColor = '#dc3545';
                     setTimeout(() => { t.style.boxShadow = ''; t.style.borderColor = '#d1d5db'; }, 1500);
                     return;
@@ -854,14 +831,14 @@ class HorarioTitulada {
                 );
             },
             onSelect: async (item) => {
-                const idMun   = document.getElementById('hidMunicipio').value;
+                const idSede  = document.getElementById('hidSede').value;
                 const selFich = document.getElementById('sel-ficha');
                 selFich.innerHTML = '<option value="">Cargando fichas...</option>';
                 selFich.disabled  = true;
                 this.fichas = [];
 
                 try {
-                    const fichasData = await getFichasPorProgramaMunicipio(item.id, idMun);
+                    const fichasData = await getFichasPorProgramaSede(item.id, idSede);
                     this.fichas = Array.isArray(fichasData) ? fichasData : (fichasData.data || []);
                     selFich.innerHTML = '<option value="">Seleccione una ficha...</option>' +
                         this.fichas.map(f => `<option value="${f.idFicha}">Ficha ${f.codigoFicha} · ${f.jornada || ''}</option>`).join('');
@@ -874,10 +851,10 @@ class HorarioTitulada {
             }
         });
 
-        // Programa deshabilitado hasta seleccionar municipio
-        this._ddPrograma.disable('Primero selecciona municipio...');
+        // Programa deshabilitado hasta seleccionar sede
+        this._ddPrograma.disable('Primero selecciona sede...');
 
-        // ── Select ficha ─────────────────────────────────────────────────────────
+        // ── Select ficha ────────────────────────────────────────────────────
         document.getElementById('sel-ficha').addEventListener('change', () => {
             const idFicha = document.getElementById('sel-ficha').value;
             if (!idFicha) return;
@@ -886,7 +863,7 @@ class HorarioTitulada {
             );
         });
 
-        // ── Buscador tabla ───────────────────────────────────────────────────────
+        // ── Buscador tabla ──────────────────────────────────────────────────
         document.getElementById('search-fichas').addEventListener('input', e => {
             const q = e.target.value.toLowerCase();
             const filtered = this.fichas.filter(f =>
@@ -922,8 +899,10 @@ class HorarioTitulada {
     }
 
     async selectFicha(idFicha) {
-        this.selectedFicha = this.fichas.find(f => String(f.idFicha) === String(idFicha));
-        if (!this.selectedFicha) return;
+        this.selectedFicha = this.fichas.find(f => String(f.idFicha) === String(id));
+        if (!this.selectedFicha) {
+            this.selectedFicha = { idFicha, codigoFicha: idFicha, jornada: '' };
+        }
 
         const card = document.getElementById('calendario-card');
         card.innerHTML = `
@@ -941,7 +920,6 @@ class HorarioTitulada {
 
         document.getElementById('idSede').value    = '';
         document.getElementById('idAmbiente').value = '';
-
         this._ddInstructor?.destroy();
         this._initInstructorDropdown();
         this.renderAmbientes('');
@@ -990,32 +968,19 @@ class HorarioTitulada {
                 <div id="fullcalendar-container" class="h-100"></div>
              </div>`;
 
-        /* ── Helpers de fecha ──────────────────────────────────────────────────
-           ISO weekday: Lunes=1 … Domingo=7  (igual que DIA_ID_MAP)
-           JS getDay():  Domingo=0, Lunes=1 … Sabado=6  → normalizar
-        ─────────────────────────────────────────────────────────────────────── */
-        const jsWeekday = (date) => date.getDay() === 0 ? 7 : date.getDay(); // 1=Lun … 7=Dom
+        const jsWeekday = (date) => date.getDay() === 0 ? 7 : date.getDay();
 
-        /**
-         * Dado el nombre del día (e.g. 'Lunes') y un rango [fechaInicio, fechaFin],
-         * devuelve un array con todas las fechas ISO (YYYY-MM-DD) de ese día
-         * dentro del rango.
-         */
         const fechasDelDiaEnRango = (nombreDia, fechaInicioStr, fechaFinStr) => {
-            const targetWd = DIA_ID_MAP[nombreDia]; // 1-7
+            const targetWd = DIA_ID_MAP[nombreDia];
             if (!targetWd || !fechaInicioStr || !fechaFinStr) return [];
-
             const start = new Date(fechaInicioStr + 'T00:00:00');
-            const end   = new Date(fechaFinStr   + 'T00:00:00');
+            const end   = new Date(fechaFinStr    + 'T00:00:00');
             const fechas = [];
-
-            // Avanzar desde start hasta encontrar el primer día coincidente
             const cur = new Date(start);
             while (jsWeekday(cur) !== targetWd) {
                 cur.setDate(cur.getDate() + 1);
-                if (cur > end) return []; // el día nunca ocurre en el rango
+                if (cur > end) return [];
             }
-            // Iterar semana a semana
             while (cur <= end) {
                 fechas.push(cur.toISOString().slice(0, 10));
                 cur.setDate(cur.getDate() + 7);
@@ -1023,99 +988,68 @@ class HorarioTitulada {
             return fechas;
         };
 
-        /* ── Construir eventos ─────────────────────────────────────────────── */
         const events = [];
-        let globalStart = null;
-        let globalEnd   = null;
+        let globalStart = null, globalEnd = null;
 
-        if (asignaciones && asignaciones.length) {
-            for (const asig of asignaciones) {
-                const bloque = asig.bloque;
-                if (!bloque) continue;
-
-                const startHour = bloque.horaInicio || bloque.hora_inicio;
-                const endHour   = bloque.horaFin || bloque.hora_fin;
-                if (!startHour || !endHour) continue;
-
-                const startDate = asig.fechaInicio || asig.fecha_inicio || bloque.fechaInicio || bloque.fecha_inicio;
-                const endDate   = asig.fechaFin || asig.fecha_fin || bloque.fechaFin || bloque.fecha_fin;
-
-                if (startDate && (!globalStart || startDate < globalStart)) globalStart = startDate;
-                if (endDate   && (!globalEnd   || endDate > globalEnd))     globalEnd   = endDate;
-
-                const isVirtual = asig.modalidad === 'virtual';
-
-                (bloque.dias || []).forEach(diaObj => {
-                    const dia = diaObj.nombreDia || diaObj.nombre;
-                    if (!dia) return;
-
-                    const fechas = fechasDelDiaEnRango(dia, startDate, endDate);
-                    for (const fecha of fechas) {
-                        const ambienteLabel = asig.ambiente ? (asig.ambiente.codigo || asig.ambiente.nombre) : null;
-                        const tipoFormacion = asig.ficha?.programa?.tipoFormacion?.nombreTipoFormacion 
-                                           || asig.ficha?.programa?.tipo_formacion?.nombreTipoFormacion || '';
-
-                        const bloqueFormacion = bloque.tipoFormacion || '';
-                        const isTransversal = bloqueFormacion.toLowerCase() === 'transversal';
-                        const orderPriority = isTransversal ? 1 : 2;
-
-                        events.push({
-                            id:    `${asig.idAsignacion}_${dia}_${fecha}`,
-                            start: `${fecha}T${startHour}`,
-                            end:   `${fecha}T${endHour}`,
-                            orderPriority: orderPriority,
-                            classNames: isTransversal ? ['event-transversal'] : ['event-titulada'],
-                            backgroundColor: isTransversal ? '#ffffff' : (isVirtual ? 'rgba(13,202,240,0.1)' : 'rgba(76,170,22,0.1)'),
-                            borderColor:     isVirtual ? '#0dcaf0' : '#4caa16',
-                            textColor:       isVirtual ? '#0dcaf0' : '#4caa16',
-                            extendedProps: {
-                                instructor:      asig.funcionario ? asig.funcionario.nombre : '—',
-                                ambiente:        ambienteLabel,
-                                modalidad:       asig.modalidad,
-                                tipoDeFormacion: tipoFormacion,
-                                fechaInicio:     startDate,
-                                fechaFin:        endDate,
-                                idBloque:        bloque.idBloque,
-                                idDia:           diaObj.idDia || DIA_ID_MAP[dia],
-                                nombreDia:       dia,
-                                idAsignacion:    asig.idAsignacion,
-                                isTransversal:   isTransversal
-                            }
-                        });
-                    }
-                });
-            }
+        for (const asig of asignaciones) {
+            const bloque = asig.bloque;
+            if (!bloque) continue;
+            const startHour = bloque.horaInicio || bloque.hora_inicio;
+            const endHour   = bloque.horaFin    || bloque.hora_fin;
+            if (!startHour || !endHour) continue;
+            const startDate = asig.fechaInicio || asig.fecha_inicio || bloque.fechaInicio || bloque.fecha_inicio;
+            const endDate   = asig.fechaFin    || asig.fecha_fin    || bloque.fechaFin    || bloque.fecha_fin;
+            if (startDate && (!globalStart || startDate < globalStart)) globalStart = startDate;
+            if (endDate   && (!globalEnd   || endDate > globalEnd))     globalEnd   = endDate;
+            const isVirtual = asig.modalidad === 'virtual';
+            (bloque.dias || []).forEach(diaObj => {
+                const dia = diaObj.nombreDia || diaObj.nombre;
+                if (!dia) return;
+                const fechas = fechasDelDiaEnRango(dia, startDate, endDate);
+                for (const fecha of fechas) {
+                    const bloqueFormacion = bloque.tipoFormacion || '';
+                    const isTransversal   = bloqueFormacion.toLowerCase() === 'transversal';
+                    events.push({
+                        id:    `${asig.idAsignacion}_${dia}_${fecha}`,
+                        start: `${fecha}T${startHour}`,
+                        end:   `${fecha}T${endHour}`,
+                        orderPriority: isTransversal ? 1 : 2,
+                        classNames: isTransversal ? ['event-transversal'] : ['event-titulada'],
+                        backgroundColor: isTransversal ? '#ffffff' : (isVirtual ? 'rgba(13,202,240,0.1)' : 'rgba(76,170,22,0.1)'),
+                        borderColor:     isVirtual ? '#0dcaf0' : '#4caa16',
+                        textColor:       isVirtual ? '#0dcaf0' : '#4caa16',
+                        extendedProps: {
+                            instructor:   asig.funcionario ? asig.funcionario.nombre : '—',
+                            ambiente:     asig.ambiente ? (asig.ambiente.codigo || asig.ambiente.nombre) : null,
+                            modalidad:    asig.modalidad,
+                            tipoDeFormacion: asig.ficha?.programa?.tipoFormacion?.nombreTipoFormacion || '',
+                            fechaInicio:  startDate,
+                            fechaFin:     endDate,
+                            idBloque:     bloque.idBloque,
+                            idDia:        diaObj.idDia || DIA_ID_MAP[dia],
+                            nombreDia:    dia,
+                            idAsignacion: asig.idAsignacion,
+                            isTransversal,
+                        }
+                    });
+                }
+            });
         }
 
-        /* ── Calcular rango global para posicionar el calendario ───────────── */
         const initialDate = globalStart ?? new Date().toISOString().slice(0, 10);
-
-        /* ── Toolbar personalizado ─────────────────────────────────────────── */
-        // Lo inyectamos manualmente para tener control total del diseño
         const calendarWrapper = document.getElementById('fullcalendar-container');
 
-        // Insertar toolbar encima del calendario
         const toolbarEl = document.createElement('div');
         toolbarEl.className = 'd-flex align-items-center justify-content-between mb-3';
         toolbarEl.innerHTML = `
             <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-prev">
-                    <i class="bi bi-chevron-left"></i>
-                </button>
-                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-next">
-                    <i class="bi bi-chevron-right"></i>
-                </button>
-                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-today">
-                    Hoy
-                </button>
+                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-prev"><i class="bi bi-chevron-left"></i></button>
+                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-next"><i class="bi bi-chevron-right"></i></button>
+                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-today">Hoy</button>
             </div>
             <div class="text-center">
                 <span id="fc-title" class="fw-semibold" style="color:var(--text-dark);font-size:.95rem;"></span>
-                ${globalStart && globalEnd
-                    ? `<span class="badge bg-light text-muted border ms-2" style="font-size:.7rem;">
-                           <i class="bi bi-calendar-range me-1"></i>${globalStart} → ${globalEnd}
-                       </span>`
-                    : ''}
+                ${globalStart && globalEnd ? `<span class="badge bg-light text-muted border ms-2" style="font-size:.7rem;"><i class="bi bi-calendar-range me-1"></i>${globalStart} → ${globalEnd}</span>` : ''}
             </div>
             <div class="d-flex gap-2">
                 <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm fc-view-btn active-view" data-view="timeGridWeek">Semana</button>
@@ -1123,93 +1057,67 @@ class HorarioTitulada {
                 <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm fc-view-btn" data-view="timeGridDay">Día</button>
             </div>`;
 
-        // El contenedor del calendario en sí
         const fcEl = document.createElement('div');
         fcEl.id = 'fc-grid';
         fcEl.style.height = 'calc(100% - 52px)';
-
-        calendarWrapper.style.display    = 'flex';
+        calendarWrapper.style.display = 'flex';
         calendarWrapper.style.flexDirection = 'column';
-        calendarWrapper.style.height     = '100%';
+        calendarWrapper.style.height = '100%';
         calendarWrapper.appendChild(toolbarEl);
         calendarWrapper.appendChild(fcEl);
 
-        /* ── FullCalendar ──────────────────────────────────────────────────── */
         const calendar = new FullCalendar.Calendar(fcEl, {
             initialView:   'timeGridWeek',
             eventOrder:    'orderPriority,start,-duration,allDay,title',
             initialDate,
-            headerToolbar: false,   // usamos nuestro toolbar
+            headerToolbar: false,
             allDaySlot:    false,
             slotMinTime:   '06:00:00',
             slotMaxTime:   '24:00:00',
             expandRows:    true,
             locale:        'es',
-            // Limitar navegación al rango real
-            validRange:    globalStart && globalEnd
-                ? { start: globalStart, end: globalEnd }
-                : undefined,
+            validRange:    globalStart && globalEnd ? { start: globalStart, end: globalEnd } : undefined,
             dayHeaderFormat: { weekday: 'short', day: 'numeric', month: 'short' },
             events,
-
-            // Actualizar el título personalizado cuando cambia la vista
-            datesSet: (info) => {
-                const titleEl = document.getElementById('fc-title');
-                if (titleEl) titleEl.textContent = calendar.view.title;
+            datesSet: () => {
+                const t = document.getElementById('fc-title');
+                if (t) t.textContent = calendar.view.title;
             },
-
             eventContent(arg) {
                 const p    = arg.event.extendedProps;
                 const icon = p.modalidad === 'virtual' ? 'bi-laptop' : 'bi-building';
                 const badge = p.tipoDeFormacion
                     ? `<div class="mt-auto pt-1"><span class="badge bg-secondary bg-opacity-25 text-dark" style="font-size:0.65rem;">${p.tipoDeFormacion}</span></div>`
                     : '';
-
-                // Compact rendering for monthly view
                 if (calendar.view.type === 'dayGridMonth') {
-                    return {
-                        html: `<div class="p-1 d-flex flex-column overflow-hidden" style="font-size:0.72rem;">
-                            <div class="fw-bold text-truncate">${p.instructor}</div>
-                            <div class="text-truncate" style="font-size:0.65rem;opacity:0.8;">
-                                <i class="bi ${icon}"></i> ${p.ambiente || 'Virtual'}
-                            </div>
-                        </div>`
-                    };
+                    return { html: `<div class="p-1 d-flex flex-column overflow-hidden" style="font-size:0.72rem;">
+                        <div class="fw-bold text-truncate">${p.instructor}</div>
+                        <div class="text-truncate" style="font-size:0.65rem;opacity:0.8;"><i class="bi ${icon}"></i> ${p.ambiente || 'Virtual'}</div>
+                    </div>` };
                 }
-
-                return {
-                    html: `
-                        <div class="p-2 d-flex flex-column position-relative" style="height:100%; width:100%; overflow:hidden; background:#ffffff; border-radius: 3px;">    
-                            <div class="fw-bold mb-1 lh-sm" style="font-size:0.8rem;">${p.instructor}</div>
-                            <div class="text-truncate" style="font-size:0.75rem;opacity:0.9;">
-                                <i class="bi ${icon}"></i> ${p.ambiente || 'Virtual'}
-                            </div>
-                            <div class="mt-1 pb-1" style="font-size:0.65rem;opacity:0.85;border-bottom:1px dashed rgba(0,0,0,0.1);">
-                                <i class="bi bi-calendar3 me-1"></i>${p.fechaInicio} → ${p.fechaFin}
-                            </div>
-                            ${badge}
-                            <button class="btn btn-sm text-danger p-0 position-absolute top-0 end-0 delete-btn d-none"
-                                    data-idbloque="${p.idBloque}" data-iddia="${p.idDia}"
-                                    data-nombredia="${p.nombreDia}" data-idasignacion="${p.idAsignacion}"
-                                    style="line-height:1;transform:translate(25%,-25%);background:white;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,0.2); z-index: 10;">
-                                <i class="bi bi-x-circle-fill"></i>
-                            </button>
-                        </div>`
-                };
+                return { html: `
+                    <div class="p-2 d-flex flex-column position-relative" style="height:100%;width:100%;overflow:hidden;background:#ffffff;border-radius:3px;">
+                        <div class="fw-bold mb-1 lh-sm" style="font-size:0.8rem;">${p.instructor}</div>
+                        <div class="text-truncate" style="font-size:0.75rem;opacity:0.9;"><i class="bi ${icon}"></i> ${p.ambiente || 'Virtual'}</div>
+                        <div class="mt-1 pb-1" style="font-size:0.65rem;opacity:0.85;border-bottom:1px dashed rgba(0,0,0,0.1);">
+                            <i class="bi bi-calendar3 me-1"></i>${p.fechaInicio} → ${p.fechaFin}
+                        </div>
+                        ${badge}
+                        <button class="btn btn-sm text-danger p-0 position-absolute top-0 end-0 delete-btn d-none"
+                                data-idbloque="${p.idBloque}" data-iddia="${p.idDia}"
+                                data-nombredia="${p.nombreDia}" data-idasignacion="${p.idAsignacion}"
+                                style="line-height:1;transform:translate(25%,-25%);background:white;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,0.2);z-index:10;">
+                            <i class="bi bi-x-circle-fill"></i>
+                        </button>
+                    </div>` };
             },
-            eventDidMount: function(arg) {
+            eventDidMount(arg) {
                 const harness = arg.el.parentElement;
                 if (!harness) return;
-                const isTransversal = arg.event.extendedProps.isTransversal;
-                
-                if (isTransversal) {
-                    harness.classList.add('fc-timegrid-event-harness-transversal');
-                    harness.style.left = '35%';
-                    harness.style.right = '0%';
+                if (arg.event.extendedProps.isTransversal) {
+                    harness.style.left = '35%'; harness.style.right = '0%';
                 } else {
-                    harness.classList.add('fc-timegrid-event-harness-titulada');
-                    harness.style.left = '0%';
-                    harness.style.right = '0%';
+                    harness.style.left = '0%'; harness.style.right = '0%';
                 }
             },
             eventMouseEnter: info => info.el.querySelector('.delete-btn')?.classList.remove('d-none'),
@@ -1217,29 +1125,9 @@ class HorarioTitulada {
         });
         calendar.render();
 
-        // Estilos para sobreponer las clases transversales a las tituladas
-        const fcStyle = document.createElement('style');
-        fcStyle.id = 'calendar-overlap-styles';
-        if (!document.getElementById('calendar-overlap-styles')) {
-            fcStyle.textContent = `
-                .fc-timegrid-event-harness-titulada {
-                    z-index: 1 !important;
-                }
-                .fc-timegrid-event-harness-transversal {
-                    z-index: 10 !important;
-                }
-                .fc-timegrid-event {
-                    border-radius: 4px;
-                }
-            `;
-            document.head.appendChild(fcStyle);
-        }
-
-        // Conectar botones del toolbar personalizado
-        document.getElementById('fc-prev')?.addEventListener('click',  () => { calendar.prev();  });
-        document.getElementById('fc-next')?.addEventListener('click',  () => { calendar.next();  });
-        document.getElementById('fc-today')?.addEventListener('click', () => { calendar.today(); });
-
+        document.getElementById('fc-prev')?.addEventListener('click',  () => calendar.prev());
+        document.getElementById('fc-next')?.addEventListener('click',  () => calendar.next());
+        document.getElementById('fc-today')?.addEventListener('click', () => calendar.today());
         document.querySelectorAll('.fc-view-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.fc-view-btn').forEach(b => b.classList.remove('active-view', 'btn-purple'));
@@ -1248,7 +1136,6 @@ class HorarioTitulada {
             });
         });
 
-        // Eliminar día de bloque
         fcEl.addEventListener('click', e => {
             const btn = e.target.closest('.delete-btn');
             if (!btn) return;
@@ -1269,7 +1156,6 @@ class HorarioTitulada {
             confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar'
         });
         if (!result.isConfirmed) return;
-
         try {
             await apiCall(`/eliminarDiaDeBloque/${idBloque}/${idDia}`, 'DELETE');
             this.showAlert('page-alert-container', 'success', `Día ${nombreDia} eliminado correctamente.`);
@@ -1309,34 +1195,30 @@ class HorarioTitulada {
             this.showAlert('modal-alert', 'warning', 'Selecciona al menos un día de la semana.');
             return;
         }
-
         const modalidad  = document.getElementById('modalidad_clase').value;
         const idAmbiente = parseInt(document.getElementById('idAmbiente').value);
         if (modalidad === 'presencial' && !idAmbiente) {
             this.showAlert('modal-alert', 'warning', 'Selecciona un ambiente para la modalidad presencial.');
             return;
         }
-
         const btn = document.getElementById('btn-asignar');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
-
         try {
             await apiCall('/crearAsignacion', 'POST', {
-                horaInicio:      document.getElementById('hora_inicio').value + ':00',
-                horaFin:         document.getElementById('hora_fin').value   + ':00',
+                horaInicio:    document.getElementById('hora_inicio').value + ':00',
+                horaFin:       document.getElementById('hora_fin').value   + ':00',
                 modalidad,
-                tipoFormacion:   'titulada',
-                idFuncionario:   parseInt(document.getElementById('idFuncionario').value),
+                tipoFormacion: 'titulada',
+                idFuncionario: parseInt(document.getElementById('idFuncionario').value),
                 dias,
-                idAmbiente:      modalidad === 'presencial' ? idAmbiente : null,
-                idFicha:         this.selectedFicha.idFicha,
-                fechaInicio:     document.getElementById('fecha_inicio').value,
-                fechaFin:        document.getElementById('fecha_fin').value,
-                observaciones:   document.getElementById('observacion')?.value || null,
-                estado:          'activo',
+                idAmbiente:    modalidad === 'presencial' ? idAmbiente : null,
+                idFicha:       this.selectedFicha.idFicha,
+                fechaInicio:   document.getElementById('fecha_inicio').value,
+                fechaFin:      document.getElementById('fecha_fin').value,
+                observaciones: document.getElementById('observacion')?.value || null,
+                estado:        'activo',
             });
-
             bootstrap.Modal.getInstance(document.getElementById('modalHorario'))?.hide();
             document.getElementById('form-horario').reset();
             document.getElementById('modal-alert').innerHTML = '';

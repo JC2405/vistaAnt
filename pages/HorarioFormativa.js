@@ -2,7 +2,7 @@ import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
 import { apiFetch, getAmbientes, getFuncionarios, getSedes, analizarJuiciosConFicha,
-         getMunicipiosConFichas, getProgramasPorMunicipio, getFichasPorProgramaMunicipio } from '../utils/api.js';
+         getProgramasPorSede, getFichasPorProgramaSede } from '../utils/api.js';
 
 async function apiCall(endpoint, method = 'GET', body = null) {
     return apiFetch(endpoint, { method, body: body ? JSON.stringify(body) : undefined });
@@ -14,9 +14,7 @@ const DIA_ID_MAP = {
 };
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   SearchableDropdown — dropdown reutilizable con búsqueda integrada
-   Soporta teclado (↑↓ Enter Escape), highlight de coincidencias,
-   apertura hacia arriba/abajo según espacio disponible, y animación suave.
+   SearchableDropdown
 ────────────────────────────────────────────────────────────────────────────── */
 class SearchableDropdown {
     constructor({ triggerEl, inputId, displayId, placeholder = 'Buscar...', onSelect, onOpen, emptyText = 'Sin resultados' }) {
@@ -197,7 +195,6 @@ class SearchableDropdown {
         const below = window.innerHeight - rect.bottom;
         const above = rect.top;
         const goUp  = below < ddH + 8 && above > ddH + 8;
-
         this._dropdown.style.width = rect.width + 'px';
         this._dropdown.style.left  = rect.left + 'px';
         this._dropdown.style.top   = goUp
@@ -221,13 +218,6 @@ class SearchableDropdown {
         if (this._isOpen()) this._filter(this._dropdown.querySelector('.sd-search').value);
     }
 
-    showLoading() {
-        const list  = this._dropdown.querySelector('.sd-list');
-        const empty = this._dropdown.querySelector('.sd-empty');
-        list.innerHTML = `<li class="sd-loading"><div class="spinner-border text-primary"></div>Cargando...</li>`;
-        empty.classList.add('d-none');
-    }
-
     _highlight(str, q) {
         if (!q || !str) return str || '';
         const idx = str.toLowerCase().indexOf(q.toLowerCase());
@@ -241,13 +231,11 @@ class SearchableDropdown {
         const list  = this._dropdown.querySelector('.sd-list');
         const empty = this._dropdown.querySelector('.sd-empty');
         const lq    = q.trim();
-
         const filtered = lq
             ? this.items.filter(i =>
                 (i.label || '').toLowerCase().includes(lq.toLowerCase()) ||
                 (i.sub   || '').toLowerCase().includes(lq.toLowerCase()))
             : this.items;
-
         if (!filtered.length) {
             list.innerHTML = '';
             empty.classList.remove('d-none');
@@ -329,20 +317,21 @@ class SearchableDropdown {
 
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   HorarioFormativa
+   HorarioFormativa  —  flujo: Sede → Programa → Ficha
 ────────────────────────────────────────────────────────────────────────────── */
 class HorarioFormativa {
     constructor() {
         this.fichas        = [];
-        this.municipios    = [];
+        this.sedes         = [];
         this.ambientes     = [];
         this.instructores  = [];
-        this.sedes         = [];
         this.selectedFicha = null;
         this.viewState     = 'fichas';
 
-        this._ddMunicipio  = null;
+        // Dropdowns del panel de filtros
+        this._ddSede       = null;
         this._ddPrograma   = null;
+        // Dropdown del modal
         this._ddInstructor = null;
 
         this.init();
@@ -472,24 +461,19 @@ class HorarioFormativa {
                                     </h5>
                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                 </div>
-                                <div class="modal-body p-4 bg-light" id="body-analisis-juicios">
-                                    <!-- Contenido inyectado dinámicamente -->
-                                </div>
+                                <div class="modal-body p-4 bg-light" id="body-analisis-juicios"></div>
                             </div>
                         </div>
                     </div>
-
                 </main>
             </div>`;
     }
 
     async loadDependencies() {
         try {
-            const [aData, iData, sData, mData] = await Promise.all([
-                getAmbientes(), getFuncionarios(), getSedes(), getMunicipiosConFichas()
+            const [aData, iData, sData] = await Promise.all([
+                getAmbientes(), getFuncionarios(), getSedes()
             ]);
-
-            this.municipios   = Array.isArray(mData) ? mData : (mData.data || []);
             this.ambientes    = aData.data || (Array.isArray(aData) ? aData : []);
             this.sedes        = sData.data || (Array.isArray(sData) ? sData : []);
             const allFuncs    = iData.data || (Array.isArray(iData) ? iData : []);
@@ -505,7 +489,7 @@ class HorarioFormativa {
     }
 
     populateSelects() {
-        this.renderSedesSelect();
+        this.renderSedesSelectModal();
         const selAmb = document.getElementById('idAmbiente');
         if (selAmb) selAmb.innerHTML = '<option value="">Seleccionar ambiente...</option>';
         const cont = document.getElementById('dias-container');
@@ -539,26 +523,23 @@ class HorarioFormativa {
         });
     }
 
-   _getInstructorItems(idAreaPreferida = null) {
-    let list = [...this.instructores];
-    // ... (lógica de ordenamiento)
-    return list.map(i => {
-        // Log para depurar: quita esto cuando funcione
-        // console.log("Instructor:", i); 
-
-        // Intentamos obtener el apellido de varias formas comunes
-        const nombre = i.nombre || '';
-        const apellido = i.apellido || i.apellidos || ''; 
-        
-        return {
+    _getInstructorItems(idAreaPreferida = null) {
+        let list = [...this.instructores];
+        if (idAreaPreferida) {
+            list.sort((a, b) => {
+                const aH = a.areas?.some(ar => String(ar.idArea) === String(idAreaPreferida));
+                const bH = b.areas?.some(ar => String(ar.idArea) === String(idAreaPreferida));
+                return (aH && !bH) ? -1 : (!aH && bH) ? 1 : 0;
+            });
+        }
+        return list.map(i => ({
             id:    i.idFuncionario,
-            label: `${nombre} ${apellido}`.trim() || 'Sin nombre',
+            label: `${i.nombre || ''} ${i.apellido || i.apellidos || ''}`.trim() || 'Sin nombre',
             sub:   i.areas?.length ? i.areas.map(a => a.nombreArea).join(', ') : 'Sin área',
-        };
-    });
+        }));
     }
 
-    renderSedesSelect() {
+    renderSedesSelectModal() {
         const sel = document.getElementById('idSede');
         if (!sel) return;
         sel.innerHTML = '<option value="">Seleccionar sede...</option>' +
@@ -571,10 +552,9 @@ class HorarioFormativa {
         if (!idSede) { sel.innerHTML = '<option value="">Seleccionar ambiente...</option>'; return; }
         const filtered = this.ambientes.filter(a => String(a.idSede) === String(idSede));
         sel.innerHTML = '<option value="">Seleccionar ambiente...</option>' +
-            filtered.map(a => {
-                const numero = a.numero ?? a.numeroAmbiente ?? a.num ?? a.number ?? '?';
-                return `<option value="${a.idAmbiente}">Blq ${a.bloque} -(${a.area?.nombreArea ?? 'Sin área'})</option>`;
-            }).join('');
+            filtered.map(a =>
+                `<option value="${a.idAmbiente}">Blq ${a.bloque} - (${a.area?.nombreArea ?? 'Sin área'})</option>`
+            ).join('');
     }
 
     setupEventListeners() {
@@ -627,30 +607,27 @@ class HorarioFormativa {
         if (this.viewState === 'horario') this.renderHorarioView(container);
     }
 
-    // ── VISTA FICHAS CON SEARCHABLE DROPDOWNS ─────────────────────────────────
+    // ── VISTA FICHAS  (Sede → Programa → Ficha) ───────────────────────────────
     renderFichasView(container) {
         const renderRows = (arr) => arr.map(f => {
             const prog         = f.programa?.nombre ?? 'Sin Programa';
             const tieneHorario = f.asignaciones?.length > 0;
-            
+
             let fechasPill = '';
             if (tieneHorario && f.asignaciones) {
-                let minDate = null;
-                let maxDate = null;
+                let minDate = null, maxDate = null;
                 f.asignaciones.forEach(asig => {
-                    if (asig.bloque && asig.bloque.fechaInicio && asig.bloque.fechaFin) {
-                        const start = new Date(asig.bloque.fechaInicio);
-                        const end = new Date(asig.bloque.fechaFin);
-                        if (!minDate || start < minDate) minDate = start;
-                        if (!maxDate || end > maxDate) maxDate = end;
+                    if (asig.bloque?.fechaInicio && asig.bloque?.fechaFin) {
+                        const s = new Date(asig.bloque.fechaInicio);
+                        const e = new Date(asig.bloque.fechaFin);
+                        if (!minDate || s < minDate) minDate = s;
+                        if (!maxDate || e > maxDate) maxDate = e;
                     }
                 });
-                
                 if (minDate && maxDate) {
-                    const formatDate = (d) => {
-                        return d.toISOString().split('T')[0];
-                    };
-                    fechasPill = `<div class="mt-1 small text-muted text-nowrap" style="font-size:0.75rem;"><i class="bi bi-calendar-range me-1"></i>${formatDate(minDate)} a ${formatDate(maxDate)}</div>`;
+                    fechasPill = `<div class="mt-1 small text-muted text-nowrap" style="font-size:0.75rem;">
+                        <i class="bi bi-calendar-range me-1"></i>${minDate.toISOString().split('T')[0]} a ${maxDate.toISOString().split('T')[0]}
+                    </div>`;
                 }
             }
 
@@ -665,12 +642,9 @@ class HorarioFormativa {
                        <i class="bi bi-x-circle me-1"></i>No
                    </span>`;
             const badgeMod = f.modalidad === 'virtual'
-                ? `<span class="badge rounded-pill bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3 py-2">
-                       <i class="bi bi-laptop me-1"></i>Virtual
-                   </span>`
-                : `<span class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2">
-                       <i class="bi bi-person-workspace me-1"></i>Presencial
-                   </span>`;
+                ? `<span class="badge rounded-pill bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3 py-2"><i class="bi bi-laptop me-1"></i>Virtual</span>`
+                : `<span class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2"><i class="bi bi-person-workspace me-1"></i>Presencial</span>`;
+
             return `
                 <tr class="fila-ficha align-middle" style="cursor:pointer;" data-id="${f.idFicha}">
                     <td class="ps-4 fw-semibold" style="color:var(--text-dark);">Ficha ${f.codigoFicha}</td>
@@ -687,27 +661,29 @@ class HorarioFormativa {
         }).join('');
 
         container.innerHTML = `
-            <!-- Filtros -->
+            <!-- Filtros: Sede → Programa → Ficha -->
             <div class="card border-0 shadow-sm rounded-4 mb-4">
                 <div class="card-header bg-white border-0 pt-4 pb-3 px-4">
                     <h5 class="fw-bold mb-1" style="color:var(--text-dark);">Fichas Formativas</h5>
-                    <small class="text-muted">Selecciona municipio, programa y ficha para gestionar el horario.</small>
+                    <small class="text-muted">Selecciona sede, programa y ficha para gestionar el horario.</small>
                 </div>
                 <div class="card-body px-4 pb-4">
                     <div class="row g-3 align-items-end">
 
+                        <!-- 1. Sede -->
                         <div class="col-md-4">
                             <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.04em;">
-                                <i class="bi bi-geo-alt text-primary me-1"></i>1. Municipio
+                                <i class="bi bi-building text-primary me-1"></i>1. Sede
                             </label>
-                            <div id="dd-municipio-trigger"
+                            <div id="dd-sede-trigger"
                                  style="border-radius:0.5rem; overflow:hidden; border:1px solid #d1d5db; background:#fff;">
-                                <input type="text" id="municipioDisplay" class="form-control border-0"
-                                       placeholder="Seleccionar municipio..." readonly>
-                                <input type="hidden" id="hidMunicipio">
+                                <input type="text" id="sedeDisplay" class="form-control border-0"
+                                       placeholder="Seleccionar sede..." readonly>
+                                <input type="hidden" id="hidSede">
                             </div>
                         </div>
 
+                        <!-- 2. Programa -->
                         <div class="col-md-4">
                             <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.04em;">
                                 <i class="bi bi-journals text-primary me-1"></i>2. Programa
@@ -715,11 +691,12 @@ class HorarioFormativa {
                             <div id="dd-programa-trigger"
                                  style="border-radius:0.5rem; overflow:hidden; border:1px solid #d1d5db; background:#fff;">
                                 <input type="text" id="programaDisplay" class="form-control border-0"
-                                       placeholder="Primero selecciona municipio..." readonly>
+                                       placeholder="Primero selecciona sede..." readonly>
                                 <input type="hidden" id="hidPrograma">
                             </div>
                         </div>
 
+                        <!-- 3. Ficha -->
                         <div class="col-md-4">
                             <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.04em;">
                                 <i class="bi bi-card-list text-primary me-1"></i>3. Ficha
@@ -738,7 +715,7 @@ class HorarioFormativa {
                 <div class="card-header bg-white border-0 pt-4 pb-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
                     <div>
                         <h5 class="fw-bold mb-0" style="color:var(--text-dark);">Fichas disponibles</h5>
-                        <small class="text-muted" id="lbl-fichas-count">Selecciona municipio y programa para ver las fichas</small>
+                        <small class="text-muted" id="lbl-fichas-count">Selecciona sede y programa para ver las fichas</small>
                     </div>
                     <div class="input-group" style="max-width:280px;">
                         <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
@@ -762,7 +739,7 @@ class HorarioFormativa {
                                 <tr>
                                     <td colspan="6" class="text-center py-5 text-muted">
                                         <i class="bi bi-funnel fs-3 d-block mb-2 opacity-25"></i>
-                                        Selecciona un municipio y programa para ver las fichas
+                                        Selecciona una sede y programa para ver las fichas
                                     </td>
                                 </tr>
                             </tbody>
@@ -792,7 +769,7 @@ class HorarioFormativa {
             if (!this.fichas.length) {
                 el.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">
                     <i class="bi bi-inbox fs-3 d-block mb-2 opacity-25"></i>
-                    No hay fichas activas para este programa y municipio
+                    No hay fichas activas para este programa y sede
                 </td></tr>`;
                 if (lbl) lbl.textContent = '0 fichas encontradas';
                 return;
@@ -802,17 +779,21 @@ class HorarioFormativa {
             attachEvents();
         };
 
-        // ── Dropdown Municipio ──────────────────────────────────────────────
-        this._ddMunicipio?.destroy();
-        this._ddMunicipio = new SearchableDropdown({
-            triggerEl:   'dd-municipio-trigger',
-            inputId:     'hidMunicipio',
-            displayId:   'municipioDisplay',
-            placeholder: 'Buscar municipio...',
-            emptyText:   'No se encontraron municipios',
+        // ── Dropdown Sede ───────────────────────────────────────────────────
+        this._ddSede?.destroy();
+        this._ddSede = new SearchableDropdown({
+            triggerEl:   'dd-sede-trigger',
+            inputId:     'hidSede',
+            displayId:   'sedeDisplay',
+            placeholder: 'Buscar sede...',
+            emptyText:   'No se encontraron sedes',
             onOpen: () => {
-                this._ddMunicipio.setItems(
-                    this.municipios.map(m => ({ id: m.idMunicipio, label: m.nombreMunicipio }))
+                this._ddSede.setItems(
+                    this.sedes.map(s => ({
+                        id:    s.idSede,
+                        label: s.nombre,
+                        sub:   s.municipio?.nombreMunicipio || s.direccion || '',
+                    }))
                 );
             },
             onSelect: async (item) => {
@@ -828,7 +809,7 @@ class HorarioFormativa {
                 document.getElementById('lbl-fichas-count').textContent = 'Selecciona un programa para ver las fichas';
 
                 try {
-                    const programas = await getProgramasPorMunicipio(item.id);
+                    const programas = await getProgramasPorSede(item.id);
                     programasDisponibles = Array.isArray(programas) ? programas : (programas.data || []);
                     this._ddPrograma.setItems(
                         programasDisponibles.map(p => ({
@@ -853,9 +834,9 @@ class HorarioFormativa {
             placeholder: 'Buscar programa...',
             emptyText:   'No se encontraron programas',
             onOpen: () => {
-                if (!document.getElementById('hidMunicipio').value) {
+                if (!document.getElementById('hidSede').value) {
                     this._ddPrograma.close();
-                    const t = document.getElementById('dd-municipio-trigger');
+                    const t = document.getElementById('dd-sede-trigger');
                     t.style.transition  = 'box-shadow .15s';
                     t.style.boxShadow   = '0 0 0 3px rgba(220,53,69,.3)';
                     t.style.borderColor = '#dc3545';
@@ -869,14 +850,14 @@ class HorarioFormativa {
                 );
             },
             onSelect: async (item) => {
-                const idMun   = document.getElementById('hidMunicipio').value;
+                const idSede  = document.getElementById('hidSede').value;
                 const selFich = document.getElementById('sel-ficha');
                 selFich.innerHTML = '<option value="">Cargando fichas...</option>';
                 selFich.disabled  = true;
                 this.fichas = [];
 
                 try {
-                    const fichasData = await getFichasPorProgramaMunicipio(item.id, idMun);
+                    const fichasData = await getFichasPorProgramaSede(item.id, idSede);
                     this.fichas = Array.isArray(fichasData) ? fichasData : (fichasData.data || []);
                     selFich.innerHTML = '<option value="">Seleccione una ficha...</option>' +
                         this.fichas.map(f => `<option value="${f.idFicha}">Ficha ${f.codigoFicha} · ${f.jornada || ''}</option>`).join('');
@@ -889,8 +870,8 @@ class HorarioFormativa {
             }
         });
 
-        // Programa deshabilitado hasta seleccionar municipio
-        this._ddPrograma.disable('Primero selecciona municipio...');
+        // Programa deshabilitado hasta seleccionar sede
+        this._ddPrograma.disable('Primero selecciona sede...');
 
         // ── Select ficha ────────────────────────────────────────────────────
         document.getElementById('sel-ficha').addEventListener('change', () => {
@@ -937,8 +918,9 @@ class HorarioFormativa {
     }
 
     async selectFicha(idFicha) {
-        this.selectedFicha = this.fichas.find(f => String(f.idFicha) === String(idFicha));
-        if (!this.selectedFicha) return;
+        if (!this.selectedFicha) {
+            this.selectedFicha = { idFicha, codigoFicha: idFicha, jornada: '' };
+        }
 
         const card = document.getElementById('calendario-card');
         card.innerHTML = `
@@ -956,7 +938,6 @@ class HorarioFormativa {
 
         document.getElementById('idSede').value     = '';
         document.getElementById('idAmbiente').value = '';
-
         this._ddInstructor?.destroy();
         this._initInstructorDropdown();
         this.renderAmbientes('');
@@ -994,7 +975,6 @@ class HorarioFormativa {
                     </button>
                 </div>
             </div>
-            <!-- INPUT OCULTO PARA SUBIR EL EXCEL DEL SENA -->
             <input type="file" id="file-juicios" accept=".xlsx, .xls" class="d-none">`;
 
         if (isEmpty) {
@@ -1013,15 +993,8 @@ class HorarioFormativa {
                 <div id="fullcalendar-container" class="h-100"></div>
              </div>`;
 
-        /* ── Helpers de fecha ──────────────────────────────────────────────
-           JS getDay(): Domingo=0 … Sabado=6 → normalizar a 1=Lun…7=Dom
-        ─────────────────────────────────────────────────────────────────── */
         const jsWeekday = (date) => date.getDay() === 0 ? 7 : date.getDay();
 
-        /**
-         * Devuelve todas las fechas ISO (YYYY-MM-DD) del día dado dentro del
-         * rango [fechaInicioStr, fechaFinStr].
-         */
         const fechasDelDiaEnRango = (nombreDia, fechaInicioStr, fechaFinStr) => {
             const targetWd = DIA_ID_MAP[nombreDia];
             if (!targetWd || !fechaInicioStr || !fechaFinStr) return [];
@@ -1040,95 +1013,65 @@ class HorarioFormativa {
             return fechas;
         };
 
-        /* ── Construir eventos ─────────────────────────────────────────────── */
         const events = [];
-        let globalStart = null;
-        let globalEnd   = null;
+        let globalStart = null, globalEnd = null;
 
-        if (asignaciones && asignaciones.length) {
-            for (const asig of asignaciones) {
-                const bloque = asig.bloque;
-                if (!bloque) continue;
+        for (const asig of asignaciones) {
+            const bloque = asig.bloque;
+            if (!bloque) continue;
+            const startHour = bloque.horaInicio || bloque.hora_inicio;
+            const endHour   = bloque.horaFin    || bloque.hora_fin;
+            if (!startHour || !endHour) continue;
+            const startDate = asig.fechaInicio || asig.fecha_inicio || bloque.fechaInicio || bloque.fecha_inicio;
+            const endDate   = asig.fechaFin    || asig.fecha_fin    || bloque.fechaFin    || bloque.fecha_fin;
+            if (startDate && (!globalStart || startDate < globalStart)) globalStart = startDate;
+            if (endDate   && (!globalEnd   || endDate > globalEnd))     globalEnd   = endDate;
+            const isVirtual = asig.modalidad === 'virtual';
 
-                const startHour = bloque.horaInicio || bloque.hora_inicio;
-                const endHour   = bloque.horaFin || bloque.hora_fin;
-                if (!startHour || !endHour) continue;
-
-                const startDate = asig.fechaInicio || asig.fecha_inicio || bloque.fechaInicio || bloque.fecha_inicio;
-                const endDate   = asig.fechaFin || asig.fecha_fin || bloque.fechaFin || bloque.fecha_fin;
-
-                if (startDate && (!globalStart || startDate < globalStart)) globalStart = startDate;
-                if (endDate   && (!globalEnd   || endDate > globalEnd))     globalEnd   = endDate;
-
-                const isVirtual = asig.modalidad === 'virtual';
-
-                (bloque.dias || []).forEach(diaObj => {
-                    const dia = diaObj.nombreDia || diaObj.nombre;
-                    if (!dia) return;
-
-                    const fechas = fechasDelDiaEnRango(dia, startDate, endDate);
-                    for (const fecha of fechas) {
-                        const ambienteLabel = asig.ambiente ? (asig.ambiente.codigo || asig.ambiente.nombre) : null;
-                        const tipoFormacion = asig.ficha?.programa?.tipoFormacion?.nombreTipoFormacion 
-                                           || asig.ficha?.programa?.tipo_formacion?.nombreTipoFormacion || '';
-
-                        const bloqueFormacion = bloque.tipoFormacion || '';
-                        const isTransversal = bloqueFormacion.toLowerCase() === 'transversal';
-                        const orderPriority = isTransversal ? 1 : 2;
-
-                        events.push({
-                            id:    `${asig.idAsignacion}_${dia}_${fecha}`,
-                            start: `${fecha}T${startHour}`,
-                            end:   `${fecha}T${endHour}`,
-                            orderPriority: orderPriority,
-                            backgroundColor: '#ffffff',
-                            borderColor:     isVirtual ? '#0dcaf0' : '#4caa16',
-                            textColor:       isVirtual ? '#0dcaf0' : '#4caa16',
-                            extendedProps: {
-                                instructor:      asig.funcionario ? asig.funcionario.nombre : '—',
-                                ambiente:        ambienteLabel,
-                                modalidad:       asig.modalidad,
-                                tipoDeFormacion: tipoFormacion,
-                                fechaInicio:     startDate,
-                                fechaFin:        endDate,
-                                idBloque:        bloque.idBloque,
-                                idDia:           diaObj.idDia || DIA_ID_MAP[dia],
-                                nombreDia:       dia,
-                                idAsignacion:    asig.idAsignacion,
-                            }
-                        });
-                    }
-                });
-            }
+            (bloque.dias || []).forEach(diaObj => {
+                const dia = diaObj.nombreDia || diaObj.nombre;
+                if (!dia) return;
+                const fechas = fechasDelDiaEnRango(dia, startDate, endDate);
+                for (const fecha of fechas) {
+                    events.push({
+                        id:    `${asig.idAsignacion}_${dia}_${fecha}`,
+                        start: `${fecha}T${startHour}`,
+                        end:   `${fecha}T${endHour}`,
+                        orderPriority: 1,
+                        backgroundColor: '#ffffff',
+                        borderColor:     isVirtual ? '#0dcaf0' : '#4caa16',
+                        textColor:       isVirtual ? '#0dcaf0' : '#4caa16',
+                        extendedProps: {
+                            instructor:      asig.funcionario ? asig.funcionario.nombre : '—',
+                            ambiente:        asig.ambiente ? (asig.ambiente.codigo || asig.ambiente.nombre) : null,
+                            modalidad:       asig.modalidad,
+                            tipoDeFormacion: asig.ficha?.programa?.tipoFormacion?.nombreTipoFormacion || '',
+                            fechaInicio:     startDate,
+                            fechaFin:        endDate,
+                            idBloque:        bloque.idBloque,
+                            idDia:           diaObj.idDia || DIA_ID_MAP[dia],
+                            nombreDia:       dia,
+                            idAsignacion:    asig.idAsignacion,
+                        }
+                    });
+                }
+            });
         }
 
-        /* ── Calcular rango global para posicionar el calendario ───────────── */
         const initialDate = globalStart ?? new Date().toISOString().slice(0, 10);
-
-        /* ── Toolbar personalizado ─────────────────────────────────────── */
         const calendarWrapper = document.getElementById('fullcalendar-container');
 
         const toolbarEl = document.createElement('div');
         toolbarEl.className = 'd-flex align-items-center justify-content-between mb-3';
         toolbarEl.innerHTML = `
             <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-prev">
-                    <i class="bi bi-chevron-left"></i>
-                </button>
-                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-next">
-                    <i class="bi bi-chevron-right"></i>
-                </button>
-                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-today">
-                    Hoy
-                </button>
+                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-prev"><i class="bi bi-chevron-left"></i></button>
+                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-next"><i class="bi bi-chevron-right"></i></button>
+                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-today">Hoy</button>
             </div>
             <div class="text-center">
                 <span id="fc-title" class="fw-semibold" style="color:var(--text-dark);font-size:.95rem;"></span>
-                ${globalStart && globalEnd
-                    ? `<span class="badge bg-light text-muted border ms-2" style="font-size:.7rem;">
-                           <i class="bi bi-calendar-range me-1"></i>${globalStart} → ${globalEnd}
-                       </span>`
-                    : ''}
+                ${globalStart && globalEnd ? `<span class="badge bg-light text-muted border ms-2" style="font-size:.7rem;"><i class="bi bi-calendar-range me-1"></i>${globalStart} → ${globalEnd}</span>` : ''}
             </div>
             <div class="d-flex gap-2">
                 <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm fc-view-btn active-view" data-view="timeGridWeek">Semana</button>
@@ -1139,14 +1082,12 @@ class HorarioFormativa {
         const fcEl = document.createElement('div');
         fcEl.id = 'fc-grid';
         fcEl.style.height = 'calc(100% - 52px)';
-
-        calendarWrapper.style.display       = 'flex';
+        calendarWrapper.style.display = 'flex';
         calendarWrapper.style.flexDirection = 'column';
-        calendarWrapper.style.height        = '100%';
+        calendarWrapper.style.height = '100%';
         calendarWrapper.appendChild(toolbarEl);
         calendarWrapper.appendChild(fcEl);
 
-        /* ── FullCalendar ──────────────────────────────────────────────── */
         const calendar = new FullCalendar.Calendar(fcEl, {
             initialView:   'timeGridWeek',
             eventOrder:    'orderPriority,start,-duration,allDay,title',
@@ -1157,55 +1098,40 @@ class HorarioFormativa {
             slotMaxTime:   '24:00:00',
             expandRows:    true,
             locale:        'es',
-            validRange: globalStart && globalEnd
-                ? { start: globalStart, end: globalEnd }
-                : undefined,
+            validRange:    globalStart && globalEnd ? { start: globalStart, end: globalEnd } : undefined,
             dayHeaderFormat: { weekday: 'short', day: 'numeric', month: 'short' },
             events,
-
             datesSet: () => {
-                const titleEl = document.getElementById('fc-title');
-                if (titleEl) titleEl.textContent = calendar.view.title;
+                const t = document.getElementById('fc-title');
+                if (t) t.textContent = calendar.view.title;
             },
-
             eventContent(arg) {
                 const p    = arg.event.extendedProps;
                 const icon = p.modalidad === 'virtual' ? 'bi-laptop' : 'bi-building';
                 const badge = p.tipoDeFormacion
                     ? `<div class="mt-auto pt-1"><span class="badge bg-secondary bg-opacity-25 text-dark" style="font-size:0.65rem;">${p.tipoDeFormacion}</span></div>`
                     : '';
-
-                // Compact rendering for monthly view
                 if (calendar.view.type === 'dayGridMonth') {
-                    return {
-                        html: `<div class="p-1 d-flex flex-column overflow-hidden" style="font-size:0.72rem;">
-                            <div class="fw-bold text-truncate">${p.instructor}</div>
-                            <div class="text-truncate" style="font-size:0.65rem;opacity:0.8;">
-                                <i class="bi ${icon}"></i> ${p.ambiente || 'Virtual'}
-                            </div>
-                        </div>`
-                    };
+                    return { html: `<div class="p-1 d-flex flex-column overflow-hidden" style="font-size:0.72rem;">
+                        <div class="fw-bold text-truncate">${p.instructor}</div>
+                        <div class="text-truncate" style="font-size:0.65rem;opacity:0.8;"><i class="bi ${icon}"></i> ${p.ambiente || 'Virtual'}</div>
+                    </div>` };
                 }
-
-                return {
-                    html: `
-                        <div class="p-2 d-flex flex-column position-relative" style="height:100%; width:100%; overflow:hidden; background:#ffffff; border-radius: 3px;">
-                            <div class="fw-bold mb-1 lh-sm" style="font-size:0.8rem;">${p.instructor}</div>
-                            <div class="text-truncate" style="font-size:0.75rem;opacity:0.9;">
-                                <i class="bi ${icon}"></i> ${p.ambiente || 'Virtual'}
-                            </div>
-                            <div class="mt-1 pb-1" style="font-size:0.65rem;opacity:0.85;border-bottom:1px dashed rgba(0,0,0,0.1);">
-                                <i class="bi bi-calendar3 me-1"></i>${p.fechaInicio} → ${p.fechaFin}
-                            </div>
-                            ${badge}
-                            <button class="btn btn-sm text-danger p-0 position-absolute top-0 end-0 delete-btn d-none"
-                                    data-idbloque="${p.idBloque}" data-iddia="${p.idDia}"
-                                    data-nombredia="${p.nombreDia}" data-idasignacion="${p.idAsignacion}"
-                                    style="line-height:1;transform:translate(25%,-25%);background:white;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,0.2); z-index: 10;">
-                                <i class="bi bi-x-circle-fill"></i>
-                            </button>
-                        </div>`
-                };
+                return { html: `
+                    <div class="p-2 d-flex flex-column position-relative" style="height:100%;width:100%;overflow:hidden;background:#ffffff;border-radius:3px;">
+                        <div class="fw-bold mb-1 lh-sm" style="font-size:0.8rem;">${p.instructor}</div>
+                        <div class="text-truncate" style="font-size:0.75rem;opacity:0.9;"><i class="bi ${icon}"></i> ${p.ambiente || 'Virtual'}</div>
+                        <div class="mt-1 pb-1" style="font-size:0.65rem;opacity:0.85;border-bottom:1px dashed rgba(0,0,0,0.1);">
+                            <i class="bi bi-calendar3 me-1"></i>${p.fechaInicio} → ${p.fechaFin}
+                        </div>
+                        ${badge}
+                        <button class="btn btn-sm text-danger p-0 position-absolute top-0 end-0 delete-btn d-none"
+                                data-idbloque="${p.idBloque}" data-iddia="${p.idDia}"
+                                data-nombredia="${p.nombreDia}" data-idasignacion="${p.idAsignacion}"
+                                style="line-height:1;transform:translate(25%,-25%);background:white;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,0.2);z-index:10;">
+                            <i class="bi bi-x-circle-fill"></i>
+                        </button>
+                    </div>` };
             },
             eventMouseEnter: info => info.el.querySelector('.delete-btn')?.classList.remove('d-none'),
             eventMouseLeave: info => info.el.querySelector('.delete-btn')?.classList.add('d-none'),
@@ -1213,26 +1139,9 @@ class HorarioFormativa {
 
         calendar.render();
 
-// Fix altura del evento en FullCalendar
-const fcStyle = document.createElement('style');
-fcStyle.textContent = `
-    .fc-timegrid-event,
-    .fc-timegrid-event .fc-event-main,
-    .fc-timegrid-event .fc-event-main-frame {
-        height: 100% !important;
-        overflow: hidden !important;
-    }
-    .fc-timegrid-event .fc-event-main {
-        padding: 0 !important;
-    }
-`;
-        document.head.appendChild(fcStyle);
-            
-        // Toolbar buttons
         document.getElementById('fc-prev')?.addEventListener('click',  () => calendar.prev());
         document.getElementById('fc-next')?.addEventListener('click',  () => calendar.next());
         document.getElementById('fc-today')?.addEventListener('click', () => calendar.today());
-            
         document.querySelectorAll('.fc-view-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.fc-view-btn').forEach(b => b.classList.remove('active-view', 'btn-purple'));
@@ -1240,7 +1149,7 @@ fcStyle.textContent = `
                 calendar.changeView(btn.dataset.view);
             });
         });
-        // Eliminar día de bloque
+
         fcEl.addEventListener('click', e => {
             const btn = e.target.closest('.delete-btn');
             if (!btn) return;
@@ -1263,7 +1172,6 @@ fcStyle.textContent = `
             confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar'
         });
         if (!result.isConfirmed) return;
-
         try {
             await apiCall(`/eliminarDiaDeBloque/${idBloque}/${idDia}`, 'DELETE');
             this.showAlert('page-alert-container', 'success', `Día ${nombreDia} eliminado correctamente.`);
@@ -1285,32 +1193,22 @@ fcStyle.textContent = `
         }
     }
 
-    // ==========================================
-    // JS Logic for Analizar Juicios Evaluativos
-    // ==========================================
     initJuiciosEvents() {
         const btnJuicios = document.getElementById('btn-juicios-evaluativos');
         const fileInput  = document.getElementById('file-juicios');
-
         if (!btnJuicios || !fileInput) return;
-
-        // Clonar para evitar listeners acumulados entre renders
         const elClone = fileInput.cloneNode(true);
         fileInput.parentNode.replaceChild(elClone, fileInput);
-
         btnJuicios.addEventListener('click', () => elClone.click());
-
         elClone.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
             const idFicha = this.selectedFicha?.idFicha;
             if (!idFicha) {
                 this.showAlert('page-alert-container', 'warning', 'Selecciona primero una ficha para analizar los juicios.');
                 e.target.value = '';
                 return;
             }
-
             try {
                 this.showAlert('page-alert-container', 'info',
                     `Analizando juicios vs competencias de la ficha ${this.selectedFicha.codigoFicha}...`);
@@ -1333,10 +1231,8 @@ fcStyle.textContent = `
             <div class="alert alert-light border mb-3 py-2 px-3" style="font-size:0.85rem;">
                 <i class="bi bi-info-circle me-1 text-primary"></i>
                 <strong>Ficha:</strong> ${data.ficha || '—'}
-                &nbsp;·&nbsp;
-                <strong>Programa:</strong> ${data.programa || '—'}
-                &nbsp;·&nbsp;
-                <strong>Tipo Formación:</strong> ${data.tipo_formacion || '—'}
+                &nbsp;·&nbsp;<strong>Programa:</strong> ${data.programa || '—'}
+                &nbsp;·&nbsp;<strong>Tipo Formación:</strong> ${data.tipo_formacion || '—'}
             </div>
             <div class="row g-3 mb-4">
                 <div class="col-md-4">
@@ -1369,51 +1265,44 @@ fcStyle.textContent = `
             </div>`;
 
         const filaResultado = (res) => {
-            const estado    = res.estado ?? (res.necesita_horario ? 'pendiente' : 'evaluado');
-            const rowClass  = estado === 'sin_datos' ? 'table-secondary'
-                            : estado === 'pendiente' ? 'table-warning' : '';
-            const badge = estado === 'evaluado'
+            const estado   = res.estado ?? (res.necesita_horario ? 'pendiente' : 'evaluado');
+            const rowClass = estado === 'sin_datos' ? 'table-secondary' : estado === 'pendiente' ? 'table-warning' : '';
+            const badge    = estado === 'evaluado'
                 ? `<span class="badge bg-success"><i class="bi bi-check"></i> Evaluado</span>`
                 : estado === 'pendiente'
                 ? `<span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Pendiente</span>`
                 : `<span class="badge bg-secondary"><i class="bi bi-dash"></i> Sin datos</span>`;
-            const pct        = res.porcentaje_aprobacion ?? res.porcentaje ?? 0;
-            const aprobados  = res.aprobados ?? 0;
+            const pct         = res.porcentaje_aprobacion ?? res.porcentaje ?? 0;
+            const aprobados   = res.aprobados ?? 0;
             const totalJuicio = res.total_con_juicio ?? 0;
-            const nombre     = res.nombre || res.nombre_completo || res.codigo || '—';
-            return `
-                <tr class="${rowClass}">
-                    <td><small>${nombre}</small></td>
-                    <td class="text-center">${aprobados}</td>
-                    <td class="text-center">${totalJuicio}</td>
-                    <td class="text-center"><strong>${pct}%</strong></td>
-                    <td class="text-center">${badge}</td>
-                </tr>`;
+            const nombre      = res.nombre || res.nombre_completo || res.codigo || '—';
+            return `<tr class="${rowClass}">
+                <td><small>${nombre}</small></td>
+                <td class="text-center">${aprobados}</td>
+                <td class="text-center">${totalJuicio}</td>
+                <td class="text-center"><strong>${pct}%</strong></td>
+                <td class="text-center">${badge}</td>
+            </tr>`;
         };
 
         const bloqueCompetencias = (lista, tipo) => {
-            if (!lista.length) {
-                return `<p class="text-muted fst-italic text-center py-3">Ninguna competencia ${tipo === 'pendiente' ? 'pendiente' : 'cubierta'}.</p>`;
-            }
+            if (!lista.length) return `<p class="text-muted fst-italic text-center py-3">Ninguna competencia ${tipo === 'pendiente' ? 'pendiente' : 'cubierta'}.</p>`;
             let out = `<div class="accordion" id="accordion-${tipo}">`;
             lista.forEach((comp, idx) => {
                 const isPend  = tipo === 'pendiente';
-                const pct     = (comp.porcentaje ?? comp.porcentaje_minimo ?? 0);
+                const pct     = comp.porcentaje ?? comp.porcentaje_minimo ?? 0;
                 const resumen = comp.resumen_resultados;
                 const badge   = isPend
                     ? `<span class="badge bg-danger rounded-pill">Pendiente ${Number(pct).toFixed(1)}%</span>`
                     : `<span class="badge bg-success rounded-pill">Cubierto ${Number(pct).toFixed(1)}%</span>`;
-
                 const resumenHtml = resumen
                     ? `<div class="text-muted small mt-1">
                             Resultados BD: ${resumen.total} total
-                            &nbsp;·&nbsp; <span class="text-success">${resumen.evaluados} evaluados</span>
-                            &nbsp;·&nbsp; <span class="text-warning">${resumen.pendientes} pendientes</span>
-                            &nbsp;·&nbsp; <span class="text-secondary">${resumen.sin_datos} sin datos del Excel</span>
+                            &nbsp;·&nbsp;<span class="text-success">${resumen.evaluados} evaluados</span>
+                            &nbsp;·&nbsp;<span class="text-warning">${resumen.pendientes} pendientes</span>
+                            &nbsp;·&nbsp;<span class="text-secondary">${resumen.sin_datos} sin datos del Excel</span>
                        </div>` : '';
-
                 const tableRows = (comp.resultados || []).map(filaResultado).join('');
-
                 out += `
                     <div class="accordion-item mb-2 border rounded-3 shadow-sm" style="overflow:hidden;">
                         <h2 class="accordion-header">
@@ -1446,27 +1335,18 @@ fcStyle.textContent = `
                         </div>
                     </div>`;
             });
-            out += '</div>';
-            return out;
+            return out + '</div>';
         };
 
         html += `
-            <h6 class="fw-bold text-danger mb-2 mt-1">
-                <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                Competencias Pendientes (${pendientes.length})
-            </h6>
+            <h6 class="fw-bold text-danger mb-2 mt-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>Competencias Pendientes (${pendientes.length})</h6>
             ${bloqueCompetencias(pendientes, 'pendiente')}
             <hr class="my-4">
-            <h6 class="fw-bold text-success mb-2">
-                <i class="bi bi-check-circle-fill me-1"></i>
-                Competencias Cubiertas (${cubiertas.length})
-            </h6>
+            <h6 class="fw-bold text-success mb-2"><i class="bi bi-check-circle-fill me-1"></i>Competencias Cubiertas (${cubiertas.length})</h6>
             ${bloqueCompetencias(cubiertas, 'cubierta')}`;
 
         document.getElementById('body-analisis-juicios').innerHTML = html;
-        bootstrap.Modal.getOrCreateInstance(
-            document.getElementById('modalAnalisisJuicios')
-        ).show();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAnalisisJuicios')).show();
     }
 
     async deleteAsignacion(id, skipConfirm = false) {
@@ -1487,34 +1367,30 @@ fcStyle.textContent = `
             this.showAlert('modal-alert', 'warning', 'Selecciona al menos un día de la semana.');
             return;
         }
-
         const modalidad  = document.getElementById('modalidad_clase').value;
         const idAmbiente = parseInt(document.getElementById('idAmbiente').value);
         if (modalidad === 'presencial' && !idAmbiente) {
             this.showAlert('modal-alert', 'warning', 'Selecciona un ambiente para la modalidad presencial.');
             return;
         }
-
         const btn = document.getElementById('btn-asignar');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
-
         try {
             await apiCall('/crearAsignacion', 'POST', {
-                horaInicio:      document.getElementById('hora_inicio').value + ':00',
-                horaFin:         document.getElementById('hora_fin').value   + ':00',
+                horaInicio:    document.getElementById('hora_inicio').value + ':00',
+                horaFin:       document.getElementById('hora_fin').value   + ':00',
                 modalidad,
-                tipoFormacion:   'transversal',
-                idFuncionario:   parseInt(document.getElementById('idFuncionario').value),
+                tipoFormacion: 'transversal',
+                idFuncionario: parseInt(document.getElementById('idFuncionario').value),
                 dias,
-                idAmbiente:      modalidad === 'presencial' ? idAmbiente : null,
-                idFicha:         this.selectedFicha.idFicha,
-                fechaInicio:     document.getElementById('fecha_inicio').value,
-                fechaFin:        document.getElementById('fecha_fin').value,
-                observaciones:   document.getElementById('observacion')?.value || null,
-                estado:          'activo',
+                idAmbiente:    modalidad === 'presencial' ? idAmbiente : null,
+                idFicha:       this.selectedFicha.idFicha,
+                fechaInicio:   document.getElementById('fecha_inicio').value,
+                fechaFin:      document.getElementById('fecha_fin').value,
+                observaciones: document.getElementById('observacion')?.value || null,
+                estado:        'activo',
             });
-
             bootstrap.Modal.getInstance(document.getElementById('modalHorario'))?.hide();
             document.getElementById('form-horario').reset();
             document.getElementById('modal-alert').innerHTML = '';
