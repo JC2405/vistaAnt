@@ -34,9 +34,7 @@ export function Navbar() {
                 </div>
                 
                 <div class="d-flex align-items-center gap-3 ms-auto">
-                    <button class="btn btn-light border-0 position-relative" title="Notificaciones" style="color: var(--text-muted);">
-                        <i class="bi bi-bell fs-5"></i>
-                    </button>
+                   
                     
   
                 </div>
