@@ -1,7 +1,7 @@
 import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
-import { DataTable, initTablePagination } from '../components/DataTable.js';
+import { DataTable, initTablePagination } from '../components/DataTable.js?v=2';
 import { ModalForm, setModalLoading, FormSelect } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
@@ -428,19 +428,21 @@ class FuncionariosPage {
             data: displayData
         });
 
-        initTablePagination('funcionarios-table', displayData, columns, '#table-container');
-
-        document.querySelectorAll('.btn-edit').forEach(btn => {
-            btn.addEventListener('click', (e) => this.openModal(e.currentTarget.dataset.id));
-        });
-        document.querySelectorAll('.btn-delete').forEach(btn => {
-            btn.addEventListener('click', (e) => this.handleDelete(e.currentTarget.dataset.id));
-        });
-        document.querySelectorAll('.btn-ver-horario').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                this.verHorario(e.currentTarget.dataset.id, e.currentTarget.dataset.nombre);
+        const bindActionButtons = () => {
+            document.querySelectorAll('.btn-edit').forEach(btn => {
+                btn.addEventListener('click', (e) => this.openModal(e.currentTarget.dataset.id));
             });
-        });
+            document.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('click', (e) => this.handleDelete(e.currentTarget.dataset.id));
+            });
+            document.querySelectorAll('.btn-ver-horario').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    this.verHorario(e.currentTarget.dataset.id, e.currentTarget.dataset.nombre);
+                });
+            });
+        };
+
+        initTablePagination('funcionarios-table', displayData, columns, '#table-container', bindActionButtons);
     }
 
     bindToolbarButtons() {}

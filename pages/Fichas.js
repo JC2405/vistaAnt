@@ -1107,7 +1107,7 @@ class FichasPage {
                 const bloqueFormacion = bloque.tipoFormacion || '';
                 const isTransversal = bloqueFormacion.toLowerCase() === 'transversal';
                 const ambienteLabel = asig.ambiente
-                    ? `${asig.ambiente.codigo} - No.${asig.ambiente.numero}`
+                    ? `${asig.ambiente.codigo}`
                     : 'Virtual';
                 const instLabel  = instructor ? instructor.nombre : 'Sin Instructor';
                 const horaIni = bloque.horaInicio ?? bloque.hora_inicio;
@@ -1151,7 +1151,7 @@ class FichasPage {
                 const bloqueFormacion = bloque.tipoFormacion || '';
                 const isTransversal = bloqueFormacion.toLowerCase() === 'transversal';
                 const ambienteLabel = asig.ambiente
-                    ? `${asig.ambiente.codigo} - No.${asig.ambiente.numero}`
+                    ? `${asig.ambiente.codigo} `
                     : 'Virtual';
                 const instLabel = instructor ? instructor.nombre : 'Sin Instructor';
 
