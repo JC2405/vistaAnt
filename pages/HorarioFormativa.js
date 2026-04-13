@@ -177,14 +177,22 @@ class SearchableDropdown {
     open() {
         if (this._isOpen()) return;
         this.onOpen();
-        document.body.appendChild(this._dropdown);
+        
+        // Evadir la trampa de focus de Bootstrap Modal insertando el menú dentro de `.modal` si existe.
+        const modal = this.triggerEl.closest('.modal');
+        if (modal) {
+            modal.appendChild(this._dropdown);
+        } else {
+            document.body.appendChild(this._dropdown);
+        }
+
         this._reposition();
         this._chevron.classList.add('open');
         const search = this._dropdown.querySelector('.sd-search');
         search.value = '';
         this._dropdown.querySelector('.sd-clear').classList.remove('visible');
         this._filter('');
-        setTimeout(() => search.focus(), 50);
+        setTimeout(() => search.focus(), 150); // Timeout levemente superior recomendado por bootstrap
         document.addEventListener('click', this._bound);
     }
 
@@ -245,10 +253,11 @@ class SearchableDropdown {
         const curVal = this.inputEl?.value;
         list.innerHTML = filtered.map(item => {
             const selected = String(item.id) === String(curVal);
+            const badgeHtml = item.isRecommended ? `<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 ms-2 pb-0 pt-0" style="font-size:0.65rem; padding:0.2em 0.5em;"><i class="bi bi-star-fill text-warning" style="margin-right:2px;"></i>Recomendado</span>` : '';
             return `<li class="sd-item${selected ? ' selected' : ''}"
                         data-id="${item.id}"
                         data-label="${(item.label || '').replace(/"/g, '&quot;')}">
-                        <span class="sd-label">${this._highlight(item.label, lq)}</span>
+                        <span class="sd-label d-flex align-items-center">${this._highlight(item.label, lq)}${badgeHtml}</span>
                         ${item.sub ? `<span class="sd-sub">${this._highlight(item.sub, lq)}</span>` : ''}
                     </li>`;
         }).join('');
@@ -326,6 +335,7 @@ class HorarioFormativa {
         this.ambientes     = [];
         this.instructores  = [];
         this.selectedFicha = null;
+        this.selectedSedeId = null;
         this.viewState     = 'fichas';
 
         // Dropdowns del panel de filtros
@@ -368,7 +378,7 @@ class HorarioFormativa {
                     <div id="main-content" class="fade-in"></div>
 
                     <!-- Modal: Asignar Formacion -->
-                    <div class="modal fade" tabindex="-1" id="modalHorario" aria-hidden="true">
+                    <div class="modal fade" id="modalHorario" aria-hidden="true">
                         <div class="modal-dialog modal-lg modal-dialog-centered">
                             <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
                                 <div class="modal-header text-white py-3 px-4"
@@ -397,9 +407,9 @@ class HorarioFormativa {
                                                         <option value="virtual">Virtual</option>
                                                     </select>
                                                 </div>
-                                                <div class="mb-2" id="container-sede">
+                                                <div class="mb-2 d-none" id="container-sede">
                                                     <label class="form-label small text-muted mb-1">Sede</label>
-                                                    <select class="form-select form-select-sm" id="idSede" required><option value="">Seleccionar sede...</option></select>
+                                                    <select class="form-select form-select-sm" id="idSede"><option value="">Seleccionar sede...</option></select>
                                                 </div>
                                                 <div class="mb-2" id="container-ambiente">
                                                     <label class="form-label small text-muted mb-1">Ambiente</label>
@@ -524,19 +534,30 @@ class HorarioFormativa {
     }
 
     _getInstructorItems(idAreaPreferida = null) {
-        let list = [...this.instructores];
-        if (idAreaPreferida) {
-            list.sort((a, b) => {
-                const aH = a.areas?.some(ar => String(ar.idArea) === String(idAreaPreferida));
-                const bH = b.areas?.some(ar => String(ar.idArea) === String(idAreaPreferida));
-                return (aH && !bH) ? -1 : (!aH && bH) ? 1 : 0;
-            });
-        }
-        return list.map(i => ({
-            id:    i.idFuncionario,
-            label: `${i.nombre || ''} ${i.apellido || i.apellidos || ''}`.trim() || 'Sin nombre',
-            sub:   i.areas?.length ? i.areas.map(a => a.nombreArea).join(', ') : 'Sin área',
-        }));
+        let recomendados = [];
+        let otros = [];
+
+        this.instructores.forEach(i => {
+            const esRecomendado = idAreaPreferida && i.areas?.some(ar => String(ar.idArea) === String(idAreaPreferida));
+            const item = {
+                id:    i.idFuncionario,
+                label: `${i.nombre || ''} ${i.apellido || i.apellidos || ''}`.trim() || 'Sin nombre',
+                sub:   i.areas?.length ? i.areas.map(a => a.nombreArea).join(', ') : 'Sin área',
+                isRecommended: !!esRecomendado
+            };
+            if (esRecomendado) {
+                recomendados.push(item);
+            } else {
+                otros.push(item);
+            }
+        });
+
+        // Ordenar alfabéticamente dentro de cada grupo para mayor facilidad de busqueda
+        const sortFn = (a, b) => a.label.localeCompare(b.label);
+        recomendados.sort(sortFn);
+        otros.sort(sortFn);
+
+        return [...recomendados, ...otros];
     }
 
     renderSedesSelectModal() {
@@ -565,10 +586,15 @@ class HorarioFormativa {
                 if (el) { el.style.opacity = isVirtual ? '0.4' : '1'; el.style.pointerEvents = isVirtual ? 'none' : ''; }
             });
             document.getElementById('idAmbiente').required = !isVirtual;
-            document.getElementById('idSede').required     = !isVirtual;
+            
             if (isVirtual) {
                 document.getElementById('idAmbiente').value = '';
                 document.getElementById('idSede').value     = '';
+            } else {
+                if (this.selectedSedeId) {
+                    document.getElementById('idSede').value = this.selectedSedeId;
+                    this.renderAmbientes(this.selectedSedeId);
+                }
             }
         });
 
@@ -797,6 +823,7 @@ class HorarioFormativa {
                 );
             },
             onSelect: async (item) => {
+                this.selectedSedeId = item.id;
                 this._ddPrograma.reset('Cargando programas...');
                 this._ddPrograma.disable('Cargando programas...');
                 const selFich = document.getElementById('sel-ficha');
@@ -937,11 +964,11 @@ class HorarioFormativa {
         if (this.selectedFicha.fechaInicio) document.getElementById('fecha_inicio').value = this.selectedFicha.fechaInicio;
         if (this.selectedFicha.fechaFin)    document.getElementById('fecha_fin').value    = this.selectedFicha.fechaFin;
 
-        document.getElementById('idSede').value     = '';
+        document.getElementById('idSede').value     = this.selectedSedeId || '';
         document.getElementById('idAmbiente').value = '';
         this._ddInstructor?.destroy();
         this._initInstructorDropdown();
-        this.renderAmbientes('');
+        this.renderAmbientes(this.selectedSedeId || '');
 
         try {
             const response = await apiCall('/horariosPorFicha/' + idFicha);
