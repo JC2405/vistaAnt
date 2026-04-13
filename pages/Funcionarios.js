@@ -22,31 +22,32 @@ function showDateRangeModal(titulo = 'Seleccionar período', subtitulo = '') {
         const html = `
             <div class="modal fade" id="${modalId}" tabindex="-1" data-bs-backdrop="static">
                 <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
-                    <div class="modal-content border-0 shadow-lg rounded-4">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
 
-                        <div class="modal-header text-white"
-                             style="background: var(--primary-gradient);">
-                            <h5 class="modal-title">
+                        <div class="modal-header text-white border-0 px-4 py-3"
+                             style="background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);">
+                            <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
                                 <i class="bi bi-calendar-range"></i> ${titulo}
                             </h5>
                             <button class="btn-close btn-close-white" id="${modalId}-cancel-x"></button>
                         </div>
 
-                        <div class="modal-body">
+                        <div class="modal-body p-4" style="background:var(--bg-page);">
+                            ${subtitulo ? `<p class="text-muted small mb-3">${subtitulo}</p>` : ''}
                             <div class="mb-3">
-                                <label>Fecha inicio</label>
+                                <label class="form-label small fw-semibold text-muted">Fecha inicio</label>
                                 <input type="date" id="${modalId}-inicio" class="form-control" value="${primerDia}">
                             </div>
                             <div>
-                                <label>Fecha fin</label>
+                                <label class="form-label small fw-semibold text-muted">Fecha fin</label>
                                 <input type="date" id="${modalId}-fin" class="form-control" value="${ultimoDia}">
                             </div>
-                            <div id="${modalId}-error" class="text-danger small mt-2 d-none"></div>
+                            <div id="${modalId}-error" class="text-danger small mt-3 d-none fw-medium"></div>
                         </div>
 
-                        <div class="modal-footer">
-                            <button class="btn btn-light" id="${modalId}-cancel">Cancelar</button>
-                            <button class="btn btn-primary" id="${modalId}-confirm">Enviar</button>
+                        <div class="modal-footer border-0 px-4 py-3" style="background: var(--bg-page); border-top: 1px solid var(--border-color)!important;">
+                            <button class="btn btn-light shadow-sm px-3" id="${modalId}-cancel">Cancelar</button>
+                            <button class="btn btn-primary shadow-sm px-4 d-flex align-items-center gap-2" style="background-color: var(--primary); border: none;" id="${modalId}-confirm"><i class="bi bi-send"></i> Enviar</button>
                         </div>
                     </div>
                 </div>
@@ -63,13 +64,13 @@ function showDateRangeModal(titulo = 'Seleccionar período', subtitulo = '') {
             const error = document.getElementById(`${modalId}-error`);
 
             if (!inicio || !fin) {
-                error.textContent = 'Ambas fechas son obligatorias';
+                error.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Ambas fechas son obligatorias';
                 error.classList.remove('d-none');
                 return;
             }
 
             if (fin < inicio) {
-                error.textContent = 'Fecha fin inválida';
+                error.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Fecha fin inválida';
                 error.classList.remove('d-none');
                 return;
             }
@@ -209,9 +210,9 @@ class FuncionariosPage {
         document.getElementById('btn-enviar-horario').addEventListener('click', async (e) => {
             const btn = e.currentTarget;
             const idInstructor = btn.dataset.id;
-            
+
             if (!idInstructor) return;
-            
+
             this.enviarHorarioPorCorreo(idInstructor, btn);
         });
 
@@ -249,9 +250,9 @@ class FuncionariosPage {
                         Swal.showLoading();
                     }
                 });
-                
+
                 const res = await importarFuncionarios(file);
-                
+
                 let title = '¡Importación finalizada!';
                 let text = `Se importaron/actualizaron <strong>${res.importados || 0}</strong> instructores.`;
                 let icon = 'success';
@@ -278,7 +279,7 @@ class FuncionariosPage {
                             ${muestra}${extra}
                         </ul>`;
                 }
-                
+
                 Swal.fire({
                     title: title,
                     html: text,
@@ -309,10 +310,10 @@ class FuncionariosPage {
             return;
         }
         const filtered = this.funcionarios.filter(f => {
-            return (f.nombre    && f.nombre.toLowerCase().includes(q)) ||
-                   (f.documento && f.documento.toLowerCase().includes(q)) ||
-                   (f.correo    && f.correo.toLowerCase().includes(q)) ||
-                   (f.telefono  && f.telefono.toLowerCase().includes(q));
+            return (f.nombre && f.nombre.toLowerCase().includes(q)) ||
+                (f.documento && f.documento.toLowerCase().includes(q)) ||
+                (f.correo && f.correo.toLowerCase().includes(q)) ||
+                (f.telefono && f.telefono.toLowerCase().includes(q));
         });
         this.renderTable(filtered);
     }
@@ -325,9 +326,9 @@ class FuncionariosPage {
                 getAreas()
             ]);
 
-            this.funcionarios  = funcionariosData.data || (Array.isArray(funcionariosData) ? funcionariosData : []);
-            this.tiposContrato = contratosData.data    || (Array.isArray(contratosData)    ? contratosData    : []);
-            this.areas         = areasData.data        || (Array.isArray(areasData)        ? areasData        : []);
+            this.funcionarios = funcionariosData.data || (Array.isArray(funcionariosData) ? funcionariosData : []);
+            this.tiposContrato = contratosData.data || (Array.isArray(contratosData) ? contratosData : []);
+            this.areas = areasData.data || (Array.isArray(areasData) ? areasData : []);
 
             this.renderTable();
         } catch (error) {
@@ -341,9 +342,9 @@ class FuncionariosPage {
         // Caso 1: objeto anidado  { tipoContrato: { nombreTipoContrato: '...' } }
         if (row.tipoContrato?.nombreTipoContrato) return row.tipoContrato.nombreTipoContrato;
         // Caso 2: objeto anidado con campo 'nombre'  { tipoContrato: { nombre: '...' } }
-        if (row.tipoContrato?.nombre)             return row.tipoContrato.nombre;
+        if (row.tipoContrato?.nombre) return row.tipoContrato.nombre;
         // Caso 3: campo plano  { nombreTipoContrato: '...' }
-        if (row.nombreTipoContrato)               return row.nombreTipoContrato;
+        if (row.nombreTipoContrato) return row.nombreTipoContrato;
         // Caso 4: buscar en el array local por ID
         const id = row.idTipoContrato ?? row.tipoContrato?.idTipoContrato;
         if (id) {
@@ -363,8 +364,8 @@ class FuncionariosPage {
         const displayData = data || this.funcionarios;
 
         const columns = [
-            { key: 'nombre',   label: 'Nombre',   icon: 'person',   render: (row) => `${row.nombre || ''} ${row.apellido || ''}`.trim() },
-            { key: 'correo',   label: 'Correo',   icon: 'envelope'  },
+            { key: 'nombre', label: 'Nombre', icon: 'person', render: (row) => `${row.nombre || ''} ${row.apellido || ''}`.trim() },
+            { key: 'correo', label: 'Correo', icon: 'envelope' },
             { key: 'telefono', label: 'Teléfono', icon: 'telephone' },
             {
                 key: 'estado',
@@ -445,11 +446,11 @@ class FuncionariosPage {
         initTablePagination('funcionarios-table', displayData, columns, '#table-container', bindActionButtons);
     }
 
-    bindToolbarButtons() {}
+    bindToolbarButtons() { }
 
     setupModal() {
         const estOptions = [
-            { id: 'ACTIVO',   nombre: 'ACTIVO'   },
+            { id: 'ACTIVO', nombre: 'ACTIVO' },
             { id: 'INACTIVO', nombre: 'INACTIVO' }
         ];
 
@@ -529,19 +530,19 @@ class FuncionariosPage {
                     </div>
 
                     <div class="col-md-6">
-                        ${FormInput({ id: 'nombre',    label: 'Nombre',      required: true })}
+                        ${FormInput({ id: 'nombre', label: 'Nombre', required: true })}
                     </div>
                     <div class="col-md-6">
-                        ${FormInput({ id: 'apellido',    label: 'Apellido',      required: true })}
+                        ${FormInput({ id: 'apellido', label: 'Apellido', required: true })}
                     </div>
                     <div class="col-md-6">
-                        ${FormInput({ id: 'documento', label: 'Documento ID',         required: true })}
+                        ${FormInput({ id: 'documento', label: 'Documento ID', required: true })}
                     </div>
                     <div class="col-md-6">
-                        ${FormInput({ id: 'correo',    label: 'Correo Electrónico',   type: 'email', required: true })}
+                        ${FormInput({ id: 'correo', label: 'Correo Electrónico', type: 'email', required: true })}
                     </div>
                     <div class="col-md-6">
-                        ${FormInput({ id: 'telefono',  label: 'Teléfono',             required: true })}
+                        ${FormInput({ id: 'telefono', label: 'Teléfono', required: true })}
                     </div>
 
                     <!-- Campo contraseña: solo visible en modo editar -->
@@ -637,7 +638,7 @@ class FuncionariosPage {
             radio.addEventListener('change', (e) => {
                 const isCoordinador = e.target.value === 'coordinador';
                 const btnText = document.getElementById('btn-submit-text');
-                if(btnText) {
+                if (btnText) {
                     btnText.textContent = isCoordinador ? 'Guardar Coordinador' : 'Guardar Instructor';
                 }
             });
@@ -651,7 +652,7 @@ class FuncionariosPage {
             document.getElementById('view-areas-search').classList.add('active');
             setTimeout(() => {
                 const search = document.getElementById('search-areas-input');
-                if(search) search.focus();
+                if (search) search.focus();
             }, 200);
         });
 
@@ -679,8 +680,8 @@ class FuncionariosPage {
         const checkedCount = document.querySelectorAll('.area-checkbox:checked').length;
         const display = document.getElementById('areasCountDisplay');
         if (display) {
-            display.value = checkedCount === 0 
-                ? 'Ninguna área seleccionada' 
+            display.value = checkedCount === 0
+                ? 'Ninguna área seleccionada'
                 : (checkedCount === 1 ? '1 Área seleccionada' : `${checkedCount} Áreas seleccionadas`);
         }
     }
@@ -690,13 +691,13 @@ class FuncionariosPage {
         const selectedTipoId = funcionario ? this._getTipoContratoId(funcionario) : '';
 
         document.getElementById('tipoContrato-wrapper').innerHTML = FormSelect({
-            id:            'idTipoContrato',
-            label:         'Tipo de Contrato',
-            options:       this.tiposContrato,
-            valueKey:      'idTipoContrato',
-            textKey:       'nombreTipoContrato',
+            id: 'idTipoContrato',
+            label: 'Tipo de Contrato',
+            options: this.tiposContrato,
+            valueKey: 'idTipoContrato',
+            textKey: 'nombreTipoContrato',
             selectedValue: selectedTipoId,
-            required:      true
+            required: true
         });
 
         // Checkboxes de áreas
@@ -718,22 +719,22 @@ class FuncionariosPage {
 
         const viewAreasSearch = document.getElementById('view-areas-search');
         if (viewAreasSearch) viewAreasSearch.classList.remove('active');
-        
+
         const viewFuncForm = document.getElementById('view-funcionario-form');
         if (viewFuncForm) viewFuncForm.classList.add('active');
 
         this._updateAreasCountDisplay();
 
-        document.getElementById('nombre').value    = funcionario?.nombre    ?? '';
-        document.getElementById('apellido').value  = funcionario?.apellido  ?? '';
+        document.getElementById('nombre').value = funcionario?.nombre ?? '';
+        document.getElementById('apellido').value = funcionario?.apellido ?? '';
         document.getElementById('documento').value = funcionario?.documento ?? '';
-        document.getElementById('correo').value    = funcionario?.correo    ?? '';
-        document.getElementById('telefono').value  = funcionario?.telefono  ?? '';
-        document.getElementById('estado').value    = funcionario?.estado    ?? '';
+        document.getElementById('correo').value = funcionario?.correo ?? '';
+        document.getElementById('telefono').value = funcionario?.telefono ?? '';
+        document.getElementById('estado').value = funcionario?.estado ?? '';
 
         // Contraseña
         const pwdSection = document.getElementById('password-section');
-        const pwdInput   = document.getElementById('password-new');
+        const pwdInput = document.getElementById('password-new');
         if (funcionario) {
             pwdSection.style.display = 'block';
             pwdInput.value = '';
@@ -790,14 +791,14 @@ class FuncionariosPage {
         });
 
         const data = {
-            nombre:         document.getElementById('nombre').value,
-            apellido:       document.getElementById('apellido').value,
-            documento:      document.getElementById('documento').value,
-            correo:         document.getElementById('correo').value,
-            telefono:       document.getElementById('telefono').value,
-            estado:         document.getElementById('estado').value,
+            nombre: document.getElementById('nombre').value,
+            apellido: document.getElementById('apellido').value,
+            documento: document.getElementById('documento').value,
+            correo: document.getElementById('correo').value,
+            telefono: document.getElementById('telefono').value,
+            estado: document.getElementById('estado').value,
             idTipoContrato: document.getElementById('idTipoContrato').value,
-            areas:          areasSelected
+            areas: areasSelected
         };
 
         if (this.currentEditId) {
@@ -816,7 +817,7 @@ class FuncionariosPage {
                 // Creando - Determinar si es Instructor o Coordinador
                 const tipoRadio = document.querySelector('input[name="tipo_usuario_radio"]:checked');
                 const tipoValue = tipoRadio ? tipoRadio.value : 'instructor';
-                
+
                 if (tipoValue === 'coordinador') {
                     await createAdmin(data);
                 } else {
@@ -859,7 +860,7 @@ class FuncionariosPage {
             </div>`;
 
         try {
-            const data   = await getHorarioPorInstructor(idFuncionario);
+            const data = await getHorarioPorInstructor(idFuncionario);
             const clases = data.data?.clases || data.clases || [];
             this.renderCalendarioInstructor(body, clases, nombreInstructor);
         } catch (err) {
@@ -872,51 +873,65 @@ class FuncionariosPage {
     }
 
     async enviarHorarioPorCorreo(idInstructor, btnElement) {
+        
+        // Ocultar modal de horario temporalmente para que no se superpongan
+        const modalHorarioEl = document.getElementById('modalHorarioInstructor');
+        const modalHorario = bootstrap.Modal.getInstance(modalHorarioEl);
+        if (modalHorario) {
+            modalHorario.hide();
+        }
 
-    // 1. Pedir rango de fechas
-    const rango = await showDateRangeModal(
-        'Enviar horario por correo',
-        'Selecciona el período de bloques'
-    );
-
-    if (!rango) return;
-
-    // 2. Spinner
-    const originalHtml = btnElement.innerHTML;
-    btnElement.innerHTML = `
-        <span class="spinner-border spinner-border-sm"></span> Enviando...`;
-    btnElement.disabled = true;
-
-    try {
-        // 3. Enviar con fechas
-        await enviarHorario(
-            idInstructor,
-            rango.fechaInicio,
-            rango.fechaFin
+        // 1. Pedir rango de fechas
+        const rango = await showDateRangeModal(
+            'Enviar horario por correo',
+            'Selecciona el período de bloques a enviar'
         );
 
+        if (!rango) {
+            // Si cancela, mostramos de nuevo el modal del horario
+            if (modalHorario) {
+                modalHorario.show();
+            }
+            return;
+        }
+
+        // 2. Spinner con SweetAlert ya que el modal de horario ahora está oculto
         Swal.fire({
-            title: '¡Éxito!',
-            text: 'Horario enviado correctamente',
-            icon: 'success',
-            confirmButtonColor: '#4caa16'
+            title: 'Enviando horario...',
+            text: 'Por favor espera un momento.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
         });
 
-    } catch (error) {
-        console.error(error);
+        try {
+            // 3. Enviar con fechas
+            await enviarHorario(
+                idInstructor,
+                rango.fechaInicio,
+                rango.fechaFin
+            );
 
-        Swal.fire({
-            title: 'Error',
-            text: 'Error al enviar horario: ' + (error.message || 'Desconocido'),
-            icon: 'error',
-            confirmButtonColor: '#4caa16'
-        });
+            Swal.fire({
+                title: '¡Éxito!',
+                text: 'Horario enviado correctamente al instructor.',
+                icon: 'success',
+                confirmButtonColor: '#4caa16'
+            });
 
-    } finally {
-        btnElement.innerHTML = originalHtml;
-        btnElement.disabled = false;
+        } catch (error) {
+            console.error(error);
+
+            Swal.fire({
+                title: 'Error al enviar',
+                text: error.message || 'Error desconocido al enviar el horario',
+                icon: 'error',
+                confirmButtonColor: '#d33'
+            });
+
+        }
     }
-}
 
     renderCalendarioInstructor(container, clases, nombreInstructor) {
         if (!clases.length) {
@@ -929,18 +944,18 @@ class FuncionariosPage {
             return;
         }
 
-        const MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
-            'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        const MESES_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
         const dayMap = {
-            'Lunes':     '2024-01-01', 'Martes':    '2024-01-02', 'Miercoles': '2024-01-03',
-            'Jueves':    '2024-01-04', 'Viernes':   '2024-01-05', 'Sabado':    '2024-01-06',
-            'Domingo':   '2024-01-07'
+            'Lunes': '2024-01-01', 'Martes': '2024-01-02', 'Miercoles': '2024-01-03',
+            'Jueves': '2024-01-04', 'Viernes': '2024-01-05', 'Sabado': '2024-01-06',
+            'Domingo': '2024-01-07'
         };
 
         const DIA_JS = {
-            'Domingo':0, 'Lunes':1, 'Martes':2, 'Miercoles':3,
-            'Jueves':4, 'Viernes':5, 'Sabado':6
+            'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miercoles': 3,
+            'Jueves': 4, 'Viernes': 5, 'Sabado': 6
         };
 
         // ── Build weekly events (abstract dates) ──
@@ -949,15 +964,15 @@ class FuncionariosPage {
             clases.forEach(asig => {
                 const bloque = asig.bloque;
                 if (!bloque) return;
-                const ficha      = asig.ficha;
-                const isVirtual  = asig.modalidad === 'virtual';
-                const color      = isVirtual ? '#0dcaf0'              : '#4caa16';
-                const bgColor    = isVirtual ? 'rgba(13,202,240,0.1)' : 'rgba(57,169,0,0.1)';
+                const ficha = asig.ficha;
+                const isVirtual = asig.modalidad === 'virtual';
+                const color = isVirtual ? '#0dcaf0' : '#4caa16';
+                const bgColor = isVirtual ? 'rgba(13,202,240,0.1)' : 'rgba(57,169,0,0.1)';
                 const ambienteLabel = asig.ambiente
                     ? `${asig.ambiente.codigo} - No.${asig.ambiente.numero ?? ''}`
                     : 'Virtual';
                 const fichaLabel = ficha ? `Ficha ${ficha.codigoFicha || ''}` : '';
-                const progLabel  = ficha?.programa?.nombre ?? '';
+                const progLabel = ficha?.programa?.nombre ?? '';
                 const horaIni = bloque.horaInicio ?? bloque.hora_inicio;
                 const horaFin = bloque.horaFin ?? bloque.hora_fin;
                 if (!horaIni || !horaFin) return;
@@ -967,13 +982,13 @@ class FuncionariosPage {
                     const dateStr = dayMap[nombreDia];
                     if (!dateStr) return;
                     events.push({
-                        id:              `${asig.idAsignacion}_${dia.idDia}`,
-                        start:           `${dateStr}T${horaIni}`,
-                        end:             `${dateStr}T${horaFin}`,
+                        id: `${asig.idAsignacion}_${dia.idDia}`,
+                        start: `${dateStr}T${horaIni}`,
+                        end: `${dateStr}T${horaFin}`,
                         backgroundColor: bgColor,
-                        borderColor:     color,
-                        textColor:       color,
-                        extendedProps:   { ambienteLabel, fichaLabel, progLabel, modalidad: asig.modalidad, tipoDeFormacion: asig.tipoDeFormacion }
+                        borderColor: color,
+                        textColor: color,
+                        extendedProps: { ambienteLabel, fichaLabel, progLabel, modalidad: asig.modalidad, tipoDeFormacion: asig.tipoDeFormacion }
                     });
                 });
             });
@@ -987,20 +1002,20 @@ class FuncionariosPage {
                 const bloque = asig.bloque;
                 if (!bloque) return;
                 const fechaInicio = bloque.fechaInicio ?? bloque.fecha_inicio;
-                const fechaFin    = bloque.fechaFin    ?? bloque.fecha_fin;
-                const horaIni     = bloque.horaInicio  ?? bloque.hora_inicio;
-                const horaFin     = bloque.horaFin     ?? bloque.hora_fin;
+                const fechaFin = bloque.fechaFin ?? bloque.fecha_fin;
+                const horaIni = bloque.horaInicio ?? bloque.hora_inicio;
+                const horaFin = bloque.horaFin ?? bloque.hora_fin;
                 if (!fechaInicio || !fechaFin || !horaIni || !horaFin) return;
 
-                const ficha     = asig.ficha;
+                const ficha = asig.ficha;
                 const isVirtual = asig.modalidad === 'virtual';
-                const color     = isVirtual ? '#0dcaf0' : '#4caa16';
-                const bgColor   = isVirtual ? 'rgba(13,202,240,0.13)' : 'rgba(57,169,0,0.13)';
+                const color = isVirtual ? '#0dcaf0' : '#4caa16';
+                const bgColor = isVirtual ? 'rgba(13,202,240,0.13)' : 'rgba(57,169,0,0.13)';
                 const ambienteLabel = asig.ambiente
                     ? `${asig.ambiente.codigo} - No.${asig.ambiente.numero ?? ''}`
                     : 'Virtual';
                 const fichaLabel = ficha ? `F${ficha.codigoFicha || ''}` : '';
-                const progLabel  = ficha?.programa?.nombre || '';
+                const progLabel = ficha?.programa?.nombre || '';
 
                 const diasJS = (bloque.dias || []).map(d => {
                     const nombre = d.nombreDia ?? d.nombre;
@@ -1008,7 +1023,7 @@ class FuncionariosPage {
                 }).filter(n => n !== null);
 
                 const inicio = new Date(fechaInicio + 'T00:00:00');
-                const fin    = new Date(fechaFin    + 'T00:00:00');
+                const fin = new Date(fechaFin + 'T00:00:00');
 
                 for (let d = new Date(inicio); d <= fin; d.setDate(d.getDate() + 1)) {
                     if (!diasJS.includes(d.getDay())) continue;
@@ -1016,7 +1031,7 @@ class FuncionariosPage {
                     events.push({
                         id: `${asig.idAsignacion}_${dateStr}`,
                         start: `${dateStr}T${horaIni}`,
-                        end:   `${dateStr}T${horaFin}`,
+                        end: `${dateStr}T${horaFin}`,
                         backgroundColor: bgColor,
                         borderColor: color,
                         textColor: color,
@@ -1067,10 +1082,10 @@ class FuncionariosPage {
                     <button class="btn btn-sm btn-outline-secondary ms-1" id="instr-btn-today">Hoy</button>
                 </div>
                 ${fechaMin && fechaMax
-                    ? `<span class="badge bg-light text-muted border" style="font-size:0.72rem;">
+                ? `<span class="badge bg-light text-muted border" style="font-size:0.72rem;">
                            <i class="bi bi-calendar-range me-1"></i>${fechaMin} → ${fechaMax}
                        </span>`
-                    : ''}
+                : ''}
             </div>
             <div id="cal-instructor" style="height:500px;"></div>`;
 
@@ -1078,19 +1093,19 @@ class FuncionariosPage {
         const eventsSemana = buildEventsSemana();
 
         const calendar = new FullCalendar.Calendar(calEl, {
-            initialView:     'timeGridWeek',
-            initialDate:     '2024-01-01',
-            headerToolbar:   false,
-            allDaySlot:      false,
-            slotMinTime:     '06:00:00',
-            slotMaxTime:     '24:00:00',
-            expandRows:      true,
-            hiddenDays:      [],
+            initialView: 'timeGridWeek',
+            initialDate: '2024-01-01',
+            headerToolbar: false,
+            allDaySlot: false,
+            slotMinTime: '06:00:00',
+            slotMaxTime: '24:00:00',
+            expandRows: true,
+            hiddenDays: [],
             dayHeaderFormat: { weekday: 'long' },
-            locale:          'es',
-            height:          500,
-            events:          eventsSemana,
-            datesSet:        (info) => {
+            locale: 'es',
+            height: 500,
+            events: eventsSemana,
+            datesSet: (info) => {
                 const lbl = document.getElementById('instr-lbl-periodo');
                 if (!lbl) return;
                 if (vistaActual === 'semanal') {
@@ -1101,7 +1116,7 @@ class FuncionariosPage {
                 }
             },
             eventContent(arg) {
-                const p    = arg.event.extendedProps;
+                const p = arg.event.extendedProps;
                 const icon = p.modalidad === 'virtual' ? 'bi-laptop' : 'bi-building';
                 const badge = p.tipoDeFormacion
                     ? `<div class="mt-auto pt-1"><span class="badge bg-secondary bg-opacity-25 text-dark" style="font-size:0.62rem;">${p.tipoDeFormacion}</span></div>`
@@ -1196,17 +1211,17 @@ class FuncionariosPage {
         if (!funcionario) return;
 
         const confirm = await ConfirmDialog({
-            title:       '¿Mover a papelera?',
-            message:     `Vas a eliminar permanentemente al instructor <strong>${funcionario.nombre}</strong>. Esta acción no se puede deshacer.`,
+            title: '¿Mover a papelera?',
+            message: `Vas a eliminar permanentemente al instructor <strong>${funcionario.nombre}</strong>. Esta acción no se puede deshacer.`,
             confirmText: 'Sí, eliminar',
-            cancelText:  'Cancelar'
+            cancelText: 'Cancelar'
         });
 
         if (confirm) {
             try {
                 // Primero intentamos borrar en la BD
                 await deleteFuncionario(id);
-                
+
                 // Si no hay error, actualizamos la UI
                 this.funcionarios = this.funcionarios.filter(f => String(f.idFuncionario) !== String(id));
                 this.renderTable();

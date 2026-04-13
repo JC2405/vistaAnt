@@ -1,8 +1,10 @@
 import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
-import { apiFetch, getAmbientes, getFuncionarios, getSedes,
-         getProgramasPorSede, getFichasPorProgramaSede } from '../utils/api.js';
+import {
+    apiFetch, getAmbientes, getFuncionarios, getSedes,
+    getProgramasPorSede, getFichasPorProgramaSede
+} from '../utils/api.js';
 
 async function apiCall(endpoint, method = 'GET', body = null) {
     return apiFetch(endpoint, { method, body: body ? JSON.stringify(body) : undefined });
@@ -18,17 +20,17 @@ const DIA_ID_MAP = {
 ────────────────────────────────────────────────────────────────────────────── */
 class SearchableDropdown {
     constructor({ triggerEl, inputId, displayId, placeholder = 'Buscar...', onSelect, onOpen, emptyText = 'Sin resultados' }) {
-        this.triggerEl   = typeof triggerEl === 'string' ? document.getElementById(triggerEl) : triggerEl;
-        this.inputEl     = document.getElementById(inputId);
-        this.displayEl   = document.getElementById(displayId);
+        this.triggerEl = typeof triggerEl === 'string' ? document.getElementById(triggerEl) : triggerEl;
+        this.inputEl = document.getElementById(inputId);
+        this.displayEl = document.getElementById(displayId);
         this.placeholder = placeholder;
-        this.onSelect    = onSelect || (() => {});
-        this.onOpen      = onOpen   || (() => {});
-        this.emptyText   = emptyText;
-        this.items       = [];
-        this._disabled   = false;
-        this._dropdown   = null;
-        this._bound      = this._onOutsideClick.bind(this);
+        this.onSelect = onSelect || (() => { });
+        this.onOpen = onOpen || (() => { });
+        this.emptyText = emptyText;
+        this.items = [];
+        this._disabled = false;
+        this._dropdown = null;
+        this._bound = this._onOutsideClick.bind(this);
         this._build();
     }
 
@@ -146,7 +148,7 @@ class SearchableDropdown {
             this._isOpen() ? this.close() : this.open();
         });
 
-        const search   = this._dropdown.querySelector('.sd-search');
+        const search = this._dropdown.querySelector('.sd-search');
         const clearBtn = this._dropdown.querySelector('.sd-clear');
 
         search.addEventListener('input', () => {
@@ -154,10 +156,10 @@ class SearchableDropdown {
             this._filter(search.value);
         });
         search.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape')    { this.close(); }
+            if (e.key === 'Escape') { this.close(); }
             if (e.key === 'ArrowDown') { e.preventDefault(); this._moveFocus(1); }
-            if (e.key === 'ArrowUp')   { e.preventDefault(); this._moveFocus(-1); }
-            if (e.key === 'Enter')     { e.preventDefault(); this._selectFocused(); }
+            if (e.key === 'ArrowUp') { e.preventDefault(); this._moveFocus(-1); }
+            if (e.key === 'Enter') { e.preventDefault(); this._selectFocused(); }
         });
         clearBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -177,7 +179,7 @@ class SearchableDropdown {
     open() {
         if (this._isOpen()) return;
         this.onOpen();
-        
+
         // Evadir la trampa de focus de Bootstrap Modal insertando el menú dentro de `.modal` si existe.
         const modal = this.triggerEl.closest('.modal');
         if (modal) {
@@ -198,14 +200,14 @@ class SearchableDropdown {
 
     _reposition() {
         if (!this._isOpen()) return;
-        const rect  = this.triggerEl.getBoundingClientRect();
-        const ddH   = Math.min(this._dropdown.scrollHeight || 340, 340);
+        const rect = this.triggerEl.getBoundingClientRect();
+        const ddH = Math.min(this._dropdown.scrollHeight || 340, 340);
         const below = window.innerHeight - rect.bottom;
         const above = rect.top;
-        const goUp  = below < ddH + 8 && above > ddH + 8;
+        const goUp = below < ddH + 8 && above > ddH + 8;
         this._dropdown.style.width = rect.width + 'px';
-        this._dropdown.style.left  = rect.left + 'px';
-        this._dropdown.style.top   = goUp
+        this._dropdown.style.left = rect.left + 'px';
+        this._dropdown.style.top = goUp
             ? (rect.top - ddH - 4) + 'px'
             : (rect.bottom + 4) + 'px';
     }
@@ -236,13 +238,13 @@ class SearchableDropdown {
     }
 
     _filter(q) {
-        const list  = this._dropdown.querySelector('.sd-list');
+        const list = this._dropdown.querySelector('.sd-list');
         const empty = this._dropdown.querySelector('.sd-empty');
-        const lq    = q.trim();
+        const lq = q.trim();
         const filtered = lq
             ? this.items.filter(i =>
                 (i.label || '').toLowerCase().includes(lq.toLowerCase()) ||
-                (i.sub   || '').toLowerCase().includes(lq.toLowerCase()))
+                (i.sub || '').toLowerCase().includes(lq.toLowerCase()))
             : this.items;
         if (!filtered.length) {
             list.innerHTML = '';
@@ -280,7 +282,7 @@ class SearchableDropdown {
     }
 
     _pickItem(li) {
-        const id    = li.dataset.id;
+        const id = li.dataset.id;
         const label = li.dataset.label;
         this.setValue(id, label);
         this.onSelect(this.items.find(i => String(i.id) === String(id)) || { id, label });
@@ -288,13 +290,13 @@ class SearchableDropdown {
     }
 
     setValue(id, label) {
-        if (this.inputEl)   this.inputEl.value   = id;
+        if (this.inputEl) this.inputEl.value = id;
         if (this.displayEl) this.displayEl.value = label;
         this.triggerEl.classList.toggle('sd-has-value', !!id);
     }
 
     reset(placeholder = '') {
-        if (this.inputEl)   this.inputEl.value   = '';
+        if (this.inputEl) this.inputEl.value = '';
         if (this.displayEl) {
             this.displayEl.value = '';
             if (placeholder) this.displayEl.placeholder = placeholder;
@@ -304,14 +306,14 @@ class SearchableDropdown {
 
     disable(msg = '') {
         this._disabled = true;
-        this.triggerEl.style.opacity       = '.55';
+        this.triggerEl.style.opacity = '.55';
         this.triggerEl.style.pointerEvents = 'none';
         if (msg && this.displayEl) this.displayEl.placeholder = msg;
     }
 
     enable(placeholder = '') {
         this._disabled = false;
-        this.triggerEl.style.opacity       = '';
+        this.triggerEl.style.opacity = '';
         this.triggerEl.style.pointerEvents = '';
         if (placeholder && this.displayEl) this.displayEl.placeholder = placeholder;
     }
@@ -330,17 +332,17 @@ class SearchableDropdown {
 ────────────────────────────────────────────────────────────────────────────── */
 class HorarioTitulada {
     constructor() {
-        this.fichas        = [];
-        this.sedes         = [];
-        this.ambientes     = [];
-        this.instructores  = [];
+        this.fichas = [];
+        this.sedes = [];
+        this.ambientes = [];
+        this.instructores = [];
         this.selectedFicha = null;
+        this.viewState = 'fichas';
         this.selectedSedeId = null;
-        this.viewState     = 'fichas';
 
         // Dropdowns del panel de filtros (Sede, Programa)
-        this._ddSede       = null;
-        this._ddPrograma   = null;
+        this._ddSede = null;
+        this._ddPrograma = null;
         // Dropdown del modal (Instructor)
         this._ddInstructor = null;
 
@@ -409,7 +411,7 @@ class HorarioTitulada {
                                                 </div>
                                                 <div class="mb-2 d-none" id="container-sede">
                                                     <label class="form-label small text-muted mb-1">Sede</label>
-                                                    <select class="form-select form-select-sm" id="idSede">
+                                                    <select class="form-select form-select-sm" id="idSede" tabindex="-1">
                                                         <option value="">Seleccionar sede...</option>
                                                     </select>
                                                 </div>
@@ -473,9 +475,9 @@ class HorarioTitulada {
             const [aData, iData, sData] = await Promise.all([
                 getAmbientes(), getFuncionarios(), getSedes()
             ]);
-            this.ambientes    = aData.data || (Array.isArray(aData) ? aData : []);
-            this.sedes        = sData.data || (Array.isArray(sData) ? sData : []);
-            const allFuncs    = iData.data || (Array.isArray(iData) ? iData : []);
+            this.ambientes = aData.data || (Array.isArray(aData) ? aData : []);
+            this.sedes = sData.data || (Array.isArray(sData) ? sData : []);
+            const allFuncs = iData.data || (Array.isArray(iData) ? iData : []);
             this.instructores = allFuncs.filter(f => f.roles?.some(r => r.nombre === 'Instructor'));
             if (!this.instructores.length) this.instructores = allFuncs;
 
@@ -510,10 +512,10 @@ class HorarioTitulada {
         this._ddInstructor?.destroy();
         this._ddInstructor = new SearchableDropdown({
             triggerEl,
-            inputId:     'idFuncionario',
-            displayId:   'instructorNombreDisplay',
+            inputId: 'idFuncionario',
+            displayId: 'instructorNombreDisplay',
             placeholder: 'Buscar por nombre o área...',
-            emptyText:   'No se encontraron instructores',
+            emptyText: 'No se encontraron instructores',
             onOpen: () => {
                 const idAmbiente = document.getElementById('idAmbiente')?.value;
                 const amb = this.ambientes.find(a => String(a.idAmbiente) === String(idAmbiente));
@@ -529,9 +531,9 @@ class HorarioTitulada {
         this.instructores.forEach(i => {
             const esRecomendado = idAreaPreferida && i.areas?.some(ar => String(ar.idArea) === String(idAreaPreferida));
             const item = {
-                id:    i.idFuncionario,
+                id: i.idFuncionario,
                 label: `${i.nombre || ''} ${i.apellido || i.apellidos || ''}`.trim() || 'Sin nombre',
-                sub:   i.areas?.length ? i.areas.map(a => a.nombreArea).join(', ') : 'Sin área',
+                sub: i.areas?.length ? i.areas.map(a => a.nombreArea).join(', ') : 'Sin área',
                 isRecommended: !!esRecomendado
             };
             if (esRecomendado) {
@@ -576,10 +578,10 @@ class HorarioTitulada {
                 if (el) { el.style.opacity = isVirtual ? '0.4' : '1'; el.style.pointerEvents = isVirtual ? 'none' : ''; }
             });
             document.getElementById('idAmbiente').required = !isVirtual;
-            
+            document.getElementById('idSede').required = false; // Se oculta, no debe ser requerido
             if (isVirtual) {
                 document.getElementById('idAmbiente').value = '';
-                document.getElementById('idSede').value     = '';
+                document.getElementById('idSede').value = '';
             } else {
                 if (this.selectedSedeId) {
                     document.getElementById('idSede').value = this.selectedSedeId;
@@ -619,14 +621,14 @@ class HorarioTitulada {
     renderContent() {
         const container = document.getElementById('main-content');
         container.innerHTML = '';
-        if (this.viewState === 'fichas')  this.renderFichasView(container);
+        if (this.viewState === 'fichas') this.renderFichasView(container);
         if (this.viewState === 'horario') this.renderHorarioView(container);
     }
 
     // ── VISTA FICHAS  (Sede → Programa → Ficha) ───────────────────────────────
     renderFichasView(container) {
         const renderRows = (arr) => arr.map(f => {
-            const prog         = f.programa?.nombre ?? 'Sin Programa';
+            const prog = f.programa?.nombre ?? 'Sin Programa';
             const tieneHorario = f.asignaciones?.length > 0;
 
             let fechasPill = '';
@@ -774,7 +776,7 @@ class HorarioTitulada {
         };
 
         const updateTable = () => {
-            const el  = document.getElementById('fichas-tbody');
+            const el = document.getElementById('fichas-tbody');
             const lbl = document.getElementById('lbl-fichas-count');
             if (!this.fichas.length) {
                 el.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">
@@ -792,11 +794,11 @@ class HorarioTitulada {
         // ── Dropdown Sede ───────────────────────────────────────────────────
         this._ddSede?.destroy();
         this._ddSede = new SearchableDropdown({
-            triggerEl:   'dd-sede-trigger',
-            inputId:     'hidSede',
-            displayId:   'sedeDisplay',
+            triggerEl: 'dd-sede-trigger',
+            inputId: 'hidSede',
+            displayId: 'sedeDisplay',
             placeholder: 'Buscar sede...',
-            emptyText:   'No se encontraron sedes',
+            emptyText: 'No se encontraron sedes',
             onOpen: () => {
                 this._ddSede.setItems(
                     this.sedes.map(s => ({ id: s.idSede, label: s.nombre, sub: s.municipio?.nombreMunicipio || '' }))
@@ -809,7 +811,7 @@ class HorarioTitulada {
                 this._ddPrograma.disable('Cargando programas...');
                 const selFich = document.getElementById('sel-ficha');
                 selFich.innerHTML = '<option value="">Seleccione una ficha...</option>';
-                selFich.disabled  = true;
+                selFich.disabled = true;
                 this.fichas = [];
                 document.getElementById('fichas-tbody').innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">
                     <i class="bi bi-funnel fs-3 d-block mb-2 opacity-25"></i>Selecciona el programa para ver las fichas
@@ -836,17 +838,17 @@ class HorarioTitulada {
         // ── Dropdown Programa ───────────────────────────────────────────────
         this._ddPrograma?.destroy();
         this._ddPrograma = new SearchableDropdown({
-            triggerEl:   'dd-programa-trigger',
-            inputId:     'hidPrograma',
-            displayId:   'programaDisplay',
+            triggerEl: 'dd-programa-trigger',
+            inputId: 'hidPrograma',
+            displayId: 'programaDisplay',
             placeholder: 'Buscar programa...',
-            emptyText:   'No se encontraron programas',
+            emptyText: 'No se encontraron programas',
             onOpen: () => {
                 if (!document.getElementById('hidSede').value) {
                     this._ddPrograma.close();
                     const t = document.getElementById('dd-sede-trigger');
-                    t.style.transition  = 'box-shadow .15s';
-                    t.style.boxShadow   = '0 0 0 3px rgba(220,53,69,.3)';
+                    t.style.transition = 'box-shadow .15s';
+                    t.style.boxShadow = '0 0 0 3px rgba(220,53,69,.3)';
                     t.style.borderColor = '#dc3545';
                     setTimeout(() => { t.style.boxShadow = ''; t.style.borderColor = '#d1d5db'; }, 1500);
                     return;
@@ -858,10 +860,10 @@ class HorarioTitulada {
                 );
             },
             onSelect: async (item) => {
-                const idSede  = document.getElementById('hidSede').value;
+                const idSede = document.getElementById('hidSede').value;
                 const selFich = document.getElementById('sel-ficha');
                 selFich.innerHTML = '<option value="">Cargando fichas...</option>';
-                selFich.disabled  = true;
+                selFich.disabled = true;
                 this.fichas = [];
 
                 try {
@@ -942,13 +944,18 @@ class HorarioTitulada {
              <span class="badge bg-light text-dark border fw-normal ms-1">${this.selectedFicha.jornada || ''}</span>`;
 
         if (this.selectedFicha.fechaInicio) document.getElementById('fecha_inicio').value = this.selectedFicha.fechaInicio;
-        if (this.selectedFicha.fechaFin)    document.getElementById('fecha_fin').value    = this.selectedFicha.fechaFin;
+        if (this.selectedFicha.fechaFin) document.getElementById('fecha_fin').value = this.selectedFicha.fechaFin;
 
-        document.getElementById('idSede').value    = this.selectedSedeId || '';
+        if (this.selectedSedeId) {
+            document.getElementById('idSede').value = this.selectedSedeId;
+            this.renderAmbientes(this.selectedSedeId);
+        } else {
+            document.getElementById('idSede').value = '';
+            this.renderAmbientes('');
+        }
         document.getElementById('idAmbiente').value = '';
         this._ddInstructor?.destroy();
         this._initInstructorDropdown();
-        this.renderAmbientes(this.selectedSedeId || '');
 
         try {
             const response = await apiCall('/horariosPorFicha/' + idFicha);
@@ -964,7 +971,7 @@ class HorarioTitulada {
     }
 
     renderGrid(ficha, asignaciones) {
-        const card    = document.getElementById('calendario-card');
+        const card = document.getElementById('calendario-card');
         const isEmpty = !asignaciones || asignaciones.length === 0;
 
         const header = `
@@ -1000,7 +1007,7 @@ class HorarioTitulada {
             const targetWd = DIA_ID_MAP[nombreDia];
             if (!targetWd || !fechaInicioStr || !fechaFinStr) return [];
             const start = new Date(fechaInicioStr + 'T00:00:00');
-            const end   = new Date(fechaFinStr    + 'T00:00:00');
+            const end = new Date(fechaFinStr + 'T00:00:00');
             const fechas = [];
             const cur = new Date(start);
             while (jsWeekday(cur) !== targetWd) {
@@ -1021,12 +1028,12 @@ class HorarioTitulada {
             const bloque = asig.bloque;
             if (!bloque) continue;
             const startHour = bloque.horaInicio || bloque.hora_inicio;
-            const endHour   = bloque.horaFin    || bloque.hora_fin;
+            const endHour = bloque.horaFin || bloque.hora_fin;
             if (!startHour || !endHour) continue;
             const startDate = asig.fechaInicio || asig.fecha_inicio || bloque.fechaInicio || bloque.fecha_inicio;
-            const endDate   = asig.fechaFin    || asig.fecha_fin    || bloque.fechaFin    || bloque.fecha_fin;
+            const endDate = asig.fechaFin || asig.fecha_fin || bloque.fechaFin || bloque.fecha_fin;
             if (startDate && (!globalStart || startDate < globalStart)) globalStart = startDate;
-            if (endDate   && (!globalEnd   || endDate > globalEnd))     globalEnd   = endDate;
+            if (endDate && (!globalEnd || endDate > globalEnd)) globalEnd = endDate;
             const isVirtual = asig.modalidad === 'virtual';
             (bloque.dias || []).forEach(diaObj => {
                 const dia = diaObj.nombreDia || diaObj.nombre;
@@ -1034,26 +1041,26 @@ class HorarioTitulada {
                 const fechas = fechasDelDiaEnRango(dia, startDate, endDate);
                 for (const fecha of fechas) {
                     const bloqueFormacion = bloque.tipoFormacion || '';
-                    const isTransversal   = bloqueFormacion.toLowerCase() === 'transversal';
+                    const isTransversal = bloqueFormacion.toLowerCase() === 'transversal';
                     events.push({
-                        id:    `${asig.idAsignacion}_${dia}_${fecha}`,
+                        id: `${asig.idAsignacion}_${dia}_${fecha}`,
                         start: `${fecha}T${startHour}`,
-                        end:   `${fecha}T${endHour}`,
+                        end: `${fecha}T${endHour}`,
                         orderPriority: isTransversal ? 1 : 2,
                         classNames: isTransversal ? ['event-transversal'] : ['event-titulada'],
                         backgroundColor: isTransversal ? '#ffffff' : (isVirtual ? 'rgba(13,202,240,0.1)' : 'rgba(76,170,22,0.1)'),
-                        borderColor:     isVirtual ? '#0dcaf0' : '#4caa16',
-                        textColor:       isVirtual ? '#0dcaf0' : '#4caa16',
+                        borderColor: isVirtual ? '#0dcaf0' : '#4caa16',
+                        textColor: isVirtual ? '#0dcaf0' : '#4caa16',
                         extendedProps: {
-                            instructor:   asig.funcionario ? asig.funcionario.nombre : '—',
-                            ambiente:     asig.ambiente ? (asig.ambiente.codigo || asig.ambiente.nombre) : null,
-                            modalidad:    asig.modalidad,
+                            instructor: asig.funcionario ? asig.funcionario.nombre : '—',
+                            ambiente: asig.ambiente ? (asig.ambiente.codigo || asig.ambiente.nombre) : null,
+                            modalidad: asig.modalidad,
                             tipoDeFormacion: asig.ficha?.programa?.tipoFormacion?.nombreTipoFormacion || '',
-                            fechaInicio:  startDate,
-                            fechaFin:     endDate,
-                            idBloque:     bloque.idBloque,
-                            idDia:        diaObj.idDia || DIA_ID_MAP[dia],
-                            nombreDia:    dia,
+                            fechaInicio: startDate,
+                            fechaFin: endDate,
+                            idBloque: bloque.idBloque,
+                            idDia: diaObj.idDia || DIA_ID_MAP[dia],
+                            nombreDia: dia,
                             idAsignacion: asig.idAsignacion,
                             isTransversal,
                         }
@@ -1093,16 +1100,16 @@ class HorarioTitulada {
         calendarWrapper.appendChild(fcEl);
 
         const calendar = new FullCalendar.Calendar(fcEl, {
-            initialView:   'timeGridWeek',
-            eventOrder:    'orderPriority,start,-duration,allDay,title',
+            initialView: 'timeGridWeek',
+            eventOrder: 'orderPriority,start,-duration,allDay,title',
             initialDate,
             headerToolbar: false,
-            allDaySlot:    false,
-            slotMinTime:   '06:00:00',
-            slotMaxTime:   '24:00:00',
-            expandRows:    true,
-            locale:        'es',
-            validRange:    globalStart && globalEnd ? { start: globalStart, end: globalEnd } : undefined,
+            allDaySlot: false,
+            slotMinTime: '06:00:00',
+            slotMaxTime: '24:00:00',
+            expandRows: true,
+            locale: 'es',
+            validRange: globalStart && globalEnd ? { start: globalStart, end: globalEnd } : undefined,
             dayHeaderFormat: { weekday: 'short', day: 'numeric', month: 'short' },
             events,
             datesSet: () => {
@@ -1110,18 +1117,20 @@ class HorarioTitulada {
                 if (t) t.textContent = calendar.view.title;
             },
             eventContent(arg) {
-                const p    = arg.event.extendedProps;
+                const p = arg.event.extendedProps;
                 const icon = p.modalidad === 'virtual' ? 'bi-laptop' : 'bi-building';
                 const badge = p.tipoDeFormacion
                     ? `<div class="mt-auto pt-1"><span class="badge bg-secondary bg-opacity-25 text-dark" style="font-size:0.65rem;">${p.tipoDeFormacion}</span></div>`
                     : '';
                 if (calendar.view.type === 'dayGridMonth') {
-                    return { html: `<div class="p-1 d-flex flex-column overflow-hidden" style="font-size:0.72rem;">
+                    return {
+                        html: `<div class="p-1 d-flex flex-column overflow-hidden" style="font-size:0.72rem;">
                         <div class="fw-bold text-truncate">${p.instructor}</div>
                         <div class="text-truncate" style="font-size:0.65rem;opacity:0.8;"><i class="bi ${icon}"></i> ${p.ambiente || 'Virtual'}</div>
                     </div>` };
                 }
-                return { html: `
+                return {
+                    html: `
                     <div class="p-2 d-flex flex-column position-relative" style="height:100%;width:100%;overflow:hidden;background:#ffffff;border-radius:3px;">
                         <div class="fw-bold mb-1 lh-sm" style="font-size:0.8rem;">${p.instructor}</div>
                         <div class="text-truncate" style="font-size:0.75rem;opacity:0.9;"><i class="bi ${icon}"></i> ${p.ambiente || 'Virtual'}</div>
@@ -1151,8 +1160,8 @@ class HorarioTitulada {
         });
         calendar.render();
 
-        document.getElementById('fc-prev')?.addEventListener('click',  () => calendar.prev());
-        document.getElementById('fc-next')?.addEventListener('click',  () => calendar.next());
+        document.getElementById('fc-prev')?.addEventListener('click', () => calendar.prev());
+        document.getElementById('fc-next')?.addEventListener('click', () => calendar.next());
         document.getElementById('fc-today')?.addEventListener('click', () => calendar.today());
         document.querySelectorAll('.fc-view-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -1221,7 +1230,7 @@ class HorarioTitulada {
             this.showAlert('modal-alert', 'warning', 'Selecciona al menos un día de la semana.');
             return;
         }
-        const modalidad  = document.getElementById('modalidad_clase').value;
+        const modalidad = document.getElementById('modalidad_clase').value;
         const idAmbiente = parseInt(document.getElementById('idAmbiente').value);
         if (modalidad === 'presencial' && !idAmbiente) {
             this.showAlert('modal-alert', 'warning', 'Selecciona un ambiente para la modalidad presencial.');
@@ -1232,18 +1241,18 @@ class HorarioTitulada {
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
         try {
             await apiCall('/crearAsignacion', 'POST', {
-                horaInicio:    document.getElementById('hora_inicio').value + ':00',
-                horaFin:       document.getElementById('hora_fin').value   + ':00',
+                horaInicio: document.getElementById('hora_inicio').value + ':00',
+                horaFin: document.getElementById('hora_fin').value + ':00',
                 modalidad,
                 tipoFormacion: 'titulada',
                 idFuncionario: parseInt(document.getElementById('idFuncionario').value),
                 dias,
-                idAmbiente:    modalidad === 'presencial' ? idAmbiente : null,
-                idFicha:       this.selectedFicha.idFicha,
-                fechaInicio:   document.getElementById('fecha_inicio').value,
-                fechaFin:      document.getElementById('fecha_fin').value,
+                idAmbiente: modalidad === 'presencial' ? idAmbiente : null,
+                idFicha: this.selectedFicha.idFicha,
+                fechaInicio: document.getElementById('fecha_inicio').value,
+                fechaFin: document.getElementById('fecha_fin').value,
                 observaciones: document.getElementById('observacion')?.value || null,
-                estado:        'activo',
+                estado: 'activo',
             });
             bootstrap.Modal.getInstance(document.getElementById('modalHorario'))?.hide();
             document.getElementById('form-horario').reset();
