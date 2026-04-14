@@ -260,7 +260,6 @@ class FuncionariosPage {
                 if (res.con_errores > 0) {
                     icon = 'warning';
                     const errores = res.errores || [];
-                    // Mostrar los primeros 5 errores para diagnóstico
                     const muestra = errores.slice(0, 5).map(e => {
                         const msgs = Array.isArray(e.errores) ? e.errores.join(', ') : JSON.stringify(e.errores);
                         return `<li>Fila <b>${e.fila}</b> · <em>${e.columna}</em>: ${msgs}</li>`;
@@ -298,7 +297,7 @@ class FuncionariosPage {
                     confirmButtonText: 'Aceptar'
                 });
             } finally {
-                e.target.value = ''; // Reset input
+                e.target.value = '';
             }
         });
     }
@@ -337,15 +336,10 @@ class FuncionariosPage {
         }
     }
 
-    // ── Helpers para leer tipo de contrato sin importar la forma que llegue del backend ──
     _getTipoContratoNombre(row) {
-        // Caso 1: objeto anidado  { tipoContrato: { nombreTipoContrato: '...' } }
         if (row.tipoContrato?.nombreTipoContrato) return row.tipoContrato.nombreTipoContrato;
-        // Caso 2: objeto anidado con campo 'nombre'  { tipoContrato: { nombre: '...' } }
         if (row.tipoContrato?.nombre) return row.tipoContrato.nombre;
-        // Caso 3: campo plano  { nombreTipoContrato: '...' }
         if (row.nombreTipoContrato) return row.nombreTipoContrato;
-        // Caso 4: buscar en el array local por ID
         const id = row.idTipoContrato ?? row.tipoContrato?.idTipoContrato;
         if (id) {
             const found = this.tiposContrato.find(t => String(t.idTipoContrato) === String(id));
@@ -599,11 +593,9 @@ class FuncionariosPage {
             </div>
 
             <!-- VISTA 2: SELECTOR DE ÁREAS -->
+            <!-- FIX #2: Reemplazado botón "Volver" por "Guardar" que hace submit directo -->
             <div class="view-slide" id="view-areas-search">
                 <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                    <button type="button" class="btn btn-light btn-sm px-3 rounded-pill shadow-sm d-flex align-items-center gap-1" id="btn-back-to-form">
-                        <i class="bi bi-arrow-left"></i> Volver
-                    </button>
                     <h6 class="mb-0 fw-bold text-dark ms-1"><i class="bi bi-tags text-primary me-1"></i> Seleccionar Áreas</h6>
                 </div>
                 <div class="mb-2">
@@ -612,8 +604,19 @@ class FuncionariosPage {
                         <input type="text" class="form-control border-0" id="search-areas-input" placeholder="Buscar área por nombre..." autocomplete="off">
                     </div>
                 </div>
-                <div class="bg-white shadow-sm border p-3" style="border-radius:0.4rem; max-height:380px; overflow-y:auto;">
+                <div class="bg-white shadow-sm border p-3" style="border-radius:0.4rem; max-height:340px; overflow-y:auto;">
                     <div id="areas-wrapper" class="d-flex flex-column gap-2 mt-1"></div>
+                </div>
+                <!-- Botón Guardar en el panel de áreas -->
+                <div class="d-flex justify-content-end gap-2 mt-3 pt-3 border-top">
+                    <button type="button" class="btn btn-light border btn-sm px-3" id="btn-cancel-areas">Cancelar</button>
+                    <button type="button" class="btn btn-primary btn-sm px-4 shadow-sm" id="btn-save-areas" style="background-color:var(--primary);">
+                        <span class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle"></i>
+                            <span id="btn-save-areas-text">Guardar</span>
+                        </span>
+                        <span class="d-none spinner-border spinner-border-sm" id="btn-save-areas-spinner" role="status"></span>
+                    </button>
                 </div>
             </div>
         `;
@@ -656,9 +659,35 @@ class FuncionariosPage {
             }, 200);
         });
 
-        document.getElementById('btn-back-to-form').addEventListener('click', () => {
+        // FIX #2: Cancelar en panel de áreas → vuelve al formulario sin guardar
+        document.getElementById('btn-cancel-areas').addEventListener('click', () => {
             document.getElementById('view-areas-search').classList.remove('active');
             document.getElementById('view-funcionario-form').classList.add('active');
+        });
+
+        // FIX #2: Guardar en panel de áreas → ejecuta el submit del formulario completo directamente
+        document.getElementById('btn-save-areas').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-save-areas');
+            const btnText = document.getElementById('btn-save-areas-text');
+            const btnSpinner = document.getElementById('btn-save-areas-spinner');
+
+            // Validar que los campos del formulario principal sean válidos antes de guardar
+            const form = document.getElementById('funcionario-modal-form');
+            if (!form.checkValidity()) {
+                // Volver al form para mostrar errores de validación
+                document.getElementById('view-areas-search').classList.remove('active');
+                document.getElementById('view-funcionario-form').classList.add('active');
+                form.reportValidity();
+                return;
+            }
+
+            // Mostrar spinner en botón de áreas
+            btn.disabled = true;
+            btnText.classList.add('d-none');
+            btnSpinner.classList.remove('d-none');
+
+            // Disparar el submit del formulario
+            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
         });
 
         document.getElementById('search-areas-input').addEventListener('input', (e) => {
@@ -687,7 +716,6 @@ class FuncionariosPage {
     }
 
     injectDynamicModalFields(funcionario = null) {
-        // Resolver el ID del tipo de contrato sin importar cómo llega del backend
         const selectedTipoId = funcionario ? this._getTipoContratoId(funcionario) : '';
 
         document.getElementById('tipoContrato-wrapper').innerHTML = FormSelect({
@@ -730,7 +758,18 @@ class FuncionariosPage {
         document.getElementById('documento').value = funcionario?.documento ?? '';
         document.getElementById('correo').value = funcionario?.correo ?? '';
         document.getElementById('telefono').value = funcionario?.telefono ?? '';
-        document.getElementById('estado').value = funcionario?.estado ?? '';
+
+        // FIX #1: Al editar, preservar el estado actual del funcionario.
+        // Solo se cambia si el usuario lo modifica manualmente en el select.
+        // Si es nuevo (sin funcionario), se deja vacío para que el usuario elija.
+        const estadoSelect = document.getElementById('estado');
+        if (funcionario) {
+            // Edición: usar el estado actual del funcionario (ACTIVO o INACTIVO)
+            estadoSelect.value = funcionario.estado ?? 'ACTIVO';
+        } else {
+            // Creación: dejar en ACTIVO por defecto
+            estadoSelect.value = 'ACTIVO';
+        }
 
         // Contraseña
         const pwdSection = document.getElementById('password-section');
@@ -785,6 +824,16 @@ class FuncionariosPage {
         const form = e.target;
         if (!form.checkValidity()) { form.reportValidity(); return; }
 
+        // Restaurar botón de áreas por si fue activado desde ese panel
+        const btnSaveAreas = document.getElementById('btn-save-areas');
+        const btnSaveAreasText = document.getElementById('btn-save-areas-text');
+        const btnSaveAreasSpinner = document.getElementById('btn-save-areas-spinner');
+        if (btnSaveAreas) {
+            btnSaveAreas.disabled = false;
+            btnSaveAreasText?.classList.remove('d-none');
+            btnSaveAreasSpinner?.classList.add('d-none');
+        }
+
         const areasSelected = [];
         document.querySelectorAll('input[name="areas[]"]:checked').forEach(cb => {
             areasSelected.push(parseInt(cb.value));
@@ -811,10 +860,8 @@ class FuncionariosPage {
 
         try {
             if (this.currentEditId) {
-                // Actualizando
                 await updateFuncionario(this.currentEditId, data);
             } else {
-                // Creando - Determinar si es Instructor o Coordinador
                 const tipoRadio = document.querySelector('input[name="tipo_usuario_radio"]:checked');
                 const tipoValue = tipoRadio ? tipoRadio.value : 'instructor';
 
@@ -831,6 +878,12 @@ class FuncionariosPage {
             await this.loadData();
 
         } catch (error) {
+            // Si el submit vino desde el panel de áreas, volver al form para mostrar el error
+            const viewAreasSearch = document.getElementById('view-areas-search');
+            if (viewAreasSearch?.classList.contains('active')) {
+                viewAreasSearch.classList.remove('active');
+                document.getElementById('view-funcionario-form').classList.add('active');
+            }
             document.getElementById('funcionario-modal-alert').innerHTML = AlertMessage({
                 id: 'modal-error', type: 'danger', message: error.message
             });
@@ -873,29 +926,24 @@ class FuncionariosPage {
     }
 
     async enviarHorarioPorCorreo(idInstructor, btnElement) {
-        
-        // Ocultar modal de horario temporalmente para que no se superpongan
         const modalHorarioEl = document.getElementById('modalHorarioInstructor');
         const modalHorario = bootstrap.Modal.getInstance(modalHorarioEl);
         if (modalHorario) {
             modalHorario.hide();
         }
 
-        // 1. Pedir rango de fechas
         const rango = await showDateRangeModal(
             'Enviar horario por correo',
             'Selecciona el período de bloques a enviar'
         );
 
         if (!rango) {
-            // Si cancela, mostramos de nuevo el modal del horario
             if (modalHorario) {
                 modalHorario.show();
             }
             return;
         }
 
-        // 2. Spinner con SweetAlert ya que el modal de horario ahora está oculto
         Swal.fire({
             title: 'Enviando horario...',
             text: 'Por favor espera un momento.',
@@ -906,7 +954,6 @@ class FuncionariosPage {
         });
 
         try {
-            // 3. Enviar con fechas
             await enviarHorario(
                 idInstructor,
                 rango.fechaInicio,
@@ -929,7 +976,6 @@ class FuncionariosPage {
                 icon: 'error',
                 confirmButtonColor: '#d33'
             });
-
         }
     }
 
@@ -958,7 +1004,6 @@ class FuncionariosPage {
             'Jueves': 4, 'Viernes': 5, 'Sabado': 6
         };
 
-        // ── Build weekly events (abstract dates) ──
         const buildEventsSemana = () => {
             const events = [];
             clases.forEach(asig => {
@@ -995,7 +1040,6 @@ class FuncionariosPage {
             return events;
         };
 
-        // ── Build monthly events (real dates) ──
         const buildEventosMensual = () => {
             const events = [];
             clases.forEach(asig => {
@@ -1042,7 +1086,6 @@ class FuncionariosPage {
             return events;
         };
 
-        // ── Calculate date range ──
         let fechaMin = null, fechaMax = null;
         clases.forEach(asig => {
             const bloque = asig.bloque;
@@ -1053,7 +1096,6 @@ class FuncionariosPage {
             if (ff && (!fechaMax || ff > fechaMax)) fechaMax = ff;
         });
 
-        // ── Render toolbar + calendar ──
         let vistaActual = 'semanal';
 
         container.innerHTML = `
@@ -1122,7 +1164,6 @@ class FuncionariosPage {
                     ? `<div class="mt-auto pt-1"><span class="badge bg-secondary bg-opacity-25 text-dark" style="font-size:0.62rem;">${p.tipoDeFormacion}</span></div>`
                     : '';
 
-                // Compact view for monthly
                 if (vistaActual === 'mensual') {
                     return {
                         html: `<div class="p-1 h-100 d-flex flex-column overflow-hidden">
@@ -1148,7 +1189,6 @@ class FuncionariosPage {
         });
         calendar.render();
 
-        // ── Vista buttons ──
         const btnSem = document.getElementById('instr-btn-semanal');
         const btnMen = document.getElementById('instr-btn-mensual');
         const btnDia = document.getElementById('instr-btn-diario');
@@ -1189,7 +1229,6 @@ class FuncionariosPage {
             activarBtn(btnDia);
             controlesMes.style.removeProperty('display');
             if (calendar.view.type === 'timeGridWeek') {
-                // When coming from abstract week, go to today
                 const hoy = new Date().toISOString().split('T')[0];
                 const goDate = fechaMin && fechaMin > hoy ? fechaMin : hoy;
                 calendar.removeAllEvents();
@@ -1219,15 +1258,11 @@ class FuncionariosPage {
 
         if (confirm) {
             try {
-                // Primero intentamos borrar en la BD
                 await deleteFuncionario(id);
-
-                // Si no hay error, actualizamos la UI
                 this.funcionarios = this.funcionarios.filter(f => String(f.idFuncionario) !== String(id));
                 this.renderTable();
                 this.showAlert('page-alert-container', 'success', 'Instructor eliminado del sistema.');
             } catch (error) {
-                // Si falla (ej: tiene horarios asignados), mandamos alerta y recargamos datos por si acaso
                 Swal.fire({
                     title: 'No se pudo eliminar',
                     text: error.message || 'El instructor tiene horarios o datos asignados.',

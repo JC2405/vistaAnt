@@ -513,11 +513,10 @@ class FichasPage {
                         <div id="btn-select-sede"
                              style="border-radius:0.4rem; overflow:hidden; border:1px solid #d1d5db; background:#fff;">
                           <input type="text" class="form-control border-0" id="sedeNombreDisplay"
-                                 placeholder="Clic para buscar sede..." readonly
+                                 placeholder="Clic para buscar sede" readonly
                                  style="cursor:pointer; background:#fff; font-size:0.82rem;" required>
                           <input type="hidden" id="idSede" required>
                           <button class="btn border-0 px-2" type="button" style="pointer-events:none; background:#fff;">
-                            <i class="bi bi-search text-primary" style="font-size:0.8rem;"></i>
                           </button>
                         </div>
                       </div>
@@ -912,50 +911,71 @@ class FichasPage {
         this.bsModal.show();
     }
 
-    async handleFormSubmit(e) {
-        e.preventDefault();
-        const form = e.target;
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
+   async handleFormSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
 
-        const data = {
-            codigoFicha : document.getElementById('codigoFicha').value,
-            idPrograma  : parseInt(document.getElementById('idPrograma').value),
-            jornada     : document.getElementById('jornada').value,
-            modalidad   : document.getElementById('modalidad').value,
-            fechaInicio : document.getElementById('fechaInicio').value,
-            fechaFin    : document.getElementById('fechaFin').value,
-            estado      : document.getElementById('estado').value,
-            idSede      : parseInt(document.getElementById('idSede').value),
-        };
-
-        setModalLoading('ficha-modal', true);
-        document.getElementById('ficha-modal-alert').innerHTML = '';
-
-        try {
-            if (this.currentEditId) {
-                await updateFicha(this.currentEditId, data);
-            } else {
-                await createFicha(data);
-            }
-
-            this.bsModal.hide();
-            const actionText = this.currentEditId ? 'actualizada' : 'creada';
-            this.showAlert('page-alert-container', 'success', 'Ficha ' + actionText + ' correctamente.');
-            await this.loadData();
-
-        } catch (error) {
-            document.getElementById('ficha-modal-alert').innerHTML = AlertMessage({
-                id: 'modal-error',
-                type: 'danger',
-                message: error.message
-            });
-        } finally {
-            setModalLoading('ficha-modal', false);
-        }
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
     }
+
+    const data = {
+        codigoFicha : document.getElementById('codigoFicha').value,
+        idPrograma  : parseInt(document.getElementById('idPrograma').value),
+        jornada     : document.getElementById('jornada').value,
+        modalidad   : document.getElementById('modalidad').value,
+        fechaInicio : document.getElementById('fechaInicio').value,
+        fechaFin    : document.getElementById('fechaFin').value,
+        estado      : document.getElementById('estado').value,
+        idSede      : parseInt(document.getElementById('idSede').value),
+    };
+
+    setModalLoading('ficha-modal', true);
+    document.getElementById('ficha-modal-alert').innerHTML = '';
+
+    try {
+
+        if (this.currentEditId) {
+            await updateFicha(this.currentEditId, data);
+        } else {
+            await createFicha(data);
+        }
+
+        this.bsModal.hide();
+
+        const actionText = this.currentEditId ? 'actualizada' : 'creada';
+        this.showAlert('page-alert-container', 'success', 'Ficha ' + actionText + ' correctamente.');
+
+        await this.loadData();
+
+    } catch (error) {
+
+        console.log(error.response);
+
+        let mensaje = 'Error al guardar la ficha - Asegurate que el codigo de la ficha no este duplicado';
+
+        if (error.response && error.response.data) {
+            const data = error.response.data;
+
+            if (data.errors && data.errors.codigoFicha) {
+                mensaje = data.errors.codigoFicha[0];
+            } else if (data.message) {
+                mensaje = data.message;
+            }
+        }
+
+        document.getElementById('ficha-modal-alert').innerHTML = AlertMessage({
+            id: 'modal-error',
+            type: 'danger',
+            message: mensaje
+        });
+
+    } finally {
+        setModalLoading('ficha-modal', false);
+    }
+}
+
 
     async handleDelete(id) {
         const ficha = this.fichas.find(f => String(f.idFicha) === String(id));

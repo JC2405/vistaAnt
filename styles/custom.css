@@ -12,6 +12,22 @@ body {
     justify-content: center;
     padding: 2rem 1rem;
 }
+.tipo-pill {
+    padding: 6px 18px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border-color);
+    background: transparent;
+    color: var(--text-dark);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tipo-pill.active {
+    background: var(--purple, #2cc43e);
+    border-color: var(--purple, #14ca35);
+    color: #fff;
+}
 
 .login-card {
     background: rgba(255, 255, 255, 0.95);

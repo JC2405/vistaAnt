@@ -97,6 +97,7 @@ class AreasPage {
         }
         const filtered = this.areas.filter(a => {
             return (a.nombreArea && a.nombreArea.toLowerCase().includes(q)) ||
+                (a.tipo && String(a.tipo).toLowerCase().includes(q)) ||
                 (a.idArea && String(a.idArea).toLowerCase().includes(q));
         });
         this.renderTable(filtered);
@@ -118,6 +119,7 @@ class AreasPage {
 
         const columns = [
             { key: 'nombreArea', label: 'Nombre del Área', icon: 'textarea-t' },
+            { key: 'tipo', label: 'Tipo', icon: 'tag' },
             {
                 key: 'acciones',
                 label: '',
@@ -151,12 +153,19 @@ class AreasPage {
         });
     }
 
-
     setupModal() {
         const formContent = `
             <div class="row g-3">
                 <div class="col-12">
                     ${FormInput({ id: 'nombreArea', label: 'Nombre del Área', required: true })}
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-medium">Tipo</label>
+                    <div class="d-flex gap-2" id="tipo-pills">
+                        <button type="button" class="tipo-pill" data-value="Técnica">Técnica</button>
+                        <button type="button" class="tipo-pill" data-value="Transversal">Transversal</button>
+                    </div>
+                    <input type="hidden" id="tipoHidden" name="tipo" required>
                 </div>
             </div>
         `;
@@ -176,8 +185,29 @@ class AreasPage {
     injectDynamicModalFields(area = null) {
         document.getElementById('nombreArea').value = area ? area.nombreArea : '';
 
-        const formEl = document.getElementById('area-modal-form');
-        formEl.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        // Limpiar selección de pills
+        document.querySelectorAll('.tipo-pill').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('tipoHidden').value = '';
+
+        // Si hay área, activar la pill correspondiente
+        if (area && area.tipo) {
+            const pill = document.querySelector(`.tipo-pill[data-value="${area.tipo}"]`);
+            if (pill) {
+                pill.classList.add('active');
+                document.getElementById('tipoHidden').value = area.tipo;
+            }
+        }
+
+        // Eventos de las pills
+        document.querySelectorAll('.tipo-pill').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tipo-pill').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('tipoHidden').value = btn.dataset.value;
+            });
+        });
+
+        document.getElementById('area-modal-form').querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
         document.getElementById('area-modal-title').textContent = area ? 'Editar Área' : 'Nueva Área';
     }
 
@@ -197,13 +227,24 @@ class AreasPage {
     async handleFormSubmit(e) {
         e.preventDefault();
         const form = e.target;
+
+        const tipoValue = document.getElementById('tipoHidden').value;
+        if (!tipoValue) {
+            // Resaltar visualmente las pills si no hay selección
+            document.getElementById('tipo-pills').style.outline = '1.5px solid var(--bs-danger)';
+            document.getElementById('tipo-pills').style.borderRadius = '999px';
+            return;
+        }
+        document.getElementById('tipo-pills').style.outline = '';
+
         if (!form.checkValidity()) {
             form.reportValidity();
             return;
         }
 
         const data = {
-            nombreArea: document.getElementById('nombreArea').value
+            nombreArea: document.getElementById('nombreArea').value,
+            tipo: tipoValue
         };
 
         setModalLoading('area-modal', true);

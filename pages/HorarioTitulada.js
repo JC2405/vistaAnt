@@ -478,7 +478,7 @@ class HorarioTitulada {
             this.ambientes = aData.data || (Array.isArray(aData) ? aData : []);
             this.sedes = sData.data || (Array.isArray(sData) ? sData : []);
             const allFuncs = iData.data || (Array.isArray(iData) ? iData : []);
-            this.instructores = allFuncs.filter(f => f.roles?.some(r => r.nombre === 'Instructor'));
+            this.instructores = allFuncs.filter(f => f.roles?.some(r => r.nombreRol === 'Instructor'));
             if (!this.instructores.length) this.instructores = allFuncs;
 
             this.renderBreadcrumb();
@@ -533,7 +533,9 @@ class HorarioTitulada {
             const item = {
                 id: i.idFuncionario,
                 label: `${i.nombre || ''} ${i.apellido || i.apellidos || ''}`.trim() || 'Sin nombre',
-                sub: i.areas?.length ? i.areas.map(a => a.nombreArea).join(', ') : 'Sin área',
+                sub: i.areas?.length
+                    ? i.areas.map(a => a.tipo ? `${a.nombreArea} (${a.tipo})` : a.nombreArea).join(', ')
+                    : 'Sin área',
                 isRecommended: !!esRecomendado
             };
             if (esRecomendado) {
@@ -565,9 +567,11 @@ class HorarioTitulada {
         if (!idSede) { sel.innerHTML = '<option value="">Seleccionar ambiente...</option>'; return; }
         const filtered = this.ambientes.filter(a => String(a.idSede) === String(idSede));
         sel.innerHTML = '<option value="">Seleccionar ambiente...</option>' +
-            filtered.map(a =>
-                `<option value="${a.idAmbiente}">Blq ${a.bloque} - (${a.area?.nombreArea ?? 'Sin área'})</option>`
-            ).join('');
+            filtered.map(a => {
+                const areaNombre = a.area?.nombreArea ?? 'Sin área';
+                const areaTipo = a.area?.tipo ? ` - ${a.area.tipo}` : '';
+                return `<option value="${a.idAmbiente}">Blq ${a.bloque} - ${areaNombre}${areaTipo}</option>`;
+            }).join('');
     }
 
     setupEventListeners() {
@@ -685,7 +689,7 @@ class HorarioTitulada {
                 <div class="row g-3 align-items-end">
 
                     <!-- 1. Sede -->
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.04em;">
                             <i class="bi bi-building text-primary me-1"></i>1. Sede
                         </label>
@@ -698,7 +702,7 @@ class HorarioTitulada {
                     </div>
 
                     <!-- 2. Programa -->
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.04em;">
                             <i class="bi bi-journals text-primary me-1"></i>2. Programa
                         </label>
@@ -708,16 +712,6 @@ class HorarioTitulada {
                                    placeholder="Primero selecciona sede..." readonly>
                             <input type="hidden" id="hidPrograma">
                         </div>
-                    </div>
-
-                    <!-- 3. Ficha -->
-                    <div class="col-md-4">
-                        <label class="form-label fw-semibold small text-muted text-uppercase mb-1" style="letter-spacing:.04em;">
-                            <i class="bi bi-card-list text-primary me-1"></i>3. Ficha
-                        </label>
-                        <select class="form-select" id="sel-ficha" disabled>
-                            <option value="">Seleccione una ficha...</option>
-                        </select>
                     </div>
 
                 </div>
@@ -806,12 +800,9 @@ class HorarioTitulada {
             },
             onSelect: async (item) => {
                 this.selectedSedeId = item.id;
-                // Resetear programa y ficha
+                // Resetear programa
                 this._ddPrograma.reset('Cargando programas...');
                 this._ddPrograma.disable('Cargando programas...');
-                const selFich = document.getElementById('sel-ficha');
-                selFich.innerHTML = '<option value="">Seleccione una ficha...</option>';
-                selFich.disabled = true;
                 this.fichas = [];
                 document.getElementById('fichas-tbody').innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">
                     <i class="bi bi-funnel fs-3 d-block mb-2 opacity-25"></i>Selecciona el programa para ver las fichas
@@ -861,21 +852,15 @@ class HorarioTitulada {
             },
             onSelect: async (item) => {
                 const idSede = document.getElementById('hidSede').value;
-                const selFich = document.getElementById('sel-ficha');
-                selFich.innerHTML = '<option value="">Cargando fichas...</option>';
-                selFich.disabled = true;
                 this.fichas = [];
 
                 try {
                     const fichasData = await getFichasPorProgramaSede(item.id, idSede);
                     this.fichas = Array.isArray(fichasData) ? fichasData : (fichasData.data || []);
-                    selFich.innerHTML = '<option value="">Seleccione una ficha...</option>' +
-                        this.fichas.map(f => `<option value="${f.idFicha}">Ficha ${f.codigoFicha} · ${f.jornada || ''}</option>`).join('');
-                    selFich.disabled = this.fichas.length === 0;
-                    if (!this.fichas.length) selFich.innerHTML = '<option value="">Sin fichas activas</option>';
                     updateTable();
                 } catch {
-                    selFich.innerHTML = '<option value="">Error al cargar</option>';
+                    this.fichas = [];
+                    updateTable();
                 }
             }
         });
@@ -883,14 +868,6 @@ class HorarioTitulada {
         // Programa deshabilitado hasta seleccionar sede
         this._ddPrograma.disable('Primero selecciona sede...');
 
-        // ── Select ficha ────────────────────────────────────────────────────
-        document.getElementById('sel-ficha').addEventListener('change', () => {
-            const idFicha = document.getElementById('sel-ficha').value;
-            if (!idFicha) return;
-            document.querySelectorAll('.fila-ficha').forEach(row =>
-                row.classList.toggle('table-active', row.dataset.id === idFicha)
-            );
-        });
 
         // ── Buscador tabla ──────────────────────────────────────────────────
         document.getElementById('search-fichas').addEventListener('input', e => {
@@ -939,10 +916,20 @@ class HorarioTitulada {
                 <p class="text-muted small">Cargando horario de ${this.selectedFicha.codigoFicha}...</p>
             </div>`;
 
+        const progNombre = this.selectedFicha.programa?.nombre ?? '';
+        const fechaIni = this.selectedFicha.fechaInicio ?? this.selectedFicha.fecha_inicio ?? '';
+        const fechaFin = this.selectedFicha.fechaFin ?? this.selectedFicha.fecha_fin ?? '';
+        const fechasBadge = (fechaIni && fechaFin)
+            ? `<span class="badge bg-light text-muted border fw-normal ms-1" style="font-size:0.72rem;">
+                   <i class="bi bi-calendar-range me-1"></i>${fechaIni} → ${fechaFin}
+               </span>`
+            : '';    
         document.getElementById('lbl-ficha-context').innerHTML =
             `${this.selectedFicha.codigoFicha}
-             <span class="badge bg-light text-dark border fw-normal ms-1">${this.selectedFicha.jornada || ''}</span>`;
-
+             <span class="badge bg-light text-dark border fw-normal ms-1">${this.selectedFicha.jornada || ''}</span>
+             ${progNombre ? `<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 fw-normal ms-1" style="font-size:0.72rem;"><i class="bi bi-journal-bookmark me-1"></i>${progNombre}</span>` : ''}
+             ${fechasBadge}`;
+             
         if (this.selectedFicha.fechaInicio) document.getElementById('fecha_inicio').value = this.selectedFicha.fechaInicio;
         if (this.selectedFicha.fechaFin) document.getElementById('fecha_fin').value = this.selectedFicha.fechaFin;
 
