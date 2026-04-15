@@ -806,6 +806,17 @@ class AmbientesPage {
             this.showAlert('page-alert-container', 'success', `Ambiente ${txt} correctamente.`);
             await this.loadData();
         } catch (error) {
+            let mensaje = "Error puede al guardar El Ambiente"
+
+            if (error.response && error.response.data) {
+            const data = error.response.data;
+
+            if (data.errors && data.errors.codigoFicha) {
+                mensaje = data.errors.codigoFicha[0];
+            } else if (data.message) {
+                mensaje = data.message;
+            }
+        }
             document.getElementById('ambiente-modal-alert').innerHTML = AlertMessage({
                 id: 'modal-error', type: 'danger', message: error.message
             });

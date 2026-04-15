@@ -1,4 +1,4 @@
-import { ProtectedRoute } from '../components/ProtectedRoute.js';
+﻿import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
 import {
@@ -442,6 +442,34 @@ class HorarioFormativa {
                                                 <div class="mb-2">
                                                     <label class="form-label small text-muted mb-1">Días de la semana</label>
                                                     <div class="d-flex flex-wrap gap-1" id="dias-container"></div>
+                                                <!-- Resumen de horas calculadas -->
+                                                <div id="resumen-horas-container" class="d-none mb-2">
+                                                    <div class="rounded-3 border px-3 py-2"
+                                                         style="background:linear-gradient(135deg,#f5f3ff 0%,#ede9fe 100%);border-color:#c4b5fd !important;">
+                                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                                            <i class="bi bi-clock-history text-primary" style="font-size:0.85rem;"></i>
+                                                            <span class="small fw-semibold text-primary" style="font-size:0.78rem;text-transform:uppercase;letter-spacing:.04em;">Resumen de horas</span>
+                                                        </div>
+                                                        <div class="d-flex flex-wrap gap-3">
+                                                            <div class="text-center">
+                                                                <div class="fw-bold text-primary" id="rh-total-horas" style="font-size:1.25rem;line-height:1;">-</div>
+                                                                <div class="text-muted" style="font-size:0.7rem;">Horas totales</div>
+                                                            </div>
+                                                            <div class="text-center">
+                                                                <div class="fw-bold text-dark" id="rh-total-dias" style="font-size:1.25rem;line-height:1;">-</div>
+                                                                <div class="text-muted" style="font-size:0.7rem;">Dias validos</div>
+                                                            </div>
+                                                            <div class="text-center">
+                                                                <div class="fw-bold text-dark" id="rh-horas-dia" style="font-size:1.25rem;line-height:1;">-</div>
+                                                                <div class="text-muted" style="font-size:0.7rem;">Horas/dia</div>
+                                                            </div>
+                                                        </div>
+                                                        <div id="rh-warning" class="d-none mt-1">
+                                                            <small class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i><span id="rh-warning-msg"></span></small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
                                                 </div>
                                                 <div>
                                                     <label class="form-label small text-muted mb-1">Observación (Opcional)</label>
@@ -613,6 +641,106 @@ class HorarioFormativa {
             e.preventDefault();
             this.handleSubmit();
         });
+
+        // ── Cálculo automático de horas de formación ──────────────────────
+        ['fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', () => this._calcularHorasFormacion());
+        });
+
+        // Delegación para los checkboxes de días (se generan dinámicamente)
+        document.getElementById('dias-container')?.addEventListener('change', () => this._calcularHorasFormacion());
+
+        // Recalcular al abrir el modal (por si ya hay valores pre-cargados)
+        document.getElementById('modalHorario')?.addEventListener('shown.bs.modal', () => this._calcularHorasFormacion());
+    }
+
+    /** Calcula el total de horas de formación según rango de fechas, días seleccionados y rango horario. */
+    _calcularHorasFormacion() {
+        const container = document.getElementById('resumen-horas-container');
+        const elTotalHoras = document.getElementById('rh-total-horas');
+        const elTotalDias  = document.getElementById('rh-total-dias');
+        const elHorasDia   = document.getElementById('rh-horas-dia');
+        const elWarning    = document.getElementById('rh-warning');
+        const elWarningMsg = document.getElementById('rh-warning-msg');
+        if (!container) return;
+
+        const fechaInicioVal = document.getElementById('fecha_inicio')?.value;
+        const fechaFinVal    = document.getElementById('fecha_fin')?.value;
+        const horaInicioVal  = document.getElementById('hora_inicio')?.value;
+        const horaFinVal     = document.getElementById('hora_fin')?.value;
+
+        // Ocultar panel si faltan datos mínimos
+        if (!fechaInicioVal && !fechaFinVal && !horaInicioVal && !horaFinVal) {
+            container.classList.add('d-none');
+            return;
+        }
+        container.classList.remove('d-none');
+
+        // Limpiar warning
+        elWarning.classList.add('d-none');
+        elWarningMsg.textContent = '';
+
+        // Validar fecha fin >= fecha inicio
+        if (fechaInicioVal && fechaFinVal && fechaFinVal < fechaInicioVal) {
+            elWarningMsg.textContent = 'La fecha fin no puede ser anterior a la fecha inicio.';
+            elWarning.classList.remove('d-none');
+            elTotalHoras.textContent = '—';
+            elTotalDias.textContent  = '—';
+            elHorasDia.textContent   = '—';
+            return;
+        }
+
+        // Calcular horas por día
+        let horasPorDia = 0;
+        if (horaInicioVal && horaFinVal) {
+            const [hI, mI] = horaInicioVal.split(':').map(Number);
+            const [hF, mF] = horaFinVal.split(':').map(Number);
+            const minutos = (hF * 60 + mF) - (hI * 60 + mI);
+            if (minutos <= 0) {
+                elWarningMsg.textContent = 'La hora fin debe ser mayor a la hora inicio.';
+                elWarning.classList.remove('d-none');
+                elTotalHoras.textContent = '—';
+                elTotalDias.textContent  = '—';
+                elHorasDia.textContent   = '—';
+                return;
+            }
+            horasPorDia = minutos / 60;
+        }
+
+        // Obtener días seleccionados (valores 1-7 donde 1=Lunes…7=Domingo)
+        const diasSeleccionados = new Set(
+            [...document.querySelectorAll('#dias-container input[type="checkbox"]:checked')]
+                .map(cb => parseInt(cb.value))
+        );
+
+        // Contar días válidos en el rango de fechas
+        let diasValidos = 0;
+        if (fechaInicioVal && fechaFinVal && diasSeleccionados.size > 0) {
+            const cur  = new Date(fechaInicioVal + 'T00:00:00');
+            const end  = new Date(fechaFinVal    + 'T00:00:00');
+            while (cur <= end) {
+                // JS: 0=Dom,1=Lun…6=Sab → convertir a 1=Lun…7=Dom
+                const jsDow = cur.getDay(); // 0-6
+                const diaSistema = jsDow === 0 ? 7 : jsDow; // 1=Lun…7=Dom
+                if (diasSeleccionados.has(diaSistema)) diasValidos++;
+                cur.setDate(cur.getDate() + 1);
+            }
+        }
+
+        const totalHoras = diasValidos * horasPorDia;
+
+        // Formato: mostrar decimales solo si no es entero
+        const fmt = (n) => Number.isInteger(n) ? n.toString() : n.toFixed(1);
+
+        elTotalHoras.textContent = horasPorDia > 0 && diasValidos > 0 ? fmt(totalHoras) : (horasPorDia > 0 ? '—' : '—');
+        elTotalDias.textContent  = fechaInicioVal && fechaFinVal && diasSeleccionados.size > 0 ? diasValidos.toString() : '—';
+        elHorasDia.textContent   = horasPorDia > 0 ? fmt(horasPorDia) : '—';
+
+        // Advertencia si no hay días seleccionados pero sí hay fechas y horas
+        if (fechaInicioVal && fechaFinVal && horasPorDia > 0 && diasSeleccionados.size === 0) {
+            elWarningMsg.textContent = 'Selecciona al menos un día de la semana para calcular el total.';
+            elWarning.classList.remove('d-none');
+        }
     }
 
     renderBreadcrumb() {
