@@ -1226,6 +1226,11 @@ class HorarioTitulada {
             locale: 'es',
             validRange: globalStart && globalEnd ? { start: globalStart, end: globalEnd } : undefined,
             dayHeaderFormat: { weekday: 'short', day: 'numeric', month: 'short' },
+            views: {
+                dayGridMonth: {
+                    dayHeaderFormat: { weekday: 'short' }
+                }
+            },
             events,
             datesSet: () => {
                 const t = document.getElementById('fc-title');

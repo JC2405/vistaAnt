@@ -1,4 +1,4 @@
-﻿import { ProtectedRoute } from '../components/ProtectedRoute.js';
+import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
 import {
@@ -658,16 +658,16 @@ class HorarioFormativa {
     _calcularHorasFormacion() {
         const container = document.getElementById('resumen-horas-container');
         const elTotalHoras = document.getElementById('rh-total-horas');
-        const elTotalDias  = document.getElementById('rh-total-dias');
-        const elHorasDia   = document.getElementById('rh-horas-dia');
-        const elWarning    = document.getElementById('rh-warning');
+        const elTotalDias = document.getElementById('rh-total-dias');
+        const elHorasDia = document.getElementById('rh-horas-dia');
+        const elWarning = document.getElementById('rh-warning');
         const elWarningMsg = document.getElementById('rh-warning-msg');
         if (!container) return;
 
         const fechaInicioVal = document.getElementById('fecha_inicio')?.value;
-        const fechaFinVal    = document.getElementById('fecha_fin')?.value;
-        const horaInicioVal  = document.getElementById('hora_inicio')?.value;
-        const horaFinVal     = document.getElementById('hora_fin')?.value;
+        const fechaFinVal = document.getElementById('fecha_fin')?.value;
+        const horaInicioVal = document.getElementById('hora_inicio')?.value;
+        const horaFinVal = document.getElementById('hora_fin')?.value;
 
         // Ocultar panel si faltan datos mínimos
         if (!fechaInicioVal && !fechaFinVal && !horaInicioVal && !horaFinVal) {
@@ -685,8 +685,8 @@ class HorarioFormativa {
             elWarningMsg.textContent = 'La fecha fin no puede ser anterior a la fecha inicio.';
             elWarning.classList.remove('d-none');
             elTotalHoras.textContent = '—';
-            elTotalDias.textContent  = '—';
-            elHorasDia.textContent   = '—';
+            elTotalDias.textContent = '—';
+            elHorasDia.textContent = '—';
             return;
         }
 
@@ -700,8 +700,8 @@ class HorarioFormativa {
                 elWarningMsg.textContent = 'La hora fin debe ser mayor a la hora inicio.';
                 elWarning.classList.remove('d-none');
                 elTotalHoras.textContent = '—';
-                elTotalDias.textContent  = '—';
-                elHorasDia.textContent   = '—';
+                elTotalDias.textContent = '—';
+                elHorasDia.textContent = '—';
                 return;
             }
             horasPorDia = minutos / 60;
@@ -716,8 +716,8 @@ class HorarioFormativa {
         // Contar días válidos en el rango de fechas
         let diasValidos = 0;
         if (fechaInicioVal && fechaFinVal && diasSeleccionados.size > 0) {
-            const cur  = new Date(fechaInicioVal + 'T00:00:00');
-            const end  = new Date(fechaFinVal    + 'T00:00:00');
+            const cur = new Date(fechaInicioVal + 'T00:00:00');
+            const end = new Date(fechaFinVal + 'T00:00:00');
             while (cur <= end) {
                 // JS: 0=Dom,1=Lun…6=Sab → convertir a 1=Lun…7=Dom
                 const jsDow = cur.getDay(); // 0-6
@@ -733,8 +733,8 @@ class HorarioFormativa {
         const fmt = (n) => Number.isInteger(n) ? n.toString() : n.toFixed(1);
 
         elTotalHoras.textContent = horasPorDia > 0 && diasValidos > 0 ? fmt(totalHoras) : (horasPorDia > 0 ? '—' : '—');
-        elTotalDias.textContent  = fechaInicioVal && fechaFinVal && diasSeleccionados.size > 0 ? diasValidos.toString() : '—';
-        elHorasDia.textContent   = horasPorDia > 0 ? fmt(horasPorDia) : '—';
+        elTotalDias.textContent = fechaInicioVal && fechaFinVal && diasSeleccionados.size > 0 ? diasValidos.toString() : '—';
+        elHorasDia.textContent = horasPorDia > 0 ? fmt(horasPorDia) : '—';
 
         // Advertencia si no hay días seleccionados pero sí hay fechas y horas
         if (fechaInicioVal && fechaFinVal && horasPorDia > 0 && diasSeleccionados.size === 0) {
@@ -1250,6 +1250,11 @@ class HorarioFormativa {
             locale: 'es',
             validRange: globalStart && globalEnd ? { start: globalStart, end: globalEnd } : undefined,
             dayHeaderFormat: { weekday: 'short', day: 'numeric', month: 'short' },
+            views: {
+                dayGridMonth: {
+                    dayHeaderFormat: { weekday: 'short' }
+                }
+            },
             events,
             datesSet: () => {
                 const t = document.getElementById('fc-title');
