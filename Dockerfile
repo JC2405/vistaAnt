@@ -1,10 +1,9 @@
-# Frontend estático (HTML + JS vanilla)
-FROM nginx:1.27-alpine
+FROM nginx:alpine
 
-# Copiar todos los archivos del frontend al directorio de Nginx
+# Copiar todos los archivos al directorio que Nginx sirve por defecto
 COPY . /usr/share/nginx/html
 
-# Exponer puerto 80
+# Exponer el puerto 80
 EXPOSE 80
 
 # Arrancar Nginx
