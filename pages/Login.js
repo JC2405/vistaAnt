@@ -2,8 +2,8 @@ import { FormInput } from '../components/FormInput.js';
 import { Button } from '../components/Button.js';
 import { AlertMessage } from '../components/AlertMessage.js';
 import { validateLogin } from '../utils/validation.js';
-import { loginApi } from '../utils/api.js?v=4';
-import { setToken, decodeJWT } from '../utils/auth.js';
+import { loginApi } from '../utils/api.js?v=5';
+import { setToken, decodeJWT } from '../utils/auth.js?v=5';
 
 class LoginPage {
     constructor() {

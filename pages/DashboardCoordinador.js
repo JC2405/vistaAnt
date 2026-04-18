@@ -1,7 +1,7 @@
 import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
-import { apiFetch } from '../utils/api.js?v=4';
+import { apiFetch } from '../utils/api.js?v=5';
 
 class DashboardCoordinador {
     constructor() {

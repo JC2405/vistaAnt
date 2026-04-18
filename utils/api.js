@@ -1,6 +1,6 @@
 export const API_BASE_URL = 'https://backend-manejohorarioscimm.sgdis.cloud/api';
 
-import { getToken, logout } from './auth.js';
+import { getToken } from './auth.js?v=5';
 
 /**
  * Realiza una petición GET/POST/PUT/DELETE autenticada con JSON
@@ -30,8 +30,7 @@ export async function apiFetch(endpoint, options = {}) {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
     if (response.status === 401) {
-        logout();
-        throw new Error('Sesión expirada. Por favor ingresa nuevamente.');
+        throw new Error('No autorizado para realizar esta acción. Inicia sesión nuevamente si el problema continúa.');
     }
 
     const data = await response.json().catch(() => ({}));
@@ -97,8 +96,7 @@ export async function apiDownload(endpoint, filename) {
     });
 
     if (response.status === 401) {
-        logout();
-        throw new Error('Sesión expirada.');
+        throw new Error('No autorizado para descargar este recurso.');
     }
 
     if (!response.ok) {
@@ -141,8 +139,7 @@ export async function apiUpload(endpoint, formData) {
     });
 
     if (response.status === 401) {
-        logout();
-        throw new Error('Sesión expirada.');
+        throw new Error('No autorizado para cargar este recurso.');
     }
 
     const data = await response.json().catch(() => ({}));

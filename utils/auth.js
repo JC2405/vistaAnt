@@ -25,10 +25,13 @@ export function getToken() {
  * @returns {Object|null}
  */
 export function decodeJWT(token) {
-    if (!token) return null;
+    if (!token || typeof token !== 'string') return null;
     try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/, '/');
+        const parts = token.split('.');
+        if (parts.length < 2 || !parts[1]) return null;
+
+        const base64Url = parts[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
         const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
@@ -81,6 +84,7 @@ export function logout() {
     localStorage.removeItem('user_info');
     localStorage.removeItem('user_name');
     localStorage.removeItem('user_role');
+    localStorage.removeItem('sidebar_collapsed');
     window.location.href = '/index.html';
 }
 

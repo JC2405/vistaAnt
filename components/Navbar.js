@@ -1,4 +1,4 @@
-import { getUserFromToken, logout } from '../utils/auth.js';
+import { getUserFromToken, logout } from '../utils/auth.js?v=5';
 
 /**
  * Genera el Navbar superior — estilo "Hola! NOMBRE" con avatar
