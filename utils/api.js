@@ -65,6 +65,14 @@ export async function loginApi(credentials) {
         throw new Error(data.message || 'Error al autenticar. Verifica tus credenciales.');
     }
 
+    if (data?.ok === false) {
+        throw new Error(data.message || data.mensaje || 'Credenciales incorrectas.');
+    }
+
+    if (!data?.token || typeof data.token !== 'string') {
+        throw new Error(data.message || 'No se recibió un token válido al iniciar sesión.');
+    }
+
     return data;
 }
 

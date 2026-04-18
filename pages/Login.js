@@ -187,8 +187,16 @@ class LoginPage {
         try {
             const result = await loginApi({ correo, password });
 
+            if (!result?.token || typeof result.token !== 'string') {
+                throw new Error('Credenciales incorrectas.');
+            }
+
             // Guardar token
             setToken(result.token);
+
+            if (!localStorage.getItem('auth_token')) {
+                throw new Error('No se pudo iniciar sesión con esas credenciales.');
+            }
 
             // Guardar info del usuario
             if (result.usuario) {
@@ -206,6 +214,10 @@ class LoginPage {
                 jwtPayload = decodeJWT(result.token);
             } catch (e) {
                 console.warn('[Login] No se pudo decodificar el JWT:', e);
+            }
+
+            if (!jwtPayload) {
+                throw new Error('La respuesta de autenticación no contiene un token válido.');
             }
 
             // DEBUG temporal — eliminar en producción
@@ -226,6 +238,10 @@ class LoginPage {
             }, 800);
 
         } catch (error) {
+            setToken(null);
+            localStorage.removeItem('user_info');
+            localStorage.removeItem('user_name');
+            localStorage.removeItem('user_role');
             this.showAlert('danger', error.message);
         } finally {
             this.setLoading(false);

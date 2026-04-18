@@ -3,6 +3,11 @@
  * @param {string} token 
  */
 export function setToken(token) {
+    if (!token || typeof token !== 'string') {
+        localStorage.removeItem('auth_token');
+        return;
+    }
+
     localStorage.setItem('auth_token', token);
 }
 
@@ -74,6 +79,8 @@ export function isAuthenticated() {
 export function logout() {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_info');
+    localStorage.removeItem('user_name');
+    localStorage.removeItem('user_role');
     window.location.href = '/index.html';
 }
 
