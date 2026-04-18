@@ -6,7 +6,7 @@ import { ModalForm, setModalLoading } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
-import { getSedes, createSede, updateSede, deleteSede, getMunicipios } from '../utils/api.js';
+import { getSedes, createSede, updateSede, deleteSede, getMunicipios } from '../utils/api.js?v=4';
 
 class SedesPage {
     constructor() {

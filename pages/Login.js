@@ -2,7 +2,7 @@ import { FormInput } from '../components/FormInput.js';
 import { Button } from '../components/Button.js';
 import { AlertMessage } from '../components/AlertMessage.js';
 import { validateLogin } from '../utils/validation.js';
-import { loginApi } from '../utils/api.js?v=3';
+import { loginApi } from '../utils/api.js?v=4';
 import { setToken, decodeJWT } from '../utils/auth.js';
 
 class LoginPage {

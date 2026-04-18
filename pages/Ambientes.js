@@ -9,7 +9,7 @@ import { AlertMessage } from '../components/AlertMessage.js';
 import {
     getAmbientes, createAmbiente, updateAmbiente, deleteAmbiente,
     getAreas, getHorariosPorAmbiente
-} from '../utils/api.js';
+} from '../utils/api.js?v=4';
 
 class AmbientesPage {
     constructor() {

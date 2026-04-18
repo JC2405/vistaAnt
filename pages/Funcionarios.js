@@ -6,7 +6,7 @@ import { ModalForm, setModalLoading, FormSelect } from '../components/ModalForm.
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
-import { getFuncionarios, createFuncionario, createAdmin, updateFuncionario, deleteFuncionario, getTiposContrato, getAreas, getHorarioPorInstructor, enviarHorario, importarFuncionarios, exportarFuncionarios } from '../utils/api.js?v=1.1';
+import { getFuncionarios, createFuncionario, createAdmin, updateFuncionario, deleteFuncionario, getTiposContrato, getAreas, getHorarioPorInstructor, enviarHorario, importarFuncionarios, exportarFuncionarios } from '../utils/api.js?v=4';
 
 
 function showDateRangeModal(titulo = 'Seleccionar período', subtitulo = '') {

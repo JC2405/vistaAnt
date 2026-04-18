@@ -6,7 +6,7 @@ import { ModalForm, setModalLoading } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
-import { getTiposFormacion, createTipoFormacion, updateTipoFormacion, deleteTipoFormacion, exportarCompetencias, importarCompetencias, exportarResultados, importarResultados } from '../utils/api.js';
+import { getTiposFormacion, createTipoFormacion, updateTipoFormacion, deleteTipoFormacion, exportarCompetencias, importarCompetencias, exportarResultados, importarResultados } from '../utils/api.js?v=4';
 
 class TiposProgramasPage {
     constructor() {

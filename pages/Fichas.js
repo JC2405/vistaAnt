@@ -8,7 +8,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
 import { getFichas, createFicha, updateFicha, deleteFicha, getProgramas, getSedes,
          exportarFichas, exportarAprendicesDeFicha, importarAprendices,
-         getHorariosPorFicha, enviarHorarioAprendiz } from '../utils/api.js';
+         getHorariosPorFicha, enviarHorarioAprendiz } from '../utils/api.js?v=4';
 
 function showDateRangeModal(titulo = 'Seleccionar período', subtitulo = '') {
     return new Promise((resolve) => {

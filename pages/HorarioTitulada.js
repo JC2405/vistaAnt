@@ -4,7 +4,7 @@ import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
 import {
     apiFetch, getAmbientes, getFuncionarios, getSedes,
     getProgramasPorSede, getFichasPorProgramaSede
-} from '../utils/api.js';
+} from '../utils/api.js?v=4';
 
 async function apiCall(endpoint, method = 'GET', body = null) {
     return apiFetch(endpoint, { method, body: body ? JSON.stringify(body) : undefined });

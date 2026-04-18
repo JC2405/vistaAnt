@@ -1,7 +1,7 @@
 import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
-import { getHorarioPorInstructor } from '../utils/api.js';
+import { getHorarioPorInstructor } from '../utils/api.js?v=4';
 
 class DashboardInstructor {
     constructor() {

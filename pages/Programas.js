@@ -6,7 +6,7 @@ import { ModalForm, setModalLoading } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
-import { getProgramas, createPrograma, updatePrograma, deletePrograma, getTiposFormacion, exportarProgramas } from '../utils/api.js';
+import { getProgramas, createPrograma, updatePrograma, deletePrograma, getTiposFormacion, exportarProgramas } from '../utils/api.js?v=4';
 
 // Helper: extrae el nombre del tipo sin importar qué campo devuelva el API
 const getTipoNombre = (tipo) => tipo ? (tipo.nombreTipoFormacion || tipo.nombre || 'N/A') : null;
