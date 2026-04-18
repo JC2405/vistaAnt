@@ -1,6 +1,9 @@
 FROM nginx:alpine
 
-# Copiar todos los archivos al directorio que Nginx sirve por defecto
+# Copiar la configuracion interna de nginx para manejar SPA y cache.
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+
+# Copiar todos los archivos estaticos al directorio que nginx sirve por defecto.
 COPY . /usr/share/nginx/html
 
 # Exponer el puerto 80
