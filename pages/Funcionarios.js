@@ -6,7 +6,7 @@ import { ModalForm, setModalLoading, FormSelect } from '../components/ModalForm.
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
-import { getFuncionarios, createFuncionario, createAdmin, updateFuncionario, deleteFuncionario, getTiposContrato, getAreas, getHorarioPorInstructor, enviarHorario, importarFuncionarios, exportarFuncionarios } from '../utils/api.js?v=4';
+import { getFuncionarios, createFuncionario, createAdmin, updateFuncionario, deleteFuncionario, getTiposContrato, getAreas, getHorarioPorInstructor, enviarHorario, importarFuncionarios, exportarFuncionarios, asignarAreaMasivo } from '../utils/api.js?v=4';
 
 
 function showDateRangeModal(titulo = 'Seleccionar período', subtitulo = '') {
@@ -139,10 +139,16 @@ class FuncionariosPage {
                             </div>
                         </div>
                         
-                        <button class="btn btn-purple d-flex align-items-center gap-2" id="btn-add-funcionario">
-                            <i class="bi bi-plus-lg"></i>
-                            <span>Nuevo Instructor</span>
-                        </button>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-purple d-flex align-items-center gap-2" id="btn-asignar-area-masivo">
+                                <i class="bi bi-tags-fill"></i>
+                                <span>Asignar Área por Bloque</span>
+                            </button>
+                            <button class="btn btn-purple d-flex align-items-center gap-2" id="btn-add-funcionario">
+                                <i class="bi bi-plus-lg"></i>
+                                <span>Nuevo Instructor</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Toolbar -->
@@ -203,9 +209,69 @@ class FuncionariosPage {
                     </div>
                 </div>
             </div>
+            <div class="modal fade" id="modalAsignarAreaMasivo" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
+                        <div class="modal-header text-white border-0 px-4 py-3" style="background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);">
+                            <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                                <i class="bi bi-tags-fill"></i> Asignar Área por Bloque
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body p-4" style="background:var(--bg-page);">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">1. Selecciona un Área</label>
+                                <select id="masivo-area-select" class="form-select shadow-sm" style="border-radius: 0.5rem;"></select>
+                            </div>
+                            <div class="mb-3 d-flex justify-content-between align-items-center">
+                                <label class="form-label fw-semibold mb-0">2. Selecciona Instructores (Sin Área)</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="input-group input-group-sm rounded shadow-sm" style="overflow:hidden; border: 1px solid var(--border-color); width: 200px;">
+                                        <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+                                        <input type="text" class="form-control border-0" id="search-instructores-masivo" placeholder="Buscar..." autocomplete="off">
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-secondary" id="btn-select-all-masivo">Seleccionar todos</button>
+                                </div>
+                            </div>
+                            <div class="table-responsive bg-white rounded shadow-sm border" style="max-height: 350px; overflow-y: auto;">
+                                <table class="table table-hover align-middle mb-0" id="table-instructores-masivo">
+                                    <thead class="table-light position-sticky top-0 shadow-sm" style="z-index: 1;">
+                                        <tr>
+                                            <th style="width: 40px; text-align: center;">
+                                                <input class="form-check-input" type="checkbox" id="checkbox-all-masivo">
+                                            </th>
+                                            <th>Nombre</th>
+                                            <th>Correo</th>
+                                            <th>Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-instructores-masivo">
+                                        <!-- Rendering dinamico -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div class="text-muted small">
+                                    <span id="counter-instructores-masivo">0</span> instructores seleccionados
+                                </div>
+                                <button class="btn btn-outline-primary btn-sm" id="btn-asignar-todos-sin-area" title="Asignar a todos los inactivos de la lista filtrada actual">
+                                    <i class="bi bi-magic"></i> Asignar a todos los filtrados
+                                </button>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 px-4 py-3" style="background: var(--bg-page); border-top: 1px solid var(--border-color)!important;">
+                            <button type="button" class="btn btn-light px-3 shadow-sm" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary px-4 shadow-sm" id="btn-save-masivo" style="background-color: var(--primary); border: none;">
+                                <i class="bi bi-save me-1"></i> Guardar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
 
         document.getElementById('btn-add-funcionario').addEventListener('click', () => this.openModal());
+        document.getElementById('btn-asignar-area-masivo').addEventListener('click', () => this.openMasivoModal());
 
         document.getElementById('btn-enviar-horario').addEventListener('click', async (e) => {
             const btn = e.currentTarget;
@@ -730,14 +796,17 @@ class FuncionariosPage {
 
         // Checkboxes de áreas
         const funcAreasIds = funcionario?.areas ? funcionario.areas.map(a => Number(a.idArea)) : [];
-        const areasHtml = this.areas.map(area => `
+        const areasHtml = this.areas.map(area => {
+            const formatTipo = area.tipo ? ` - <small class="text-muted">${area.tipo}</small>` : '';
+            return `
             <div class="form-check area-checkbox-container" style="user-select:none;">
                 <input class="form-check-input area-checkbox" style="cursor:pointer;" type="checkbox" name="areas[]"
                        value="${area.idArea}" id="area_${area.idArea}"
                        ${funcAreasIds.includes(Number(area.idArea)) ? 'checked' : ''}>
-                <label class="form-check-label w-100" style="cursor:pointer; padding-top:2px;" for="area_${area.idArea}">${area.nombreArea}</label>
+                <label class="form-check-label w-100" style="cursor:pointer; padding-top:2px;" for="area_${area.idArea}">${area.nombreArea}${formatTipo}</label>
             </div>
-        `).join('');
+            `;
+        }).join('');
         document.getElementById('areas-wrapper').innerHTML =
             areasHtml || '<div class="text-muted text-center py-2">No hay áreas disponibles.</div>';
 
@@ -817,6 +886,156 @@ class FuncionariosPage {
 
         this.injectDynamicModalFields(funcionario);
         this.bsModal.show();
+    }
+
+    openMasivoModal() {
+        const areaSelect = document.getElementById('masivo-area-select');
+        areaSelect.innerHTML = '<option value="" disabled selected>-- Elige un área --</option>' +
+            this.areas.map(a => {
+                const tipo = a.tipo || '';
+                const formatTipo = tipo ? ` - ${tipo}` : '';
+                return `<option value="${a.idArea}">${a.nombreArea}${formatTipo}</option>`;
+            }).join('');
+
+        this.funcionariosSinArea = this.funcionarios.filter(f => !f.areas || f.areas.length === 0);
+        this.renderInstructoresMasivo(this.funcionariosSinArea);
+
+        document.getElementById('search-instructores-masivo').value = '';
+        document.getElementById('checkbox-all-masivo').checked = false;
+        
+        const modalMasivo = new bootstrap.Modal(document.getElementById('modalAsignarAreaMasivo'));
+        modalMasivo.show();
+
+        this._setupMasivoEvents(modalMasivo);
+    }
+
+    renderInstructoresMasivo(instructores) {
+        const tbody = document.getElementById('tbody-instructores-masivo');
+        if (instructores.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No hay instructores sin área asignada para mostrar.</td></tr>';
+            this.updateCounterMasivo();
+            return;
+        }
+
+        tbody.innerHTML = instructores.map(f => {
+            const isActive = f.estado && f.estado.toLowerCase() === 'activo';
+            return `
+                <tr>
+                    <td style="text-align: center;">
+                        <input class="form-check-input chk-masivo" type="checkbox" value="${f.idFuncionario}">
+                    </td>
+                    <td>${f.nombre || ''} ${f.apellido || ''}</td>
+                    <td>${f.correo || ''}</td>
+                    <td><span class="badge-status ${isActive ? 'active' : 'inactive'}">${f.estado || ''}</span></td>
+                </tr>
+            `;
+        }).join('');
+        this.updateCounterMasivo();
+    }
+
+    _setupMasivoEvents(bsModal) {
+        const searchInput = document.getElementById('search-instructores-masivo');
+        searchInput.oninput = (e) => {
+            const q = e.target.value.toLowerCase().trim();
+            const filter = this.funcionariosSinArea.filter(f => 
+                (f.nombre && f.nombre.toLowerCase().includes(q)) || 
+                (f.apellido && f.apellido.toLowerCase().includes(q)) ||
+                (f.correo && f.correo.toLowerCase().includes(q))
+            );
+            this.renderInstructoresMasivo(filter);
+            document.getElementById('checkbox-all-masivo').checked = false;
+        };
+
+        const tbody = document.getElementById('tbody-instructores-masivo');
+        tbody.onchange = (e) => {
+            if (e.target.classList.contains('chk-masivo')) {
+                this.updateCounterMasivo();
+                const total = tbody.querySelectorAll('.chk-masivo').length;
+                const checked = tbody.querySelectorAll('.chk-masivo:checked').length;
+                document.getElementById('checkbox-all-masivo').checked = (total > 0 && total === checked);
+            }
+        };
+
+        document.getElementById('checkbox-all-masivo').onchange = (e) => {
+            const isChecked = e.target.checked;
+            tbody.querySelectorAll('.chk-masivo').forEach(chk => chk.checked = isChecked);
+            this.updateCounterMasivo();
+        };
+
+        document.getElementById('btn-select-all-masivo').onclick = () => {
+            tbody.querySelectorAll('.chk-masivo').forEach(chk => chk.checked = true);
+            document.getElementById('checkbox-all-masivo').checked = true;
+            this.updateCounterMasivo();
+        };
+        
+        document.getElementById('btn-asignar-todos-sin-area').onclick = () => {
+            tbody.querySelectorAll('.chk-masivo').forEach(chk => chk.checked = true);
+            document.getElementById('checkbox-all-masivo').checked = true;
+            this.updateCounterMasivo();
+        };
+
+        document.getElementById('btn-save-masivo').onclick = async () => {
+            const areaId = document.getElementById('masivo-area-select').value;
+            if (!areaId) {
+                Swal.fire({ 
+                    icon: 'warning', 
+                    title: 'Atención', 
+                    text: 'Debes seleccionar un área.', 
+                    confirmButtonColor: '#4caa16'
+                });
+                return;
+            }
+
+            const ids = Array.from(tbody.querySelectorAll('.chk-masivo:checked')).map(c => c.value);
+            if (ids.length === 0) {
+                Swal.fire({ 
+                    icon: 'warning', 
+                    title: 'Atención', 
+                    text: 'Debes seleccionar al menos un instructor.', 
+                    confirmButtonColor: '#4caa16'
+                });
+                return;
+            }
+
+            try {
+                const saveBtn = document.getElementById('btn-save-masivo');
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Guardando...';
+                
+                const response = await asignarAreaMasivo({
+                    area_id: areaId,
+                    funcionarios_ids: ids
+                });
+
+                bsModal.hide();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Éxito',
+                    text: response.message || 'Instructores asignados correctamente.',
+                    confirmButtonColor: '#4caa16'
+                });
+
+                await this.loadData();
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Error al asignar las áreas.'
+                });
+            } finally {
+                const saveBtn = document.getElementById('btn-save-masivo');
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="bi bi-save me-1"></i> Guardar';
+                }
+            }
+        };
+    }
+
+    updateCounterMasivo() {
+        const checked = document.querySelectorAll('#tbody-instructores-masivo .chk-masivo:checked').length;
+        const counterEl = document.getElementById('counter-instructores-masivo');
+        if (counterEl) counterEl.textContent = checked;
     }
 
     async handleFormSubmit(e) {

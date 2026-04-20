@@ -1,4 +1,6 @@
-export const API_BASE_URL = 'https://backend-manejohorarioscimm.sgdis.cloud/api';
+//export const API_BASE_URL = 'https://backend-manejohorarioscimm.sgdis.cloud/api';
+export const API_BASE_URL = 'http://localhost:8000/api';
+
 
 import { getToken } from './auth.js?v=5';
 
@@ -182,6 +184,13 @@ export function updateFuncionario(id, data) {
 
 export function deleteFuncionario(id) {
     return apiFetch(`/eliminarFuncionario/${id}`, { method: 'DELETE' });
+}
+
+export function asignarAreaMasivo(data) {
+    return apiFetch('/asignar-area-masivo', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
 }
 
 // ==========================================
