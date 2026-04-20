@@ -4,4 +4,4 @@ Dockerfile
 docker-compose.yml
 .git
 .gitignore
-docker/nginx/default.conf
+
