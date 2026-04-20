@@ -139,6 +139,9 @@ class FuncionariosPage {
                             </div>
                         </div>
                         
+
+
+
                         <div class="d-flex gap-2">
                             <button class="btn btn-purple d-flex align-items-center gap-2" id="btn-asignar-area-masivo">
                                 <i class="bi bi-tags-fill"></i>
@@ -168,6 +171,10 @@ class FuncionariosPage {
                         </div>
                     </div>
 
+
+
+
+                    
                     <!-- Table Container -->
                     <div id="table-container">
                         ${DataTable({ id: 'funcionarios-table', columns: [], loading: true })}
