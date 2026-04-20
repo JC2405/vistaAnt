@@ -345,6 +345,7 @@ class HorarioFormativa {
         this._ddPrograma = null;
         // Dropdown del modal
         this._ddInstructor = null;
+        this._ddAmbiente = null;
 
         this.init();
     }
@@ -415,7 +416,14 @@ class HorarioFormativa {
                                                 </div>
                                                 <div class="mb-2" id="container-ambiente">
                                                     <label class="form-label small text-muted mb-1">Ambiente</label>
-                                                    <select class="form-select form-select-sm" id="idAmbiente" required><option value="">Seleccionar ambiente...</option></select>
+                                                    <div id="btn-select-ambiente"
+                                                         style="border-radius:0.4rem; overflow:hidden; border:1px solid #d1d5db; background:#fff;">
+                                                        <input type="text" class="form-control border-0 form-control-sm"
+                                                               id="ambienteNombreDisplay"
+                                                               placeholder="Buscar ambiente..." readonly
+                                                               style="font-size:0.82rem;">
+                                                        <input type="hidden" id="idAmbiente" required>
+                                                    </div>
                                                 </div>
                                                 <div class="mb-2">
                                                     <label class="form-label small text-muted mb-1">Instructor</label>
@@ -530,8 +538,6 @@ class HorarioFormativa {
 
     populateSelects() {
         this.renderSedesSelectModal();
-        const selAmb = document.getElementById('idAmbiente');
-        if (selAmb) selAmb.innerHTML = '<option value="">Seleccionar ambiente...</option>';
         const cont = document.getElementById('dias-container');
         if (cont) {
             const dias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
@@ -543,6 +549,7 @@ class HorarioFormativa {
             }).join('');
         }
         this._initInstructorDropdown();
+        this._initAmbienteDropdown();
     }
 
     _initInstructorDropdown() {
@@ -599,17 +606,40 @@ class HorarioFormativa {
             this.sedes.map(s => `<option value="${s.idSede}">${s.nombre}</option>`).join('');
     }
 
-    renderAmbientes(idSede) {
-        const sel = document.getElementById('idAmbiente');
-        if (!sel) return;
-        if (!idSede) { sel.innerHTML = '<option value="">Seleccionar ambiente...</option>'; return; }
-        const filtered = this.ambientes.filter(a => String(a.idSede) === String(idSede));
-        sel.innerHTML = '<option value="">Seleccionar ambiente...</option>' +
-            filtered.map(a => {
-                const areaNombre = a.area?.nombreArea ?? 'Sin área';
-                const areaTipo = a.area?.tipo ? ` - ${a.area.tipo}` : '';
-                return `<option value="${a.idAmbiente}">Blq ${a.bloque} - ${areaNombre}${areaTipo}</option>`;
-            }).join('');
+    _initAmbienteDropdown() {
+        const triggerEl = document.getElementById('btn-select-ambiente');
+        if (!triggerEl) return;
+        this._ddAmbiente?.destroy();
+        this._ddAmbiente = new SearchableDropdown({
+            triggerEl,
+            inputId: 'idAmbiente',
+            displayId: 'ambienteNombreDisplay',
+            placeholder: 'Buscar ambiente (bloque, área)...',
+            emptyText: 'No se encontraron ambientes',
+            onOpen: () => {
+                const idSede = document.getElementById('idSede')?.value;
+                if (!idSede) {
+                    this._ddAmbiente.setItems([]);
+                    return;
+                }
+                const filtered = this.ambientes.filter(a => String(a.idSede) === String(idSede));
+                const items = filtered.map(a => {
+                    const areaNombre = a.area?.nombreArea ?? 'Sin área';
+                    const areaTipo = a.area?.tipo ? ` - ${a.area.tipo}` : '';
+                    return {
+                        id: a.idAmbiente,
+                        label: `${a.nombre || areaNombre} - Blq ${a.bloque || 'N/A'}`,
+                        sub: `${areaNombre}${areaTipo}`
+                    };
+                });
+                items.sort((a, b) => a.label.localeCompare(b.label));
+                this._ddAmbiente.setItems(items);
+            },
+            onSelect: () => {
+                // Al cambiar ambiente podemos resetear instructor o dejarlo evaluando su valor.
+                this._ddInstructor?.reset();
+            }
+        });
     }
 
     setupEventListeners() {
@@ -622,19 +652,17 @@ class HorarioFormativa {
             document.getElementById('idAmbiente').required = !isVirtual;
             document.getElementById('idSede').required = false; // Se oculta, no debe ser requerido
             if (isVirtual) {
-                document.getElementById('idAmbiente').value = '';
+                this._ddAmbiente?.reset();
                 document.getElementById('idSede').value = '';
             } else {
                 if (this.selectedSedeId) {
                     document.getElementById('idSede').value = this.selectedSedeId;
-                    this.renderAmbientes(this.selectedSedeId);
                 }
             }
         });
 
         document.getElementById('idSede')?.addEventListener('change', e => {
-            this.renderAmbientes(e.target.value);
-            document.getElementById('idAmbiente').value = '';
+            this._ddAmbiente?.reset();
         });
 
         document.getElementById('form-horario')?.addEventListener('submit', e => {
@@ -1083,12 +1111,10 @@ class HorarioFormativa {
 
         if (this.selectedSedeId) {
             document.getElementById('idSede').value = this.selectedSedeId;
-            this.renderAmbientes(this.selectedSedeId);
         } else {
             document.getElementById('idSede').value = '';
-            this.renderAmbientes('');
         }
-        document.getElementById('idAmbiente').value = '';
+        this._ddAmbiente?.reset();
         this._ddInstructor?.destroy();
         this._initInstructorDropdown();
 

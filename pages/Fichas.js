@@ -161,6 +161,9 @@ class FichasPage {
                             </button>
                         </div>
                         <div class="d-flex align-items-center gap-2">
+                            <select id="filter-sede" class="form-select form-select-sm" style="max-width: 200px; border-color: var(--border-color); border-radius: 0.4rem;">
+                                <option value="">Todas las Sedes</option>
+                            </select>
                             <label class="mb-0 fw-medium" style="color: var(--text-muted); font-size: 0.85rem;">Search:</label>
                             <input type="text" class="form-control form-control-sm" style="max-width: 200px; border-color: var(--border-color); border-radius: 0.4rem;" placeholder="" id="search-input">
                         </div>
@@ -255,7 +258,12 @@ class FichasPage {
 
         const searchInput = document.getElementById('search-input');
         if (searchInput) {
-            searchInput.addEventListener('input', (e) => this.filterTable(e.target.value));
+            searchInput.addEventListener('input', () => this.applyFilters());
+        }
+
+        const filterSede = document.getElementById('filter-sede');
+        if (filterSede) {
+            filterSede.addEventListener('change', () => this.applyFilters());
         }
 
         document.getElementById('btn-export-db').addEventListener('click', async () => {
@@ -311,6 +319,16 @@ class FichasPage {
             ]);
             this.programas = progData.data || (Array.isArray(progData)  ? progData  : []);
             this.sedes     = sedesData.data || (Array.isArray(sedesData) ? sedesData : []);
+
+            const filterSede = document.getElementById('filter-sede');
+            if (filterSede) {
+                this.sedes.forEach(s => {
+                    const option = document.createElement('option');
+                    option.value = s.idSede;
+                    option.textContent = s.nombre + (s.municipio ? ` - ${s.municipio.nombreMunicipio}` : '');
+                    filterSede.appendChild(option);
+                });
+            }
         } catch (error) {
             console.error('Error al cargar dependencias:', error);
             this.showAlert('page-alert-container', 'warning', 'No se pudieron cargar los datos de soporte.');
@@ -326,20 +344,33 @@ class FichasPage {
         return parseInt(meses) || 0;
     }
 
-    filterTable(query) {
-        const q = query.toLowerCase().trim();
-        if (!q) {
-            this.renderTable(this.fichas);
-            return;
-        }
-        const filtered = this.fichas.filter(f =>
-            (f.codigoFicha && f.codigoFicha.toLowerCase().includes(q)) ||
-            (f.jornada && f.jornada.toLowerCase().includes(q)) ||
-            (f.modalidad && f.modalidad.toLowerCase().includes(q)) ||
-            (f.programa && f.programa.nombre && f.programa.nombre.toLowerCase().includes(q)) ||
-            (f.programa && f.programa.codigo && f.programa.codigo.toLowerCase().includes(q))
-        );
+    applyFilters() {
+        const query = document.getElementById('search-input')?.value.toLowerCase().trim() || '';
+        const idSedeFiltro = document.getElementById('filter-sede')?.value || '';
+
+        const filtered = this.fichas.filter(f => {
+            let matchSearch = true;
+            if (query) {
+                matchSearch = (f.codigoFicha && f.codigoFicha.toLowerCase().includes(query)) ||
+                              (f.jornada && f.jornada.toLowerCase().includes(query)) ||
+                              (f.modalidad && f.modalidad.toLowerCase().includes(query)) ||
+                              (f.programa && f.programa.nombre && f.programa.nombre.toLowerCase().includes(query)) ||
+                              (f.programa && f.programa.codigo && f.programa.codigo.toLowerCase().includes(query));
+            }
+
+            let matchSede = true;
+            if (idSedeFiltro) {
+                matchSede = String(f.idSede) === String(idSedeFiltro) || (f.sede && String(f.sede.idSede) === String(idSedeFiltro));
+            }
+
+            return matchSearch && matchSede;
+        });
+
         this.renderTable(filtered);
+    }
+
+    filterTable(query) {
+        this.applyFilters();
     }
 
     async loadData() {
