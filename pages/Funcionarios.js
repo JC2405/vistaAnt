@@ -174,7 +174,7 @@ class FuncionariosPage {
 
 
 
-                    
+
                     <!-- Table Container -->
                     <div id="table-container">
                         ${DataTable({ id: 'funcionarios-table', columns: [], loading: true })}

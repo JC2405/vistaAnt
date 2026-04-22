@@ -1327,31 +1327,41 @@ class HorarioTitulada {
 
     async eliminarDiaDeBloque(idBloque, idDia, nombreDia, idAsignacion) {
         const result = await Swal.fire({
-            title: `¿Eliminar el día ${nombreDia}?`,
-            text: 'Se eliminará este día del bloque horario.',
-            icon: 'warning', showCancelButton: true,
-            confirmButtonColor: '#d33', cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar'
+            title: `¿Opciones de eliminación?`,
+            text: `¿Qué deseas eliminar de este instructor?`,
+            icon: 'warning', 
+            showCancelButton: true,
+            showDenyButton: true,
+            confirmButtonColor: '#3085d6', 
+            denyButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: `Solo el día ${nombreDia}`, 
+            denyButtonText: 'Toda la asignación',
+            cancelButtonText: 'Cancelar'
         });
-        if (!result.isConfirmed) return;
-        try {
-            await apiCall(`/eliminarDiaDeBloque/${idBloque}/${idDia}`, 'DELETE');
-            this.showAlert('page-alert-container', 'success', `Día ${nombreDia} eliminado correctamente.`);
-            this.selectFicha(this.selectedFicha.idFicha);
-        } catch (err) {
-            const msg = err.message || '';
-            if (msg.includes('ULTIMO_DIA') || msg.toLowerCase().includes('único')) {
-                const r2 = await Swal.fire({
-                    title: 'Último día del bloque',
-                    text: 'Este es el único día. Si lo eliminas se eliminará toda la asignación. ¿Continuar?',
-                    icon: 'warning', showCancelButton: true,
-                    confirmButtonColor: '#d33', cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Sí, eliminar todo', cancelButtonText: 'Cancelar'
-                });
-                if (r2.isConfirmed) this.deleteAsignacion(idAsignacion, true);
-            } else {
-                this.showAlert('page-alert-container', 'danger', 'Error: ' + msg);
+        
+        if (result.isConfirmed) {
+            try {
+                await apiCall(`/eliminarDiaDeBloque/${idBloque}/${idDia}`, 'DELETE');
+                this.showAlert('page-alert-container', 'success', `Día ${nombreDia} eliminado correctamente.`);
+                this.selectFicha(this.selectedFicha.idFicha);
+            } catch (err) {
+                const msg = err.message || '';
+                if (msg.includes('ULTIMO_DIA') || msg.toLowerCase().includes('único')) {
+                    const r2 = await Swal.fire({
+                        title: 'Último día del bloque',
+                        text: 'Este es el único día. Si lo eliminas se eliminará toda la asignación. ¿Continuar?',
+                        icon: 'warning', showCancelButton: true,
+                        confirmButtonColor: '#d33', cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Sí, eliminar todo', cancelButtonText: 'Cancelar'
+                    });
+                    if (r2.isConfirmed) this.deleteAsignacion(idAsignacion, true);
+                } else {
+                    this.showAlert('page-alert-container', 'danger', 'Error: ' + msg);
+                }
             }
+        } else if (result.isDenied) {
+            this.deleteAsignacion(idAsignacion, true);
         }
     }
 
