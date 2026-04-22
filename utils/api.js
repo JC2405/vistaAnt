@@ -41,6 +41,11 @@ export async function apiFetch(endpoint, options = {}) {
         throw new Error(data.message || `Error ${response.status}`);
     }
 
+    if (data.ok === false) {
+    throw new Error(data.message || 'Error en la operación');
+    
+    }
+
     return data;
 }
 
