@@ -1,4 +1,4 @@
-import { ProtectedRoute } from '../components/ProtectedRoute.js';
+﻿import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
 import {
@@ -1559,53 +1559,59 @@ class HorarioFormativa {
     }
 
     async handleSubmit() {
-        const dias = Array.from(document.querySelectorAll('#dias-container .btn-check:checked'))
-            .map(c => parseInt(c.value));
-        if (!dias.length) {
-            this.showAlert('modal-alert', 'warning', 'Selecciona al menos un día de la semana.');
-            return;
-        }
-        const modalidad = document.getElementById('modalidad_clase').value;
-        const idAmbiente = parseInt(document.getElementById('idAmbiente').value);
-        if (modalidad === 'presencial' && !idAmbiente) {
-            this.showAlert('modal-alert', 'warning', 'Selecciona un ambiente para la modalidad presencial.');
-            return;
-        }
-        const btn = document.getElementById('btn-asignar');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
-        try {
-            await apiCall('/crearAsignacion', 'POST', {
-                horaInicio: document.getElementById('hora_inicio').value + ':00',
-                horaFin: document.getElementById('hora_fin').value + ':00',
-                modalidad,
-                tipoFormacion: 'transversal',
-                idFuncionario: parseInt(document.getElementById('idFuncionario').value),
-                dias,
-                idAmbiente: modalidad === 'presencial' ? idAmbiente : null,
-                idFicha: this.selectedFicha.idFicha,
-                fechaInicio: document.getElementById('fecha_inicio').value,
-                fechaFin: document.getElementById('fecha_fin').value,
-                observaciones: document.getElementById('observacion')?.value || null,
-                estado: 'activo',
-            });
-            bootstrap.Modal.getInstance(document.getElementById('modalHorario'))?.hide();
-            document.getElementById('form-horario').reset();
-            document.getElementById('modal-alert').innerHTML = '';
-            this._ddInstructor?.reset('Buscar instructor...');
-            this.showAlert('page-alert-container', 'success', 'Clase asignada correctamente al horario.');
-            this.selectFicha(this.selectedFicha.idFicha);
-        } catch (err) {
-            let msg = err.message;
-            if (msg.toLowerCase().includes('conflicto'))
-                msg = '<i class="bi bi-exclamation-triangle-fill me-2"></i>' + msg;
-            this.showAlert('modal-alert', 'danger', msg);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-calendar-check"></i> Asignar';
-        }
+    const btn = document.getElementById('btn-asignar');
+    if (btn.disabled) return; // ← guard: si ya está corriendo, ignorar
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+
+    const dias = Array.from(document.querySelectorAll('#dias-container .btn-check:checked'))
+        .map(c => parseInt(c.value));
+    if (!dias.length) {
+        this.showAlert('modal-alert', 'warning', 'Selecciona al menos un día de la semana.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-calendar-check"></i> Asignar';
+        return;
+    }
+    const modalidad = document.getElementById('modalidad_clase').value;
+    const idAmbiente = parseInt(document.getElementById('idAmbiente').value);
+    if (modalidad === 'presencial' && !idAmbiente) {
+        this.showAlert('modal-alert', 'warning', 'Selecciona un ambiente para la modalidad presencial.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-calendar-check"></i> Asignar';
+        return;
     }
 
+    try {
+        await apiCall('/crearAsignacion', 'POST', {
+            horaInicio: document.getElementById('hora_inicio').value + ':00',
+            horaFin: document.getElementById('hora_fin').value + ':00',
+            modalidad,
+            tipoFormacion: 'transversal',
+            idFuncionario: parseInt(document.getElementById('idFuncionario').value),
+            dias,
+            idAmbiente: modalidad === 'presencial' ? idAmbiente : null,
+            idFicha: this.selectedFicha.idFicha,
+            fechaInicio: document.getElementById('fecha_inicio').value,
+            fechaFin: document.getElementById('fecha_fin').value,
+            observaciones: document.getElementById('observacion')?.value || null,
+            estado: 'activo',
+        });
+        bootstrap.Modal.getInstance(document.getElementById('modalHorario'))?.hide();
+        document.getElementById('form-horario').reset();
+        document.getElementById('modal-alert').innerHTML = '';
+        this._ddInstructor?.reset('Buscar instructor...');
+        this.showAlert('page-alert-container', 'success', 'Clase asignada correctamente al horario.');
+        this.selectFicha(this.selectedFicha.idFicha);
+    } catch (err) {
+        let msg = err.message;
+        if (msg.toLowerCase().includes('conflicto'))
+            msg = '<i class="bi bi-exclamation-triangle-fill me-2"></i>' + msg;
+        this.showAlert('modal-alert', 'danger', msg);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-calendar-check"></i> Asignar';
+        }
+    }
     showAlert(containerId, type, message) {
         const el = document.getElementById(containerId);
         if (!el) return;
