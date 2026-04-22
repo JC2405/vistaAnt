@@ -145,7 +145,7 @@ class FuncionariosPage {
                         <div class="d-flex gap-2">
                             <button class="btn btn-purple d-flex align-items-center gap-2" id="btn-asignar-area-masivo">
                                 <i class="bi bi-tags-fill"></i>
-                                <span>Asignar Área por Bloque</span>
+                                <span>Asignar Instructores A Área</span>
                             </button>
                             <button class="btn btn-purple d-flex align-items-center gap-2" id="btn-add-funcionario">
                                 <i class="bi bi-plus-lg"></i>
@@ -221,7 +221,7 @@ class FuncionariosPage {
                     <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
                         <div class="modal-header text-white border-0 px-4 py-3" style="background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);">
                             <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
-                                <i class="bi bi-tags-fill"></i> Asignar Área por Bloque
+                                <i class="bi bi-tags-fill"></i> Asignar Instructores A Área
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
@@ -905,6 +905,7 @@ class FuncionariosPage {
             }).join('');
 
         this.funcionariosSinArea = this.funcionarios.filter(f => !f.areas || f.areas.length === 0);
+        this.instructoresMasivoSeleccionados = new Set();
         this.renderInstructoresMasivo(this.funcionariosSinArea);
 
         document.getElementById('search-instructores-masivo').value = '';
@@ -926,10 +927,11 @@ class FuncionariosPage {
 
         tbody.innerHTML = instructores.map(f => {
             const isActive = f.estado && f.estado.toLowerCase() === 'activo';
+            const isChecked = this.instructoresMasivoSeleccionados.has(String(f.idFuncionario)) ? 'checked' : '';
             return `
                 <tr>
                     <td style="text-align: center;">
-                        <input class="form-check-input chk-masivo" type="checkbox" value="${f.idFuncionario}">
+                        <input class="form-check-input chk-masivo" type="checkbox" value="${f.idFuncionario}" ${isChecked}>
                     </td>
                     <td>${f.nombre || ''} ${f.apellido || ''}</td>
                     <td>${f.correo || ''}</td>
@@ -937,6 +939,11 @@ class FuncionariosPage {
                 </tr>
             `;
         }).join('');
+        
+        const total = tbody.querySelectorAll('.chk-masivo').length;
+        const checked = tbody.querySelectorAll('.chk-masivo:checked').length;
+        document.getElementById('checkbox-all-masivo').checked = (total > 0 && total === checked);
+        
         this.updateCounterMasivo();
     }
 
@@ -950,12 +957,16 @@ class FuncionariosPage {
                 (f.correo && f.correo.toLowerCase().includes(q))
             );
             this.renderInstructoresMasivo(filter);
-            document.getElementById('checkbox-all-masivo').checked = false;
         };
 
         const tbody = document.getElementById('tbody-instructores-masivo');
         tbody.onchange = (e) => {
             if (e.target.classList.contains('chk-masivo')) {
+                if (e.target.checked) {
+                    this.instructoresMasivoSeleccionados.add(String(e.target.value));
+                } else {
+                    this.instructoresMasivoSeleccionados.delete(String(e.target.value));
+                }
                 this.updateCounterMasivo();
                 const total = tbody.querySelectorAll('.chk-masivo').length;
                 const checked = tbody.querySelectorAll('.chk-masivo:checked').length;
@@ -965,18 +976,31 @@ class FuncionariosPage {
 
         document.getElementById('checkbox-all-masivo').onchange = (e) => {
             const isChecked = e.target.checked;
-            tbody.querySelectorAll('.chk-masivo').forEach(chk => chk.checked = isChecked);
+            tbody.querySelectorAll('.chk-masivo').forEach(chk => {
+                chk.checked = isChecked;
+                if (isChecked) {
+                    this.instructoresMasivoSeleccionados.add(String(chk.value));
+                } else {
+                    this.instructoresMasivoSeleccionados.delete(String(chk.value));
+                }
+            });
             this.updateCounterMasivo();
         };
 
         document.getElementById('btn-select-all-masivo').onclick = () => {
-            tbody.querySelectorAll('.chk-masivo').forEach(chk => chk.checked = true);
+            tbody.querySelectorAll('.chk-masivo').forEach(chk => {
+                chk.checked = true;
+                this.instructoresMasivoSeleccionados.add(String(chk.value));
+            });
             document.getElementById('checkbox-all-masivo').checked = true;
             this.updateCounterMasivo();
         };
         
         document.getElementById('btn-asignar-todos-sin-area').onclick = () => {
-            tbody.querySelectorAll('.chk-masivo').forEach(chk => chk.checked = true);
+            tbody.querySelectorAll('.chk-masivo').forEach(chk => {
+                chk.checked = true;
+                this.instructoresMasivoSeleccionados.add(String(chk.value));
+            });
             document.getElementById('checkbox-all-masivo').checked = true;
             this.updateCounterMasivo();
         };
@@ -993,7 +1017,7 @@ class FuncionariosPage {
                 return;
             }
 
-            const ids = Array.from(tbody.querySelectorAll('.chk-masivo:checked')).map(c => c.value);
+            const ids = Array.from(this.instructoresMasivoSeleccionados);
             if (ids.length === 0) {
                 Swal.fire({ 
                     icon: 'warning', 
@@ -1040,9 +1064,8 @@ class FuncionariosPage {
     }
 
     updateCounterMasivo() {
-        const checked = document.querySelectorAll('#tbody-instructores-masivo .chk-masivo:checked').length;
         const counterEl = document.getElementById('counter-instructores-masivo');
-        if (counterEl) counterEl.textContent = checked;
+        if (counterEl) counterEl.textContent = this.instructoresMasivoSeleccionados.size;
     }
 
     async handleFormSubmit(e) {

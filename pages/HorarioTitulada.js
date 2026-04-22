@@ -1120,7 +1120,7 @@ class HorarioTitulada {
                 </div>
                 <button class="btn btn-purple rounded-pill px-4 d-flex align-items-center gap-2 shadow-sm"
                         data-bs-toggle="modal" data-bs-target="#modalHorario">
-                    <i class="bi bi-plus-lg"></i><span>Agregar Formación</span>
+                    <i class="bi bi-plus-lg"></i><span>Agregar Horario</span>
                 </button>
             </div>`;
 
@@ -1129,7 +1129,7 @@ class HorarioTitulada {
                 <div class="card-body p-5 text-center text-muted d-flex flex-column align-items-center justify-content-center" style="min-height:400px;">
                     <i class="bi bi-calendar-x fs-1 d-block mb-3 opacity-25"></i>
                     <p class="fw-medium">Sin clases asignadas</p>
-                    <p class="small">Usa "Agregar Formación" para comenzar.</p>
+                    <p class="small">Usa "Agregar Horario" para comenzar.</p>
                 </div>`;
             return;
         }
@@ -1190,7 +1190,7 @@ class HorarioTitulada {
                         borderColor: isVirtual ? '#0dcaf0' : '#4caa16',
                         textColor: isVirtual ? '#0dcaf0' : '#4caa16',
                         extendedProps: {
-                            instructor: asig.funcionario ? asig.funcionario.nombre : '—',
+                            instructor: asig.funcionario ? `${asig.funcionario.nombre || ''} ${asig.funcionario.apellido || asig.funcionario.apellidos || ''}`.trim() : '—',
                             ambiente: asig.ambiente ? (asig.ambiente.codigo || asig.ambiente.nombre) : null,
                             modalidad: asig.modalidad,
                             tipoDeFormacion: asig.ficha?.programa?.tipoFormacion?.nombreTipoFormacion || '',
@@ -1201,6 +1201,7 @@ class HorarioTitulada {
                             nombreDia: dia,
                             idAsignacion: asig.idAsignacion,
                             isTransversal,
+                            observaciones: bloque.observaciones || bloque.observacion || '',
                         }
                     });
                 }
@@ -1266,10 +1267,14 @@ class HorarioTitulada {
                     ? `<div class="mt-auto pt-1"><span class="badge bg-secondary bg-opacity-25 text-dark" style="font-size:0.65rem;">${p.tipoDeFormacion}</span></div>`
                     : '';
                 if (calendar.view.type === 'dayGridMonth') {
+                    const fmtHora = (d) => d ? d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+                    const horaIni = fmtHora(arg.event.start);
+                    const horaFin = fmtHora(arg.event.end);
+                    const rangoHora = horaIni && horaFin ? `<span class="fw-normal ms-1" style="opacity:0.75;">${horaIni} - ${horaFin}</span>` : '';
                     return {
                         html: `<div class="p-1 d-flex flex-column overflow-hidden" style="font-size:0.72rem;">
-                        <div class="fw-bold text-truncate">${p.instructor}</div>
-                        <div class="text-truncate" style="font-size:0.65rem;opacity:0.8;"><i class="bi ${icon}"></i> ${p.ambiente || 'Virtual'}</div>
+                        <div class="fw-semibold text-truncate">${p.instructor} ${rangoHora}</div>
+                        <div class="text-truncate" style="font-size:0.65rem;opacity:0.85;"><i class="bi ${icon}"></i> ${p.ambiente || 'Virtual'}${p.observaciones ? `<span class="ms-1 text-muted" style="font-size:0.62rem;"> · ${p.observaciones}</span>` : ''}</div>
                     </div>` };
                 }
                 return {

@@ -201,13 +201,14 @@ class ProgramasPage {
         });
     }
 
-    bindToolbarButtons() {}
+    bindToolbarButtons() { }
 
     setupModal() {
         // Use getTipoNombre helper so options render correctly regardless of API field name
-        const tipoOptions = this.tiposFormacion.map(t =>
-            '<option value="' + t.idTipoFormacion + '">' + getTipoNombre(t) + '</option>'
-        ).join('');
+        const tipoOptions = this.tiposFormacion.map(t => {
+            const duracion = t.duracionMeses ? ` - ${t.duracionMeses} meses` : '';
+            return '<option value="' + t.idTipoFormacion + '">' + getTipoNombre(t) + duracion + '</option>';
+        }).join('');
 
         const formContent = `
             <div class="row g-3">
