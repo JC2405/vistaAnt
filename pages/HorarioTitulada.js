@@ -1273,7 +1273,7 @@ class HorarioTitulada {
                     const rangoHora = horaIni && horaFin ? `<span class="fw-normal ms-1" style="opacity:0.75;">${horaIni} - ${horaFin}</span>` : '';
                     return {
                         html: `<div class="p-1 d-flex flex-column overflow-hidden" style="font-size:0.72rem;">
-                        <div class="fw-semibold text-truncate">${p.instructor} ${rangoHora}</div>
+                        <div class="fw-semibold text-truncate">${p.instructor} <br> ${rangoHora}</div>
                         <div class="text-truncate" style="font-size:0.65rem;opacity:0.85;"><i class="bi ${icon}"></i> ${p.ambiente || 'Virtual'}${p.observaciones ? `<span class="ms-1 text-muted" style="font-size:0.62rem;"> · ${p.observaciones}</span>` : ''}</div>
                     </div>` };
                 }
