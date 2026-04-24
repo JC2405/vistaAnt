@@ -650,10 +650,52 @@ class HorarioFormativa {
                 items.sort((a, b) => a.label.localeCompare(b.label));
                 this._ddAmbiente.setItems(items);
             },
-            onSelect: () => {
-                this._ddInstructor?.reset();
+            onSelect: (item) => {
+                // No resetear instructor: verificar compatibilidad y avisar si corresponde
+                this._verificarCompatibilidadInstructorAmbiente(item.id);
             }
         });
+    }
+
+    /**
+     * Verifica si el instructor actualmente seleccionado pertenece al área
+     * del ambiente dado. Si no es compatible muestra una advertencia visual
+     * sin bloquear ni resetear nada.
+     * @param {string|number} idAmbiente
+     */
+    _verificarCompatibilidadInstructorAmbiente(idAmbiente) {
+        const alertEl = document.getElementById('modal-alert');
+        if (!alertEl) return;
+
+        // Limpiar advertencia previa de incompatibilidad
+        const prevWarn = alertEl.querySelector('[data-compat-warn]');
+        prevWarn?.remove();
+
+        const idFuncionario = document.getElementById('idFuncionario')?.value;
+        if (!idFuncionario) return; // No hay instructor seleccionado → sin nada que verificar
+
+        const ambiente = this.ambientes.find(a => String(a.idAmbiente) === String(idAmbiente));
+        if (!ambiente?.idArea) return; // El ambiente no tiene área definida
+
+        const instructor = this.instructores.find(i => String(i.idFuncionario) === String(idFuncionario));
+        if (!instructor) return;
+
+        const perteneceAlArea = instructor.areas?.some(
+            ar => String(ar.idArea) === String(ambiente.idArea)
+        );
+
+        if (!perteneceAlArea) {
+            const warn = document.createElement('div');
+            warn.setAttribute('data-compat-warn', '1');
+            warn.className = 'alert alert-warning alert-dismissible d-flex align-items-center gap-2 py-2 px-3 mt-2 mb-0';
+            warn.style.fontSize = '0.82rem';
+            warn.innerHTML = `
+                <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+                <span>El instructor seleccionado <strong>no pertenece al área</strong> del ambiente elegido. Puedes continuar o cambiar el instructor.</span>
+                <button type="button" class="btn-close" style="font-size:0.7rem;" aria-label="Cerrar"></button>`;
+            warn.querySelector('.btn-close').addEventListener('click', () => warn.remove());
+            alertEl.appendChild(warn);
+        }
     }
 
     setupEventListeners() {
@@ -783,6 +825,7 @@ class HorarioFormativa {
                 searchInput.focus();
             });
 
+            // Selección de item desde dropdown flotante
             panel.addEventListener('click', (e) => {
                 const li = e.target.closest('.sd-item');
                 if (!li) return;
@@ -790,7 +833,8 @@ class HorarioFormativa {
                 const label = li.dataset.label;
                 // Sincronizar selección al dropdown principal
                 this._ddAmbiente.setValue(id, label);
-                this._ddInstructor?.reset();
+                // No resetear instructor: verificar compatibilidad y avisar si corresponde
+                this._verificarCompatibilidadInstructorAmbiente(id);
                 _cerrarDropdownDisponibles();
             });
 
