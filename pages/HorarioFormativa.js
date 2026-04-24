@@ -1,4 +1,4 @@
-﻿import { ProtectedRoute } from '../components/ProtectedRoute.js';
+import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
 import {
@@ -340,12 +340,18 @@ class HorarioFormativa {
         this.viewState = 'fichas';
         this.selectedSedeId = null;
 
+        // Estado del dropdown secundario de ambientes disponibles
+        this.ambientesDisponibles = [];
+        this.mostrarDropdownDisponibles = false;
+
         // Dropdowns del panel de filtros
         this._ddSede = null;
         this._ddPrograma = null;
-        // Dropdown del modal
+        // Dropdown del modal (Instructor, Ambiente)
         this._ddInstructor = null;
         this._ddAmbiente = null;
+        // Dropdown flotante auxiliar: Ambientes Disponibles
+        this._ddAmbienteDisponibles = null;
 
         this.init();
     }
@@ -448,8 +454,16 @@ class HorarioFormativa {
                                                     <div class="col-6"><label class="form-label small text-muted mb-1">Hora Fin</label><input type="time" class="form-control form-control-sm" id="hora_fin" required></div>
                                                 </div>
                                                 <div class="mb-2">
-                                                    <label class="form-label small text-muted mb-1">Días de la semana</label>
-                                                    <div class="d-flex flex-wrap gap-1" id="dias-container"></div>
+                                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                                        <label class="form-label small text-muted mb-0">Días de la semana</label>
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-outline-primary rounded-pill px-3 py-0"
+                                                                id="btn-ambientes-libres"
+                                                                style="font-size:0.75rem; margin:5.5px 0;">
+                                                                Ambientes Libres
+                                                            </button>
+                                                    </div>
+                                                    <div class="d-flex flex-wrap gap-1 mb-2" id="dias-container"></div>
                                                 <!-- Resumen de horas calculadas -->
                                                 <div id="resumen-horas-container" class="d-none mb-2">
                                                     <div class="rounded-3 border px-3 py-2"
@@ -622,6 +636,7 @@ class HorarioFormativa {
                     this._ddAmbiente.setItems([]);
                     return;
                 }
+                // Siempre muestra TODOS los ambientes de la sede, sin filtrar
                 const filtered = this.ambientes.filter(a => String(a.idSede) === String(idSede));
                 const items = filtered.map(a => {
                     const areaNombre = a.area?.nombreArea ?? 'Sin área';
@@ -636,7 +651,6 @@ class HorarioFormativa {
                 this._ddAmbiente.setItems(items);
             },
             onSelect: () => {
-                // Al cambiar ambiente podemos resetear instructor o dejarlo evaluando su valor.
                 this._ddInstructor?.reset();
             }
         });
@@ -661,8 +675,199 @@ class HorarioFormativa {
             }
         });
 
-        document.getElementById('idSede')?.addEventListener('change', e => {
+        // ── Dropdown flotante: Ambientes Disponibles ─────────────────────────
+        const btnAmbientesLibres = document.getElementById('btn-ambientes-libres');
+
+        const _cerrarDropdownDisponibles = () => {
+            if (this._ddAmbienteDisponibles) {
+                this._ddAmbienteDisponibles._dropdown?.remove();
+                document.removeEventListener('click', this._ddAmbienteDisponibles._bound);
+            }
+            this._ddAmbienteDisponibles = null;
+            this.mostrarDropdownDisponibles = false;
+            if (btnAmbientesLibres) {
+                btnAmbientesLibres.classList.remove('btn-primary');
+                btnAmbientesLibres.classList.add('btn-outline-primary');
+                btnAmbientesLibres.innerHTML = 'Ambientes Libres';
+            }
+        };
+
+        const _abrirDropdownDisponibles = () => {
+            if (!this.ambientesDisponibles.length) return;
+
+            _cerrarDropdownDisponibles();
+
+            const btn = btnAmbientesLibres;
+            const rect = btn.getBoundingClientRect();
+
+            const panel = document.createElement('div');
+            panel.className = 'sd-dropdown';
+            // El endpoint retorna: { idAmbiente, nombreCompleto }
+            const items = this.ambientesDisponibles.map(a => ({
+                id: a.idAmbiente,
+                label: a.nombreCompleto || `Ambiente ${a.idAmbiente}`,
+                sub: ''
+            }));
+
+            panel.innerHTML = `
+                <div class="sd-search-wrap">
+                    <i class="bi bi-search sd-icon"></i>
+                    <input type="text" class="sd-search" placeholder="Ambientes disponibles..." autocomplete="off" spellcheck="false">
+                    <button type="button" class="sd-clear" title="Limpiar"><i class="bi bi-x"></i></button>
+                </div>
+                <ul class="sd-list"></ul>
+                <div class="sd-empty d-none"><i class="bi bi-inbox-fill"></i><span>No hay ambientes disponibles</span></div>`;
+
+            const _highlight = (str, q) => {
+                if (!q || !str) return str || '';
+                const idx = str.toLowerCase().indexOf(q.toLowerCase());
+                if (idx === -1) return str;
+                return str.slice(0, idx) +
+                    `<mark class="sd-hl">${str.slice(idx, idx + q.length)}</mark>` +
+                    str.slice(idx + q.length);
+            };
+
+            const _filterPanel = (q) => {
+                const list = panel.querySelector('.sd-list');
+                const empty = panel.querySelector('.sd-empty');
+                const lq = q.trim();
+                const filtered = lq
+                    ? items.filter(i =>
+                        (i.label || '').toLowerCase().includes(lq.toLowerCase()) ||
+                        (i.sub || '').toLowerCase().includes(lq.toLowerCase()))
+                    : items;
+                if (!filtered.length) {
+                    list.innerHTML = '';
+                    empty.classList.remove('d-none');
+                    return;
+                }
+                empty.classList.add('d-none');
+                list.innerHTML = filtered.map(item =>
+                    `<li class="sd-item"
+                         data-id="${item.id}"
+                         data-label="${(item.label || '').replace(/"/g, '&quot;')}">
+                         <span class="sd-label">${_highlight(item.label, lq)}</span>
+                         ${item.sub ? `<span class="sd-sub">${_highlight(item.sub, lq)}</span>` : ''}
+                     </li>`
+                ).join('');
+            };
+
+            const ddH = 340;
+            const below = window.innerHeight - rect.bottom;
+            const above = rect.top;
+            const goUp = below < ddH + 8 && above > ddH + 8;
+            panel.style.position = 'fixed';
+            panel.style.zIndex = '9999';
+            panel.style.width = Math.max(rect.width, 240) + 'px';
+            panel.style.left = rect.left + 'px';
+            panel.style.top = goUp
+                ? (rect.top - Math.min(ddH, 340) - 4) + 'px'
+                : (rect.bottom + 4) + 'px';
+
+            const modal = btn.closest('.modal');
+            (modal || document.body).appendChild(panel);
+
+            _filterPanel('');
+
+            const searchInput = panel.querySelector('.sd-search');
+            const clearBtn = panel.querySelector('.sd-clear');
+            searchInput.addEventListener('input', () => {
+                clearBtn.classList.toggle('visible', searchInput.value.length > 0);
+                _filterPanel(searchInput.value);
+            });
+            clearBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                searchInput.value = '';
+                clearBtn.classList.remove('visible');
+                _filterPanel('');
+                searchInput.focus();
+            });
+
+            panel.addEventListener('click', (e) => {
+                const li = e.target.closest('.sd-item');
+                if (!li) return;
+                const id = li.dataset.id;
+                const label = li.dataset.label;
+                // Sincronizar selección al dropdown principal
+                this._ddAmbiente.setValue(id, label);
+                this._ddInstructor?.reset();
+                _cerrarDropdownDisponibles();
+            });
+
+            const onOutside = (e) => {
+                if (!panel.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+                    _cerrarDropdownDisponibles();
+                }
+            };
+            setTimeout(() => document.addEventListener('click', onOutside), 0);
+
+            this._ddAmbienteDisponibles = { _dropdown: panel, _bound: onOutside };
+            this.mostrarDropdownDisponibles = true;
+
+            btnAmbientesLibres.classList.remove('btn-outline-primary');
+            btnAmbientesLibres.classList.add('btn-primary');
+            btnAmbientesLibres.innerHTML = `<i class="bi bi-funnel-fill"></i> ${items.length} disponibles`;
+
+            setTimeout(() => searchInput.focus(), 80);
+        };
+
+        if (btnAmbientesLibres) {
+            btnAmbientesLibres.addEventListener('click', async (e) => {
+                e.stopPropagation();
+
+                // Toggle: si ya está abierto, cerrar
+                if (this.mostrarDropdownDisponibles) {
+                    _cerrarDropdownDisponibles();
+                    return;
+                }
+
+                const idSede = document.getElementById('idSede')?.value;
+                const fechaInicio = document.getElementById('fecha_inicio')?.value;
+                const fechaFin = document.getElementById('fecha_fin')?.value;
+                const horaInicio = document.getElementById('hora_inicio')?.value;
+                const horaFin = document.getElementById('hora_fin')?.value;
+
+                if (!idSede || !fechaInicio || !fechaFin || !horaInicio || !horaFin) {
+                    this.showAlert('modal-alert', 'warning', 'Debes seleccionar sede, fechas y horas para buscar ambientes libres.');
+                    return;
+                }
+
+                const orgText = btnAmbientesLibres.innerHTML;
+                btnAmbientesLibres.disabled = true;
+                btnAmbientesLibres.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Buscando...';
+
+                try {
+                    const payload = {
+                        idSede: parseInt(idSede),
+                        fechaInicio,
+                        fechaFin,
+                        horaInicio: horaInicio.length === 5 ? horaInicio + ':00' : horaInicio,
+                        horaFin: horaFin.length === 5 ? horaFin + ':00' : horaFin
+                    };
+                    const response = await apiCall('/ambientes/disponibles', 'POST', payload);
+                    const disponibles = response.data || response || [];
+                    this.ambientesDisponibles = Array.isArray(disponibles) ? disponibles : [];
+
+                    if (!this.ambientesDisponibles.length) {
+                        this.showAlert('modal-alert', 'warning', 'No se encontraron ambientes disponibles para los criterios seleccionados.');
+                        btnAmbientesLibres.innerHTML = orgText;
+                        return;
+                    }
+
+                    this.showAlert('modal-alert', 'success', `Se encontraron ${this.ambientesDisponibles.length} ambiente(s) disponible(s).`);
+                    _abrirDropdownDisponibles();
+                } catch (err) {
+                    this.showAlert('modal-alert', 'danger', 'Error al buscar ambientes libres: ' + err.message);
+                    btnAmbientesLibres.innerHTML = orgText;
+                } finally {
+                    btnAmbientesLibres.disabled = false;
+                }
+            });
+        }
+
+        document.getElementById('idSede')?.addEventListener('change', () => {
             this._ddAmbiente?.reset();
+            _cerrarDropdownDisponibles();
         });
 
         document.getElementById('form-horario')?.addEventListener('submit', e => {
@@ -672,11 +877,17 @@ class HorarioFormativa {
 
         // ── Cálculo automático de horas de formación ──────────────────────
         ['fecha_inicio', 'fecha_fin', 'hora_inicio', 'hora_fin'].forEach(id => {
-            document.getElementById(id)?.addEventListener('change', () => this._calcularHorasFormacion());
+            document.getElementById(id)?.addEventListener('change', () => {
+                this._calcularHorasFormacion();
+                _cerrarDropdownDisponibles();
+            });
         });
 
         // Delegación para los checkboxes de días (se generan dinámicamente)
-        document.getElementById('dias-container')?.addEventListener('change', () => this._calcularHorasFormacion());
+        document.getElementById('dias-container')?.addEventListener('change', () => {
+            this._calcularHorasFormacion();
+            _cerrarDropdownDisponibles();
+        });
 
         // Recalcular al abrir el modal (por si ya hay valores pre-cargados)
         document.getElementById('modalHorario')?.addEventListener('shown.bs.modal', () => this._calcularHorasFormacion());
