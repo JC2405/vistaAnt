@@ -6,7 +6,7 @@ import { ModalForm, setModalLoading } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
-import { getProgramas, createPrograma, updatePrograma, deletePrograma, getTiposFormacion, exportarProgramas } from '../utils/api.js?v=4';
+import { getProgramas, createPrograma, updatePrograma, deletePrograma, getTiposFormacion, getAreas, exportarProgramas } from '../utils/api.js?v=4';
 
 // Helper: extrae el nombre del tipo sin importar qué campo devuelva el API
 const getTipoNombre = (tipo) => tipo ? (tipo.nombreTipoFormacion || tipo.nombre || 'N/A') : null;
@@ -17,6 +17,7 @@ class ProgramasPage {
         this.appContainer = document.getElementById('app');
         this.programas = [];
         this.tiposFormacion = [];
+        this.areas = [];
         this.currentEditId = null;
 
         this.init();
@@ -109,9 +110,12 @@ class ProgramasPage {
         try {
             const tiposData = await getTiposFormacion();
             this.tiposFormacion = tiposData.data || (Array.isArray(tiposData) ? tiposData : []);
+            
+            const areasData = await getAreas();
+            this.areas = areasData.data || (Array.isArray(areasData) ? areasData : []);
         } catch (error) {
-            console.error('Error al cargar tipos de formación:', error);
-            this.showAlert('page-alert-container', 'warning', 'No se pudieron cargar los tipos de formación.');
+            console.error('Error al cargar dependencias:', error);
+            this.showAlert('page-alert-container', 'warning', 'No se pudieron cargar algunas dependencias.');
         }
     }
 
@@ -210,6 +214,10 @@ class ProgramasPage {
             return '<option value="' + t.idTipoFormacion + '">' + getTipoNombre(t) + duracion + '</option>';
         }).join('');
 
+        const areaOptions = this.areas.map(a => {
+            return '<option value="' + a.idArea + '">' + a.nombreArea + ' - ' + a.tipo + '</option>';
+        }).join('');
+
         const formContent = `
             <div class="row g-3">
                 <div class="col-md-8">
@@ -218,10 +226,19 @@ class ProgramasPage {
                 <div class="col-md-4">
                     ${FormInput({ id: 'codigo', label: 'Código', required: true })}
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     ${FormInput({ id: 'version', label: 'Versión', required: true })}
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <div class="mb-4 form-floating position-relative">
+                        <select class="form-select" id="idArea" required style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
+                            <option value="">Seleccione un área</option>
+                            ${areaOptions}
+                        </select>
+                        <label for="idArea">Área</label>
+                    </div>
+                </div>
+                <div class="col-md-3">
                     <div class="mb-4 form-floating position-relative">
                         <select class="form-select" id="idTipoFormacion" required style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
                             <option value="">Seleccione tipo...</option>
@@ -230,7 +247,7 @@ class ProgramasPage {
                         <label for="idTipoFormacion">Tipo Formación</label>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="mb-4 form-floating position-relative">
                         <select class="form-select" id="estado" required style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
                             <option value="Activo">Activo</option>
@@ -260,6 +277,7 @@ class ProgramasPage {
         document.getElementById('version').value = programa ? programa.version : '';
         document.getElementById('estado').value = programa ? (programa.estado || 'Activo') : 'Activo';
         document.getElementById('idTipoFormacion').value = programa ? (programa.idTipoFormacion || '') : '';
+        document.getElementById('idArea').value = programa ? (programa.idArea || '') : '';
 
         const formEl = document.getElementById('programa-modal-form');
         formEl.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
@@ -292,7 +310,8 @@ class ProgramasPage {
             codigo: document.getElementById('codigo').value,
             version: document.getElementById('version').value,
             estado: document.getElementById('estado').value,
-            idTipoFormacion: parseInt(document.getElementById('idTipoFormacion').value)
+            idTipoFormacion: parseInt(document.getElementById('idTipoFormacion').value),
+            idArea: parseInt(document.getElementById('idArea').value)
         };
 
         setModalLoading('programa-modal', true);

@@ -38,12 +38,20 @@ export async function apiFetch(endpoint, options = {}) {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-        throw new Error(data.message || `Error ${response.status}`);
+        const err = new Error(data.message || `Error ${response.status}`);
+        // Adjuntar campos extra del backend (ej. tipo de conflicto)
+        if (data.tipo)         err.tipo         = data.tipo;
+        if (data.codigoFicha) err.codigoFicha = data.codigoFicha;
+        if (data.conflicto)   err.conflicto   = data.conflicto;
+        throw err;
     }
 
     if (data.ok === false) {
-    throw new Error(data.message || 'Error en la operación');
-    
+        const err = new Error(data.message || 'Error en la operación');
+        if (data.tipo)         err.tipo         = data.tipo;
+        if (data.codigoFicha) err.codigoFicha = data.codigoFicha;
+        if (data.conflicto)   err.conflicto   = data.conflicto;
+        throw err;
     }
 
     return data;

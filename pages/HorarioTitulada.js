@@ -504,12 +504,15 @@ class HorarioTitulada {
                                         <div id="modal-alert" class="mt-2"></div>
                                     </form>
                                 </div>
-                                <div class="modal-footer py-2 px-3 bg-white border-top d-flex gap-2">
-                                    <button type="button" class="btn btn-light flex-grow-1 rounded-3 btn-sm" data-bs-dismiss="modal">Cancelar</button>
-                                    <button type="submit" form="form-horario" id="btn-asignar"
-                                            class="btn btn-purple flex-grow-1 rounded-3 btn-sm d-flex justify-content-center align-items-center gap-2">
-                                        <i class="bi bi-calendar-check"></i> Asignar
-                                    </button>
+                                <div class="modal-footer py-2 px-3 bg-white border-top d-flex flex-column gap-2">
+                                    <div id="acciones-conflicto" class="w-100 d-none"></div>
+                                    <div class="w-100 d-flex gap-2">
+                                        <button type="button" class="btn btn-light flex-grow-1 rounded-3 btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" form="form-horario" id="btn-asignar"
+                                                class="btn btn-purple flex-grow-1 rounded-3 btn-sm d-flex justify-content-center align-items-center gap-2">
+                                            <i class="bi bi-calendar-check"></i> Asignar
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -624,19 +627,31 @@ class HorarioTitulada {
                     this._ddAmbiente.setItems([]);
                     return;
                 }
+                
+                const idAreaPrograma = this.selectedFicha?.programa?.idArea;
+
                 // Siempre muestra TODOS los ambientes de la sede, sin filtrar
                 const filtered = this.ambientes.filter(a => String(a.idSede) === String(idSede));
                 const items = filtered.map(a => {
                     const areaNombre = a.area?.nombreArea ?? 'Sin área';
                     const areaTipo = a.area?.tipo ? ` - ${a.area.tipo}` : '';
+                    const esRecomendado = idAreaPrograma && String(a.idArea) === String(idAreaPrograma);
+                    
                     return {
                         id: a.idAmbiente,
                         label: `${a.nombre || areaNombre} - Blq ${a.bloque || 'N/A'}`,
-                        sub: `${areaNombre}${areaTipo}`
+                        sub: `${areaNombre}${areaTipo}`,
+                        isRecommended: !!esRecomendado
                     };
                 });
-                items.sort((a, b) => a.label.localeCompare(b.label));
-                this._ddAmbiente.setItems(items);
+                
+                let recomendados = items.filter(i => i.isRecommended);
+                let otros = items.filter(i => !i.isRecommended);
+                
+                recomendados.sort((a, b) => a.label.localeCompare(b.label));
+                otros.sort((a, b) => a.label.localeCompare(b.label));
+                
+                this._ddAmbiente.setItems([...recomendados, ...otros]);
             },
             onSelect: (item) => {
                 // No resetear instructor: verificar compatibilidad y avisar si corresponde
@@ -1648,37 +1663,48 @@ class HorarioTitulada {
         }
     }
 
-    async handleSubmit() {
+    /** Construye el payload para /crearAsignacion a partir del estado actual del formulario. */
+    _getPayloadAsignacion() {
         const dias = Array.from(document.querySelectorAll('#dias-container .btn-check:checked'))
             .map(c => parseInt(c.value));
-        if (!dias.length) {
+        const modalidad = document.getElementById('modalidad_clase').value;
+        const idAmbiente = parseInt(document.getElementById('idAmbiente').value) || null;
+        return {
+            horaInicio: document.getElementById('hora_inicio').value + ':00',
+            horaFin: document.getElementById('hora_fin').value + ':00',
+            modalidad,
+            tipoFormacion: 'titulada',
+            idFuncionario: parseInt(document.getElementById('idFuncionario').value),
+            dias,
+            idAmbiente: modalidad === 'presencial' ? idAmbiente : null,
+            idFicha: this.selectedFicha.idFicha,
+            fechaInicio: document.getElementById('fecha_inicio').value,
+            fechaFin: document.getElementById('fecha_fin').value,
+            observaciones: document.getElementById('observacion')?.value || null,
+            estado: 'activo',
+        };
+    }
+
+    async handleSubmit() {
+        const payload = this._getPayloadAsignacion();
+
+        if (!payload.dias.length) {
             this.showAlert('modal-alert', 'warning', 'Selecciona al menos un día de la semana.');
             return;
         }
-        const modalidad = document.getElementById('modalidad_clase').value;
-        const idAmbiente = parseInt(document.getElementById('idAmbiente').value);
-        if (modalidad === 'presencial' && !idAmbiente) {
+        if (payload.modalidad === 'presencial' && !payload.idAmbiente) {
             this.showAlert('modal-alert', 'warning', 'Selecciona un ambiente para la modalidad presencial.');
             return;
         }
+
+        // Ocultar botón de conflicto previo (si el usuario reintenta sin conflicto)
+        this._ocultarBotonConflicto();
+
         const btn = document.getElementById('btn-asignar');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
         try {
-            await apiCall('/crearAsignacion', 'POST', {
-                horaInicio: document.getElementById('hora_inicio').value + ':00',
-                horaFin: document.getElementById('hora_fin').value + ':00',
-                modalidad,
-                tipoFormacion: 'titulada',
-                idFuncionario: parseInt(document.getElementById('idFuncionario').value),
-                dias,
-                idAmbiente: modalidad === 'presencial' ? idAmbiente : null,
-                idFicha: this.selectedFicha.idFicha,
-                fechaInicio: document.getElementById('fecha_inicio').value,
-                fechaFin: document.getElementById('fecha_fin').value,
-                observaciones: document.getElementById('observacion')?.value || null,
-                estado: 'activo',
-            });
+            await apiCall('/crearAsignacion', 'POST', payload);
             bootstrap.Modal.getInstance(document.getElementById('modalHorario'))?.hide();
             document.getElementById('form-horario').reset();
             document.getElementById('modal-alert').innerHTML = '';
@@ -1686,13 +1712,180 @@ class HorarioTitulada {
             this.showAlert('page-alert-container', 'success', 'Clase asignada correctamente al horario.');
             this.selectFicha(this.selectedFicha.idFicha);
         } catch (err) {
-            let msg = err.message;
-            if (msg.toLowerCase().includes('conflicto'))
-                msg = '<i class="bi bi-exclamation-triangle-fill me-2"></i>' + msg;
-            this.showAlert('modal-alert', 'danger', msg);
+            // ── Detección de conflicto de ambiente ────────────────────────────
+            if (err.tipo === 'conflicto_ambiente' && err.codigoFicha) {
+                this._mostrarBotonConflicto(err.codigoFicha, err.message);
+            } else if (err.tipo === 'conflicto_instructor' && err.conflicto) {
+                this._mostrarOpcionesConflictoInstructor(err, payload);
+            } else {
+                let msg = err.message;
+                if (msg.toLowerCase().includes('conflicto'))
+                    msg = '<i class="bi bi-exclamation-triangle-fill me-2"></i>' + msg;
+                this.showAlert('modal-alert', 'danger', msg);
+            }
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-calendar-check"></i> Asignar';
+        }
+    }
+
+    /**
+     * Muestra el botón "Eliminar horario anterior" en el contenedor #acciones-conflicto.
+     * Solo se muestra cuando hay conflicto_ambiente.
+     * @param {number|string} codigoFicha  - Código de la ficha con conflicto.
+     * @param {string}        mensajeError - Mensaje original del backend.
+     */
+    _mostrarBotonConflicto(codigoFicha, mensajeError) {
+        const container = document.getElementById('acciones-conflicto');
+        if (!container) return;
+
+        // Mostrar el error de conflicto en el área de alertas del modal
+        this.showAlert('modal-alert', 'warning',
+            `<i class="bi bi-exclamation-triangle-fill me-2"></i>${mensajeError}`);
+
+        container.classList.remove('d-none');
+        container.innerHTML = `
+            <button id="btn-eliminar-conflicto" type="button"
+                    class="btn btn-danger w-100 btn-sm rounded-3 d-flex justify-content-center align-items-center gap-2"
+                    data-codigo-ficha="${codigoFicha}">
+                <i class="bi bi-trash3-fill"></i>
+                Eliminar horario anterior (Ficha ${codigoFicha})
+            </button>`;
+
+        document.getElementById('btn-eliminar-conflicto')
+            .addEventListener('click', () => this._eliminarAsignacionesFicha(codigoFicha));
+    }
+
+    /**
+     * Muestra las opciones de Reemplazar o Partir cuando hay conflicto de instructor.
+     * @param {object} err - Objeto de error con datos del conflicto
+     * @param {object} payload - Payload original de la asignación
+     */
+    _mostrarOpcionesConflictoInstructor(err, payload) {
+        const container = document.getElementById('acciones-conflicto');
+        if (!container) return;
+
+        // Mostrar el error de conflicto en el área de alertas del modal
+        this.showAlert('modal-alert', 'warning',
+            `<i class="bi bi-exclamation-triangle-fill me-2"></i>${err.message}`);
+
+        container.classList.remove('d-none');
+        
+        // Extraemos solo la hora y minuto para la UI
+        const horaInicioCortada = payload.horaInicio.substring(0, 5);
+
+        container.innerHTML = `
+            <div class="d-flex flex-column gap-2 w-100 bg-light p-3 rounded-3 border">
+                <p class="mb-1 text-dark fw-bold" style="font-size:0.85rem;">Opciones para resolver el conflicto:</p>
+                
+                <button type="button" id="btn-reemplazar-conflicto" class="btn btn-outline-danger w-100 btn-sm rounded-3 text-start px-3 py-2">
+                    <div class="fw-bold"><i class="bi bi-arrow-repeat me-1"></i> Reemplazar horario</div>
+                    <div class="small opacity-75 mt-1" style="white-space: normal;">Se eliminará la clase existente y se creará la nueva en ese horario.</div>
+                </button>
+                
+                <button type="button" id="btn-partir-conflicto" class="btn btn-outline-warning w-100 btn-sm rounded-3 text-start px-3 py-2 text-dark border-warning">
+                    <div class="fw-bold"><i class="bi bi-scissors me-1"></i> Partir horario</div>
+                    <div class="small opacity-75 mt-1" style="white-space: normal;">La clase existente se acortará hasta las <strong>${horaInicioCortada}</strong> y la nueva clase iniciará desde ahí.</div>
+                </button>
+            </div>
+        `;
+
+        document.getElementById('btn-reemplazar-conflicto').addEventListener('click', (e) => {
+            e.preventDefault();
+            this._resolverConflictoInstructor('/conflicto/reemplazar', {
+                ...payload,
+                idBloque: err.conflicto.idBloque
+            });
+        });
+
+        document.getElementById('btn-partir-conflicto').addEventListener('click', (e) => {
+            e.preventDefault();
+            this._resolverConflictoInstructor('/conflicto/partir', {
+                ...payload,
+                idBloque: err.conflicto.idBloque,
+                nuevaHoraInicio: payload.horaInicio
+            });
+        });
+    }
+
+    async _resolverConflictoInstructor(endpoint, payload) {
+        const container = document.getElementById('acciones-conflicto');
+        const btns = container.querySelectorAll('button');
+        btns.forEach(b => { b.disabled = true; });
+
+        // Cambiar el texto del botón presionado a 'Procesando...'
+        const activeBtn = Array.from(btns).find(b => b.matches(':hover') || b.matches(':active'));
+        if (activeBtn) {
+            const originalHtml = activeBtn.innerHTML;
+            activeBtn.dataset.originalHtml = originalHtml;
+            activeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
+        }
+
+        try {
+            await apiCall(endpoint, 'POST', payload);
+            
+            // Éxito: ocultar acciones, cerrar modal, resetear y recargar
+            this._ocultarBotonConflicto();
+            bootstrap.Modal.getInstance(document.getElementById('modalHorario'))?.hide();
+            document.getElementById('form-horario').reset();
+            document.getElementById('modal-alert').innerHTML = '';
+            this._ddInstructor?.reset('Buscar instructor...');
+            this.showAlert('page-alert-container', 'success', 'Conflicto resuelto y clase asignada correctamente.');
+            this.selectFicha(this.selectedFicha.idFicha);
+        } catch (err) {
+            this.showAlert('modal-alert', 'danger', 'Error al resolver conflicto: ' + err.message);
+            btns.forEach(b => { 
+                b.disabled = false; 
+                if (b.dataset.originalHtml) {
+                    b.innerHTML = b.dataset.originalHtml;
+                }
+            });
+        }
+    }
+
+    /** Oculta y limpia el contenedor de acciones de conflicto. */
+    _ocultarBotonConflicto() {
+        const container = document.getElementById('acciones-conflicto');
+        if (!container) return;
+        container.classList.add('d-none');
+        container.innerHTML = '';
+    }
+
+    /**
+     * Llama a DELETE /api/eliminar-asignaciones-ficha/{codigoFicha}.
+     * Tras eliminar, oculta el botón y reintenta guardar automáticamente.
+     * @param {number|string} codigoFicha
+     */
+    async _eliminarAsignacionesFicha(codigoFicha) {
+        const confirmado = confirm(
+            `¿Deseas eliminar el horario de la ficha ${codigoFicha}?\n` +
+            'Esta acción eliminará todas sus asignaciones y no se puede deshacer.'
+        );
+        if (!confirmado) return;
+
+        const btnEliminar = document.getElementById('btn-eliminar-conflicto');
+        if (btnEliminar) {
+            btnEliminar.disabled = true;
+            btnEliminar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Eliminando...';
+        }
+
+        try {
+            await apiCall(`/eliminar-asignaciones-ficha/${codigoFicha}`, 'DELETE');
+
+            // Éxito: ocultar botón y notificar
+            this._ocultarBotonConflicto();
+            this.showAlert('modal-alert', 'success', 'Horario eliminado correctamente. Reintentando guardar...');
+
+            // Reintento automático tras un breve instante
+            setTimeout(() => this.handleSubmit(), 800);
+
+        } catch (err) {
+            this.showAlert('modal-alert', 'danger', 'Error al eliminar: ' + err.message);
+            if (btnEliminar) {
+                btnEliminar.disabled = false;
+                btnEliminar.innerHTML =
+                    `<i class="bi bi-trash3-fill"></i> Eliminar horario anterior (Ficha ${codigoFicha})`;
+            }
         }
     }
 
