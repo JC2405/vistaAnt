@@ -1714,7 +1714,9 @@ class HorarioTitulada {
         } catch (err) {
             // ── Detección de conflicto de ambiente ────────────────────────────
             if (err.tipo === 'conflicto_ambiente' && err.codigoFicha) {
-                this._mostrarBotonConflicto(err.codigoFicha, err.message);
+            this.showAlert('modal-alert', 'warning',
+                `<i class="bi bi-exclamation-triangle-fill me-2"></i>${err.message}`
+            );
             } else if (err.tipo === 'conflicto_instructor' && err.conflicto) {
                 this._mostrarOpcionesConflictoInstructor(err, payload);
             } else {
@@ -1735,26 +1737,6 @@ class HorarioTitulada {
      * @param {number|string} codigoFicha  - Código de la ficha con conflicto.
      * @param {string}        mensajeError - Mensaje original del backend.
      */
-    _mostrarBotonConflicto(codigoFicha, mensajeError) {
-        const container = document.getElementById('acciones-conflicto');
-        if (!container) return;
-
-        // Mostrar el error de conflicto en el área de alertas del modal
-        this.showAlert('modal-alert', 'warning',
-            `<i class="bi bi-exclamation-triangle-fill me-2"></i>${mensajeError}`);
-
-        container.classList.remove('d-none');
-        container.innerHTML = `
-            <button id="btn-eliminar-conflicto" type="button"
-                    class="btn btn-danger w-100 btn-sm rounded-3 d-flex justify-content-center align-items-center gap-2"
-                    data-codigo-ficha="${codigoFicha}">
-                <i class="bi bi-trash3-fill"></i>
-                Eliminar horario anterior (Ficha ${codigoFicha})
-            </button>`;
-
-        document.getElementById('btn-eliminar-conflicto')
-            .addEventListener('click', () => this._eliminarAsignacionesFicha(codigoFicha));
-    }
 
     /**
      * Muestra las opciones de Reemplazar o Partir cuando hay conflicto de instructor.
