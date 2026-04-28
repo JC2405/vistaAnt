@@ -1,4 +1,4 @@
-import { ProtectedRoute } from '../components/ProtectedRoute.js';
+﻿import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
 import {
@@ -1930,25 +1930,35 @@ class HorarioFormativa {
     _mostrarOpcionesConflictoInstructor(err, payload) {
     const container = document.getElementById('acciones-conflicto');
     if (!container) return;
- 
+            
     this.showAlert('modal-alert', 'warning',
         `<i class="bi bi-exclamation-triangle-fill me-2"></i>${err.message}`);
  
     // ── Comparar horarios para decidir qué opciones mostrar ──────────────
     // Normalizamos a "HH:MM" para comparar como strings (formato 24h ordena bien)
-    const normalizar = (h) => h ? h.substring(0, 5) : '';
- 
-    const existenteInicio = normalizar(err.conflicto.horaInicio); // ej. "06:00"
-    const existenteFin    = normalizar(err.conflicto.horaFin);    // ej. "12:00" (o "11:59")
-    const nuevoInicio     = normalizar(payload.horaInicio);       // ej. "08:00"
-    const nuevoFin        = normalizar(payload.horaFin);          // ej. "11:59"
- 
-    // Solapamiento parcial: el nuevo empieza DESPUÉS que el existente
-    // Y el nuevo no cubre completamente al existente por el inicio
-    const esParcial = nuevoInicio > existenteInicio && nuevoInicio < existenteFin;
- 
-    // Hora de corte para mostrar en la descripción del botón "Partir"
-    const horaCorteDisplay = nuevoInicio; // "08:00"
+  const normalizar = (h) => h ? h.substring(0, 5) : '';
+
+    const toMin = (h) => {
+        if (!h) return 0;
+        const [hh, mm] = h.substring(0,5).split(':').map(Number);
+        return hh * 60 + mm;
+    };
+    
+    const existenteInicio = normalizar(err.conflicto.horaInicio);
+    const existenteFin    = normalizar(err.conflicto.horaFin);
+    const nuevoInicio     = normalizar(payload.horaInicio);
+    
+    const existenteInicioMin = toMin(err.conflicto.horaInicio);
+    const existenteFinMin    = toMin(err.conflicto.horaFin);
+    const nuevoInicioMin     = toMin(payload.horaInicio);
+    const nuevoFinMin        = toMin(payload.horaFin);
+    
+    const esParcial =
+        nuevoInicioMin > existenteInicioMin &&
+        nuevoInicioMin < existenteFinMin &&
+        nuevoFinMin <= existenteFinMin;
+    
+    const horaCorteDisplay = nuevoInicio;
  
     container.classList.remove('d-none');
     container.innerHTML = `

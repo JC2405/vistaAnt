@@ -1762,35 +1762,81 @@ class HorarioTitulada {
      * @param {object} payload - Payload original de la asignación
      */
     _mostrarOpcionesConflictoInstructor(err, payload) {
-        const container = document.getElementById('acciones-conflicto');
-        if (!container) return;
+    const container = document.getElementById('acciones-conflicto');
+    if (!container) return;
 
-        // Mostrar el error de conflicto en el área de alertas del modal
-        this.showAlert('modal-alert', 'warning',
-            `<i class="bi bi-exclamation-triangle-fill me-2"></i>${err.message}`);
+    // Mostrar alerta
+    this.showAlert('modal-alert', 'warning',
+        `<i class="bi bi-exclamation-triangle-fill me-2"></i>${err.message}`);
 
-        container.classList.remove('d-none');
-        
-        // Extraemos solo la hora y minuto para la UI
-        const horaInicioCortada = payload.horaInicio.substring(0, 5);
+    // ── Helpers ─────────────────────────────────────────
+    const normalizar = (h) => h ? h.substring(0, 5) : '';
 
-        container.innerHTML = `
-            <div class="d-flex flex-column gap-2 w-100 bg-light p-3 rounded-3 border">
-                <p class="mb-1 text-dark fw-bold" style="font-size:0.85rem;">Opciones para resolver el conflicto:</p>
-                
-                <button type="button" id="btn-reemplazar-conflicto" class="btn btn-outline-danger w-100 btn-sm rounded-3 text-start px-3 py-2">
-                    <div class="fw-bold"><i class="bi bi-arrow-repeat me-1"></i> Reemplazar horario</div>
-                    <div class="small opacity-75 mt-1" style="white-space: normal;">Se eliminará la clase existente y se creará la nueva en ese horario.</div>
-                </button>
-                
-                <button type="button" id="btn-partir-conflicto" class="btn btn-outline-warning w-100 btn-sm rounded-3 text-start px-3 py-2 text-dark border-warning">
-                    <div class="fw-bold"><i class="bi bi-scissors me-1"></i> Partir horario</div>
-                    <div class="small opacity-75 mt-1" style="white-space: normal;">La clase existente se acortará hasta las <strong>${horaInicioCortada}</strong> y la nueva clase iniciará desde ahí.</div>
-                </button>
-            </div>
-        `;
+    const toMin = (h) => {
+        if (!h) return 0;
+        const [hh, mm] = h.substring(0, 5).split(':').map(Number);
+        return hh * 60 + mm;
+    };
 
-        document.getElementById('btn-reemplazar-conflicto').addEventListener('click', (e) => {
+    // ── Datos ───────────────────────────────────────────
+    const existenteInicio = normalizar(err.conflicto.horaInicio);
+    const existenteFin    = normalizar(err.conflicto.horaFin);
+    const nuevoInicio     = normalizar(payload.horaInicio);
+
+    const existenteInicioMin = toMin(err.conflicto.horaInicio);
+    const existenteFinMin    = toMin(err.conflicto.horaFin);
+    const nuevoInicioMin     = toMin(payload.horaInicio);
+    const nuevoFinMin        = toMin(payload.horaFin);
+
+    // ── Lógica clave ────────────────────────────────────
+    const esParcial =
+        nuevoInicioMin > existenteInicioMin &&
+        nuevoInicioMin < existenteFinMin &&
+        nuevoFinMin <= existenteFinMin;
+
+    const horaCorteDisplay = nuevoInicio;
+
+    // ── Render UI ───────────────────────────────────────
+    container.classList.remove('d-none');
+
+    container.innerHTML = `
+        <div class="d-flex flex-column gap-2 w-100 bg-light p-3 rounded-3 border">
+            <p class="mb-1 text-dark fw-bold" style="font-size:0.85rem;">
+                <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+                Opciones para resolver el conflicto:
+            </p>
+            
+            <!-- Reemplazar (siempre visible) -->
+            <button type="button" id="btn-reemplazar-conflicto"
+                    class="btn btn-outline-danger w-100 btn-sm rounded-3 text-start px-3 py-2">
+                <div class="fw-bold">
+                    <i class="bi bi-arrow-repeat me-1"></i> Reemplazar horario
+                </div>
+                <div class="small opacity-75 mt-1" style="white-space: normal;">
+                    Se eliminará la clase de la ficha <strong>${err.codigoFicha}</strong>
+                    (${existenteInicio} – ${existenteFin}) y se creará la nueva asignación.
+                </div>
+            </button>
+            
+            <!-- Partir (solo si aplica) -->
+            ${esParcial ? `
+            <button type="button" id="btn-partir-conflicto"
+                    class="btn btn-outline-warning w-100 btn-sm rounded-3 text-start px-3 py-2 text-dark border-warning">
+                <div class="fw-bold">
+                    <i class="bi bi-scissors me-1"></i> Partir horario
+                </div>
+                <div class="small opacity-75 mt-1" style="white-space: normal;">
+                    La clase de la ficha <strong>${err.codigoFicha}</strong> se acortará
+                    de ${existenteInicio} a <strong>${horaCorteDisplay}</strong>,
+                    y la nueva clase iniciará desde las <strong>${horaCorteDisplay}</strong>.
+                </div>
+            </button>` : ''}
+        </div>
+    `;
+
+    // ── Eventos ─────────────────────────────────────────
+    document.getElementById('btn-reemplazar-conflicto')
+        .addEventListener('click', (e) => {
             e.preventDefault();
             this._resolverConflictoInstructor('/conflicto/reemplazar', {
                 ...payload,
@@ -1798,15 +1844,18 @@ class HorarioTitulada {
             });
         });
 
-        document.getElementById('btn-partir-conflicto').addEventListener('click', (e) => {
-            e.preventDefault();
-            this._resolverConflictoInstructor('/conflicto/partir', {
-                ...payload,
-                idBloque: err.conflicto.idBloque,
-                nuevaHoraInicio: payload.horaInicio
+    if (esParcial) {
+        document.getElementById('btn-partir-conflicto')
+            .addEventListener('click', (e) => {
+                e.preventDefault();
+                this._resolverConflictoInstructor('/conflicto/partir', {
+                    ...payload,
+                    idBloque: err.conflicto.idBloque,
+                    nuevaHoraInicio: payload.horaInicio
+                });
             });
-        });
     }
+}
 
     async _resolverConflictoInstructor(endpoint, payload) {
         const container = document.getElementById('acciones-conflicto');
