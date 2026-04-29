@@ -6,9 +6,11 @@ import { ModalForm, setModalLoading } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
+import { SearchableDropdown} from '../components/SearchableDropdownSedes.js';
 import { getFichas, createFicha, updateFicha, deleteFicha, getProgramas, getSedes,
          exportarFichas, exportarAprendicesDeFicha, importarAprendices,
          getHorariosPorFicha, enviarHorarioAprendiz } from '../utils/api.js?v=4';
+         
 
 function showDateRangeModal(titulo = 'Seleccionar período', subtitulo = '') {
     return new Promise((resolve) => {
@@ -161,9 +163,12 @@ class FichasPage {
                             </button>
                         </div>
                         <div class="d-flex align-items-center gap-2">
-                            <select id="filter-sede" class="form-select form-select-sm" style="max-width: 200px; border-color: var(--border-color); border-radius: 0.4rem;">
-                                <option value="">Todas las Sedes</option>
-                            </select>
+                           <div id="dd-filter-sede-trigger"
+                                 style="max-width:200px; border-radius:0.5rem; border:1px solid #d1d5db; background:#fff; position:relative;">
+                                <input type="text" id="filterSedeDisplay" class="form-control border-0 form-control-sm"
+                                       placeholder="Todas las Sedes" readonly style="border-radius:0.5rem;">
+                                <input type="hidden" id="filter-sede">
+                            </div>
                             <label class="mb-0 fw-medium" style="color: var(--text-muted); font-size: 0.85rem;">Search:</label>
                             <input type="text" class="form-control form-control-sm" style="max-width: 200px; border-color: var(--border-color); border-radius: 0.4rem;" placeholder="" id="search-input">
                         </div>
@@ -320,15 +325,25 @@ class FichasPage {
             this.programas = progData.data || (Array.isArray(progData)  ? progData  : []);
             this.sedes     = sedesData.data || (Array.isArray(sedesData) ? sedesData : []);
 
-            const filterSede = document.getElementById('filter-sede');
-            if (filterSede) {
-                this.sedes.forEach(s => {
-                    const option = document.createElement('option');
-                    option.value = s.idSede;
-                    option.textContent = s.nombre + (s.municipio ? ` - ${s.municipio.nombreMunicipio}` : '');
-                    filterSede.appendChild(option);
-                });
-            }
+            this._ddFilterSede = new SearchableDropdown({
+                triggerEl: 'dd-filter-sede-trigger',
+                inputId: 'filter-sede',
+                displayId: 'filterSedeDisplay',
+                placeholder: 'Buscar sede...',
+                emptyText: 'No se encontraron sedes',
+                onOpen: () => {
+                    this._ddFilterSede.setItems([
+                        { id: '', label: 'Todas las Sedes' },
+                        ...this.sedes.map(s => ({
+                            id: s.idSede,
+                            label: s.nombre,
+                            sub: s.municipio?.nombreMunicipio || ''
+                        }))
+                    ]);
+                },
+                onSelect: () => this.applyFilters()
+            });
+
         } catch (error) {
             console.error('Error al cargar dependencias:', error);
             this.showAlert('page-alert-container', 'warning', 'No se pudieron cargar los datos de soporte.');
@@ -1127,7 +1142,7 @@ class FichasPage {
             container.innerHTML = `
                 <div class="text-center py-5 text-muted">
                     <i class="bi bi-calendar-x fs-1 d-block mb-3 opacity-25"></i>
-                    <p class="fw-medium">Sin clases asignadas</p>
+                    <p class="fw-medium">Sin Formaciones asignadas</p>
                     <p class="small">Esta ficha no tiene horario registrado.</p>
                 </div>`;
             return;

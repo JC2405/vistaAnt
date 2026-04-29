@@ -237,7 +237,7 @@ class MiHorarioPage {
             card.innerHTML = `
                 <div class="card-body p-5 text-center text-muted d-flex flex-column align-items-center justify-content-center" style="min-height:60vh;">
                     <i class="bi bi-calendar-x fs-1 d-block mb-3 opacity-25"></i>
-                    <p class="fw-medium">Sin clases asignadas</p>
+                    <p class="fw-medium">Sin Formaciones asignadas</p>
                     <p class="small">Aún no tienes horario registrado en el sistema.</p>
                 </div>`;
             return;
