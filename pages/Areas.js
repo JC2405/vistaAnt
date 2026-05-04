@@ -7,6 +7,7 @@ import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
 import { getAreas, createArea, updateArea, deleteArea } from '../utils/api.js?v=4';
+import { footer } from '../components/footer.js';
 
 class AreasPage {
     constructor() {
@@ -72,6 +73,7 @@ class AreasPage {
                         ${DataTable({ id: 'areas-table', columns: [], loading: true })}
                     </div>
                 </main>
+                 ${footer()}
             </div>
             
             <!-- Modal Container -->

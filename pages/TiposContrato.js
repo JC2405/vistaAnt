@@ -6,6 +6,7 @@ import { ModalForm, setModalLoading } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
+import { footer } from '../components/footer.js';
 import { getTiposContrato, createTipoContrato, updateTipoContrato, deleteTipoContrato } from '../utils/api.js?v=4';
 
 class TiposContratoPage {
@@ -73,6 +74,7 @@ class TiposContratoPage {
                         ${DataTable({ id: 'tipos-table', columns: [], loading: true })}
                     </div>
                 </main>
+                 ${footer()}
             </div>
             
             <!-- Modal Container -->

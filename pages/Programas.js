@@ -7,6 +7,7 @@ import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
 import { SearchableDropdown } from '../components/SearchableDropdownSedes.js';
+import { footer } from '../components/footer.js';
 import { getProgramas, createPrograma, updatePrograma, deletePrograma, getTiposFormacion, getAreas, exportarProgramas } from '../utils/api.js?v=4';
 
 // Helper: extrae el nombre del tipo sin importar qué campo devuelva el API
@@ -82,6 +83,7 @@ class ProgramasPage {
                         ${DataTable({ id: 'programas-table', columns: [], loading: true })}
                     </div>
                 </main>
+                 ${footer()}
             </div>
             
             <!-- Modal Container -->

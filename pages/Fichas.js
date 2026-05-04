@@ -6,6 +6,7 @@ import { ModalForm, setModalLoading } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
+import { footer } from '../components/footer.js';
 import { SearchableDropdown} from '../components/SearchableDropdownSedes.js';
 import { getFichas, createFicha, updateFicha, deleteFicha, getProgramas, getSedes,
          exportarFichas, exportarAprendicesDeFicha, importarAprendices,
@@ -178,6 +179,7 @@ class FichasPage {
                         ${DataTable({ id: 'fichas-table', columns: [], loading: true })}
                     </div>
                 </main>
+                 ${footer()}
             </div>
             
             <div id="modal-container"></div>

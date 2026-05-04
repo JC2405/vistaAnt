@@ -6,6 +6,7 @@ import { ModalForm, setModalLoading, FormSelect } from '../components/ModalForm.
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
+import { footer } from '../components/footer.js';
 import { getFuncionarios, createFuncionario, createAdmin, updateFuncionario, deleteFuncionario, getTiposContrato, getAreas, getHorarioPorInstructor, enviarHorario, importarFuncionarios, exportarFuncionarios, asignarAreaMasivo } from '../utils/api.js?v=4';
 
 
@@ -180,6 +181,7 @@ class FuncionariosPage {
                         ${DataTable({ id: 'funcionarios-table', columns: [], loading: true })}
                     </div>
                 </main>
+                 ${footer()}
             </div>
             
             <!-- Modal Container -->

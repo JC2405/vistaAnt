@@ -2,6 +2,7 @@ import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
 import { getHorarioPorInstructor } from '../utils/api.js?v=5';
+import { footer } from '../components/footer.js';
 
 class DashboardInstructor {
     constructor() {
@@ -158,6 +159,7 @@ class DashboardInstructor {
                         </div>
                     </div>
                 </main>
+                 ${footer()}
             </div>
         `;
     }
