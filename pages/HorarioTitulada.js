@@ -1521,10 +1521,18 @@ class HorarioTitulada {
         document.getElementById('btn-partir-conflicto')
             .addEventListener('click', (e) => {
                 e.preventDefault();
-                this._resolverConflictoInstructor('/conflicto/partir', {
-                    ...payload,
-                    idBloque: err.conflicto.idBloque,
-                    nuevaHoraInicio: payload.horaInicio
+               const _toHis = (h) => {
+            if (!h) return null;
+            const parts = h.split(':');
+            // Si viene "HH:MM" agregar segundos, si ya tiene 3 partes dejarlo
+            return parts.length === 2 ? h + ':00' : h;
+        };
+
+        this._resolverConflictoInstructor('/conflicto/partir', {
+            ...payload,
+            idBloque: err.conflicto.idBloque,
+            nuevaHoraInicio: _toHis(payload.horaInicio),
+            nuevaHoraFin:    _toHis(payload.horaFin),
                 });
             });
     }

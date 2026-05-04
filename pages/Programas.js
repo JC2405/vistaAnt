@@ -6,6 +6,7 @@ import { ModalForm, setModalLoading } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
+import { SearchableDropdown } from '../components/SearchableDropdownSedes.js';
 import { getProgramas, createPrograma, updatePrograma, deletePrograma, getTiposFormacion, getAreas, exportarProgramas } from '../utils/api.js?v=4';
 
 // Helper: extrae el nombre del tipo sin importar qué campo devuelva el API
@@ -113,6 +114,17 @@ class ProgramasPage {
             
             const areasData = await getAreas();
             this.areas = areasData.data || (Array.isArray(areasData) ? areasData : []);
+
+
+            if (this.areaDropdown) {
+            this.areaDropdown.setItems(
+                this.areas.map(a => ({
+                    id: a.idArea,
+                    label: a.nombreArea,
+                    sub: a.tipo
+                }))
+            );
+        }
         } catch (error) {
             console.error('Error al cargar dependencias:', error);
             this.showAlert('page-alert-container', 'warning', 'No se pudieron cargar algunas dependencias.');
@@ -194,6 +206,8 @@ class ProgramasPage {
             data: displayData
         });
 
+        
+
         initTablePagination('programas-table', displayData, columns, '#table-container');
 
         document.querySelectorAll('.btn-edit').forEach(btn => {
@@ -230,13 +244,10 @@ class ProgramasPage {
                     ${FormInput({ id: 'version', label: 'Versión', required: true })}
                 </div>
                 <div class="col-md-3">
-                    <div class="mb-4 form-floating position-relative">
-                        <select class="form-select" id="idArea" required style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
-                            <option value="">Seleccione un área</option>
-                            ${areaOptions}
-                        </select>
-                        <label for="idArea">Área</label>
-                    </div>
+                    <div id="dd-area-trigger" style="position:relative; max-width:200px;">
+                    <input type="text" id="areaDisplay" readonly class="form-control form-control-sm">
+                    <input type="hidden" id="idArea">
+                </div>
                 </div>
                 <div class="col-md-3">
                     <div class="mb-4 form-floating position-relative">
@@ -265,6 +276,7 @@ class ProgramasPage {
             formContent: formContent
         });
 
+        
         const formEl = document.getElementById('programa-modal-form');
         formEl.addEventListener('submit', this.handleFormSubmit.bind(this));
 
@@ -366,6 +378,7 @@ class ProgramasPage {
             }
         }
     }
+    
 
     showAlert(containerId, type, message) {
         const container = document.getElementById(containerId);
