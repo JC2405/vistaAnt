@@ -6,6 +6,7 @@ import { ModalForm, setModalLoading } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
+import { SearchableDropdown } from '../components/SearchableDropdown.js';
 import {
     getAmbientes, createAmbiente, updateAmbiente, deleteAmbiente,
     getAreas, getHorariosPorAmbiente
@@ -694,32 +695,30 @@ class AmbientesPage {
                     ${FormInput({ id: 'bloque', label: 'Bloque (ej. L, D)', required: true })}
                 </div>
                 <div class="col-md-4">
-                    <div class="mb-4 form-floating position-relative">
-                        <select class="form-select" id="tipoAmbiente" required style="background-color:#f8fafc; border:1px solid #eeecf5; border-radius:0.6rem;">
-                            <option value="">Seleccione tipo...</option>
-                            <option value="Bilinguismo">Bilinguismo</option>
-                            <option value="Formacion">Formacion</option>
-                            <option value="Taller">Taller</option>
-                        </select>
-                        <label for="tipoAmbiente">Tipo de Ambiente</label>
+                    <div class="mb-4">
+                        <label class="form-label" style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.2rem; display: block;">Tipo de Ambiente</label>
+                        <div id="sd-tipo-trigger">
+                            <input type="hidden" id="tipoAmbiente" required>
+                            <input type="text" id="tipoAmbiente-display" class="form-control" placeholder="Seleccione tipo..." required style="background-color:#f8fafc; border:1px solid #eeecf5; border-radius:0.6rem; cursor: pointer;">
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="mb-4 form-floating position-relative">
-                        <select class="form-select" id="idArea" required style="background-color:#f8fafc; border:1px solid #eeecf5; border-radius:0.6rem;">
-                            <option value="">Seleccione área...</option>
-                            ${areaOptions}
-                        </select>
-                        <label for="idArea">Área de Formación</label>
+                    <div class="mb-4">
+                        <label class="form-label" style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.2rem; display: block;">Área de Formación</label>
+                        <div id="sd-area-trigger">
+                            <input type="hidden" id="idArea" required>
+                            <input type="text" id="idArea-display" class="form-control" placeholder="Seleccione área..." required style="background-color:#f8fafc; border:1px solid #eeecf5; border-radius:0.6rem; cursor: pointer;">
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <div class="mb-4 form-floating position-relative">
-                        <select class="form-select" id="estado" required style="background-color:#f8fafc; border:1px solid #eeecf5; border-radius:0.6rem;">
-                            <option value="Activo">Activo</option>
-                            <option value="Inactivo">Inactivo</option>
-                        </select>
-                        <label for="estado">Estado</label>
+                    <div class="mb-4">
+                        <label class="form-label" style="font-size: 0.85rem; color: #6c757d; margin-bottom: 0.2rem; display: block;">Estado</label>
+                        <div id="sd-estado-trigger">
+                            <input type="hidden" id="estado" required>
+                            <input type="text" id="estado-display" class="form-control" placeholder="Seleccione estado..." required style="background-color:#f8fafc; border:1px solid #eeecf5; border-radius:0.6rem; cursor: pointer;">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -730,6 +729,49 @@ class AmbientesPage {
             title: 'Ambiente',
             formContent
         });
+
+        this.areaDropdown = new SearchableDropdown({
+            triggerEl: 'sd-area-trigger',
+            inputId: 'idArea',
+            displayId: 'idArea-display',
+            placeholder: 'Buscar área...',
+            emptyText: 'No se encontraron áreas'
+        });
+
+        if (this.areas && this.areas.length > 0) {
+            const items = this.areas.map(a => ({
+                id: a.idArea,
+                label: a.nombreArea
+            }));
+            this.areaDropdown.setItems(items);
+        } else {
+            this.areaDropdown.disable('No hay áreas disponibles');
+        }
+
+        this.tipoDropdown = new SearchableDropdown({
+            triggerEl: 'sd-tipo-trigger',
+            inputId: 'tipoAmbiente',
+            displayId: 'tipoAmbiente-display',
+            placeholder: 'Buscar tipo...',
+            emptyText: 'No se encontraron tipos'
+        });
+        this.tipoDropdown.setItems([
+            { id: 'Bilinguismo', label: 'Bilinguismo' },
+            { id: 'Formacion', label: 'Formacion' },
+            { id: 'Taller', label: 'Taller' }
+        ]);
+
+        this.estadoDropdown = new SearchableDropdown({
+            triggerEl: 'sd-estado-trigger',
+            inputId: 'estado',
+            displayId: 'estado-display',
+            placeholder: 'Buscar estado...',
+            emptyText: 'No se encontraron estados'
+        });
+        this.estadoDropdown.setItems([
+            { id: 'Activo', label: 'Activo' },
+            { id: 'Inactivo', label: 'Inactivo' }
+        ]);
 
         document.getElementById('ambiente-modal-form')
             .addEventListener('submit', this.handleFormSubmit.bind(this));
@@ -742,9 +784,38 @@ class AmbientesPage {
         document.getElementById('descripcion').value  = ambiente ? ambiente.descripcion : '';
         document.getElementById('capacidad').value    = ambiente ? ambiente.capacidad   : '';
         document.getElementById('bloque').value       = ambiente ? ambiente.bloque      : '';
-        document.getElementById('tipoAmbiente').value = ambiente ? (ambiente.tipoAmbiente || '') : '';
-        document.getElementById('estado').value       = ambiente ? (ambiente.estado     || 'Activo') : 'Activo';
-        document.getElementById('idArea').value       = ambiente ? (ambiente.idArea     || '') : '';
+        
+        const tipoVal = ambiente ? (ambiente.tipoAmbiente || '') : '';
+        document.getElementById('tipoAmbiente').value = tipoVal;
+        if (this.tipoDropdown) {
+            if (tipoVal) {
+                this.tipoDropdown.setValue(tipoVal, tipoVal);
+            } else {
+                this.tipoDropdown.reset('Seleccione tipo...');
+            }
+        }
+        
+        const estadoVal = ambiente ? (ambiente.estado || 'Activo') : 'Activo';
+        document.getElementById('estado').value = estadoVal;
+        if (this.estadoDropdown) {
+            if (estadoVal) {
+                this.estadoDropdown.setValue(estadoVal, estadoVal);
+            } else {
+                this.estadoDropdown.reset('Seleccione estado...');
+            }
+        }
+        
+        const areaId = ambiente ? (ambiente.idArea || '') : '';
+        document.getElementById('idArea').value = areaId;
+        
+        if (this.areaDropdown) {
+            if (areaId) {
+                const area = this.areas.find(a => a.idArea == areaId);
+                this.areaDropdown.setValue(areaId, area ? area.nombreArea : '');
+            } else {
+                this.areaDropdown.reset('Seleccione área...');
+            }
+        }
 
         document.getElementById('ambiente-modal-form')
             .querySelectorAll('.is-invalid')

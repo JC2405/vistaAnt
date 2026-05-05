@@ -6,7 +6,7 @@ import { ModalForm, setModalLoading } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
-import { SearchableDropdown } from '../components/SearchableDropdownSedes.js';
+import { SearchableDropdown } from '../components/SearchableDropdown.js';
 import { footer } from '../components/footer.js';
 import { getProgramas, createPrograma, updatePrograma, deletePrograma, getTiposFormacion, getAreas, exportarProgramas } from '../utils/api.js?v=4';
 
@@ -113,20 +113,20 @@ class ProgramasPage {
         try {
             const tiposData = await getTiposFormacion();
             this.tiposFormacion = tiposData.data || (Array.isArray(tiposData) ? tiposData : []);
-            
+
             const areasData = await getAreas();
             this.areas = areasData.data || (Array.isArray(areasData) ? areasData : []);
 
 
             if (this.areaDropdown) {
-            this.areaDropdown.setItems(
-                this.areas.map(a => ({
-                    id: a.idArea,
-                    label: a.nombreArea,
-                    sub: a.tipo
-                }))
-            );
-        }
+                this.areaDropdown.setItems(
+                    this.areas.map(a => ({
+                        id: a.idArea,
+                        label: a.nombreArea,
+                        sub: a.tipo
+                    }))
+                );
+            }
         } catch (error) {
             console.error('Error al cargar dependencias:', error);
             this.showAlert('page-alert-container', 'warning', 'No se pudieron cargar algunas dependencias.');
@@ -208,7 +208,7 @@ class ProgramasPage {
             data: displayData
         });
 
-        
+
 
         initTablePagination('programas-table', displayData, columns, '#table-container');
 
@@ -224,16 +224,6 @@ class ProgramasPage {
     bindToolbarButtons() { }
 
     setupModal() {
-        // Use getTipoNombre helper so options render correctly regardless of API field name
-        const tipoOptions = this.tiposFormacion.map(t => {
-            const duracion = t.duracionMeses ? ` - ${t.duracionMeses} meses` : '';
-            return '<option value="' + t.idTipoFormacion + '">' + getTipoNombre(t) + duracion + '</option>';
-        }).join('');
-
-        const areaOptions = this.areas.map(a => {
-            return '<option value="' + a.idArea + '">' + a.nombreArea + ' - ' + a.tipo + '</option>';
-        }).join('');
-
         const formContent = `
             <div class="row g-3">
                 <div class="col-md-8">
@@ -246,27 +236,30 @@ class ProgramasPage {
                     ${FormInput({ id: 'version', label: 'Versión', required: true })}
                 </div>
                 <div class="col-md-3">
-                    <div id="dd-area-trigger" style="position:relative; max-width:200px;">
-                    <input type="text" id="areaDisplay" readonly class="form-control form-control-sm">
-                    <input type="hidden" id="idArea">
-                </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="mb-4 form-floating position-relative">
-                        <select class="form-select" id="idTipoFormacion" required style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
-                            <option value="">Seleccione tipo...</option>
-                            ${tipoOptions}
-                        </select>
-                        <label for="idTipoFormacion">Tipo Formación</label>
+                    <div class="mb-4">
+                        <label class="form-label fw-medium" style="font-size: 0.85rem; color: #475569; margin-bottom: 0.3rem;">Área de Formación</label>
+                        <div id="sd-area-trigger">
+                            <input type="hidden" id="idArea" required>
+                            <input type="text" id="idArea-display" class="form-control shadow-sm" placeholder="Seleccione área..." required style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.6rem; color: #334155; cursor: pointer;">
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="mb-4 form-floating position-relative">
-                        <select class="form-select" id="estado" required style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
-                            <option value="Activo">Activo</option>
-                            <option value="Inactivo">Inactivo</option>
-                        </select>
-                        <label for="estado">Estado</label>
+                    <div class="mb-4">
+                        <label class="form-label fw-medium" style="font-size: 0.85rem; color: #475569; margin-bottom: 0.3rem;">Tipo Formación</label>
+                        <div id="sd-tipo-trigger">
+                            <input type="hidden" id="idTipoFormacion" required>
+                            <input type="text" id="idTipoFormacion-display" class="form-control shadow-sm" placeholder="Seleccione tipo..." required style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.6rem; color: #334155; cursor: pointer;">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-4">
+                        <label class="form-label fw-medium" style="font-size: 0.85rem; color: #475569; margin-bottom: 0.3rem;">Estado</label>
+                        <div id="sd-estado-trigger">
+                            <input type="hidden" id="estado" required>
+                            <input type="text" id="estado-display" class="form-control shadow-sm" placeholder="Seleccione estado..." required style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.6rem; color: #334155; cursor: pointer;">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -278,7 +271,59 @@ class ProgramasPage {
             formContent: formContent
         });
 
-        
+        this.areaDropdown = new SearchableDropdown({
+            triggerEl: 'sd-area-trigger',
+            inputId: 'idArea',
+            displayId: 'idArea-display',
+            placeholder: 'Buscar área...',
+            emptyText: 'No se encontraron áreas'
+        });
+
+        if (this.areas && this.areas.length > 0) {
+            const items = this.areas.map(a => ({
+                id: a.idArea,
+                label: a.nombreArea,
+                sub: a.tipo
+            }));
+            this.areaDropdown.setItems(items);
+        } else {
+            this.areaDropdown.disable('No hay áreas disponibles');
+        }
+
+        this.tipoDropdown = new SearchableDropdown({
+            triggerEl: 'sd-tipo-trigger',
+            inputId: 'idTipoFormacion',
+            displayId: 'idTipoFormacion-display',
+            placeholder: 'Buscar tipo...',
+            emptyText: 'No se encontraron tipos'
+        });
+
+        if (this.tiposFormacion && this.tiposFormacion.length > 0) {
+            const items = this.tiposFormacion.map(t => {
+                const duracion = t.duracionMeses ? ` - ${t.duracionMeses} meses` : '';
+                return {
+                    id: t.idTipoFormacion,
+                    label: getTipoNombre(t),
+                    sub: duracion
+                };
+            });
+            this.tipoDropdown.setItems(items);
+        } else {
+            this.tipoDropdown.disable('No hay tipos disponibles');
+        }
+
+        this.estadoDropdown = new SearchableDropdown({
+            triggerEl: 'sd-estado-trigger',
+            inputId: 'estado',
+            displayId: 'estado-display',
+            placeholder: 'Buscar estado...',
+            emptyText: 'No se encontraron estados'
+        });
+        this.estadoDropdown.setItems([
+            { id: 'Activo', label: 'Activo' },
+            { id: 'Inactivo', label: 'Inactivo' }
+        ]);
+
         const formEl = document.getElementById('programa-modal-form');
         formEl.addEventListener('submit', this.handleFormSubmit.bind(this));
 
@@ -289,9 +334,34 @@ class ProgramasPage {
         document.getElementById('nombre').value = programa ? programa.nombre : '';
         document.getElementById('codigo').value = programa ? programa.codigo : '';
         document.getElementById('version').value = programa ? programa.version : '';
-        document.getElementById('estado').value = programa ? (programa.estado || 'Activo') : 'Activo';
-        document.getElementById('idTipoFormacion').value = programa ? (programa.idTipoFormacion || '') : '';
-        document.getElementById('idArea').value = programa ? (programa.idArea || '') : '';
+        
+        const estadoVal = programa ? (programa.estado || 'Activo') : 'Activo';
+        document.getElementById('estado').value = estadoVal;
+        if (this.estadoDropdown) {
+            this.estadoDropdown.setValue(estadoVal, estadoVal);
+        }
+
+        const tipoVal = programa ? (programa.idTipoFormacion || '') : '';
+        document.getElementById('idTipoFormacion').value = tipoVal;
+        if (this.tipoDropdown) {
+            if (tipoVal) {
+                const found = this.tiposFormacion.find(t => String(t.idTipoFormacion) === String(tipoVal));
+                this.tipoDropdown.setValue(tipoVal, found ? getTipoNombre(found) : tipoVal);
+            } else {
+                this.tipoDropdown.reset('Seleccione tipo...');
+            }
+        }
+
+        const areaVal = programa ? (programa.idArea || '') : '';
+        document.getElementById('idArea').value = areaVal;
+        if (this.areaDropdown) {
+            if (areaVal) {
+                const found = this.areas.find(a => String(a.idArea) === String(areaVal));
+                this.areaDropdown.setValue(areaVal, found ? found.nombreArea : areaVal);
+            } else {
+                this.areaDropdown.reset('Seleccione área...');
+            }
+        }
 
         const formEl = document.getElementById('programa-modal-form');
         formEl.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
@@ -380,7 +450,7 @@ class ProgramasPage {
             }
         }
     }
-    
+
 
     showAlert(containerId, type, message) {
         const container = document.getElementById(containerId);

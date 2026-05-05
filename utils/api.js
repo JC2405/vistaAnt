@@ -1,3 +1,4 @@
+//export const API_BASE_URL = 'https://backend-manejohorarioscimm.sgdis.cloud/api';
 export const API_BASE_URL = '/api';
 //export const API_BASE_URL = 'http://localhost:8000/api';
 
@@ -335,11 +336,55 @@ export function getTiposFormacion() {
     return apiFetch('/listarTipoFormacion');
 }
 
+export function getCompetenciasPorTipo(idTipoFormacion) {
+    return apiFetch(`/listarCompetencia?idTipoFormacion=${idTipoFormacion}`);
+}
+
+export function createCompetencia(data) {
+    return apiFetch('/crearCompetencia', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export function updateCompetencia(id, data) {
+    return apiFetch(`/editarCompetencia/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+export function deleteCompetencia(id) {
+    return apiFetch(`/eliminarCompetencia/${id}`, { method: 'DELETE' });
+}
+
 export function createTipoFormacion(data) {
     return apiFetch('/crearTipoFormacion', {
         method: 'POST',
         body: JSON.stringify(data),
     });
+}
+
+export function getResultadosPorTipo(idTipoFormacion) {
+    return apiFetch(`/listarResultado?idTipoFormacion=${idTipoFormacion}`);
+}
+
+export function createResultado(data) {
+    return apiFetch('/crearResultado', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export function updateResultado(id, data) {
+    return apiFetch(`/editarResultado/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+export function deleteResultado(id) {
+    return apiFetch(`/eliminarResultado/${id}`, { method: 'DELETE' });
 }
 
 export function updateTipoFormacion(id, data) {

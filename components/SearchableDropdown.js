@@ -34,7 +34,12 @@ export class SearchableDropdown {
             style.id = 'sd-styles';
             style.textContent = `
                 .sd-trigger-wrap { position: relative; }
-                .sd-trigger-input { cursor: pointer !important; background: #fff !important; user-select: none; }
+                .sd-trigger-input { 
+                    cursor: pointer !important; 
+                    user-select: none; 
+                    text-overflow: ellipsis;
+                    padding-right: 2rem !important;
+                }
                 .sd-chevron {
                     position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
                     color: #9ca3af; pointer-events: none; font-size: .78rem;
@@ -188,7 +193,7 @@ export class SearchableDropdown {
         const below = window.innerHeight - rect.bottom;
         const above = rect.top;
         const goUp = below < ddH + 8 && above > ddH + 8;
-        this._dropdown.style.width = rect.width + 'px';
+        this._dropdown.style.width = Math.max(rect.width, 280) + 'px';
         this._dropdown.style.left = rect.left + 'px';
         this._dropdown.style.top = goUp
             ? (rect.top - ddH - 4) + 'px'
@@ -274,7 +279,13 @@ export class SearchableDropdown {
 
     setValue(id, label) {
         if (this.inputEl) this.inputEl.value = id;
-        if (this.displayEl) this.displayEl.value = label;
+        if (this.displayEl) {
+            this.displayEl.value = label;
+            this.displayEl.title = label; // Tooltip para ver completo
+            setTimeout(() => {
+                if (this.displayEl) this.displayEl.scrollLeft = 0;
+            }, 0);
+        }
         this.triggerEl.classList.toggle('sd-has-value', !!id);
     }
 

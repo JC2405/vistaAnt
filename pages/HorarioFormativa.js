@@ -1,4 +1,4 @@
-﻿import { ProtectedRoute } from '../components/ProtectedRoute.js';
+import { ProtectedRoute } from '../components/ProtectedRoute.js';
 import { Navbar, initNavbarEvents } from '../components/Navbar.js';
 import { Sidebar, initSidebarEvents } from '../components/Sidebar.js';
 import { SearchableDropdown } from '../components/SearchableDropdown.js';
@@ -1369,15 +1369,27 @@ class HorarioFormativa {
                 e.target.value = '';
                 return;
             }
+            let alertElement;
+
             try {
-                this.showAlert('page-alert-container', 'info',
-                    `Analizando juicios vs competencias de la ficha ${this.selectedFicha.codigoFicha}...`);
+                alertElement = this.showAlert(
+                    'page-alert-container',
+                    'info',
+                    `Analizando juicios vs competencias de la ficha ${this.selectedFicha.codigoFicha}...`
+                );
+            
                 const data = await analizarJuiciosConFicha(file, idFicha);
                 this.renderAnalisisJuicios(data);
+            
             } catch (err) {
                 this.showAlert('page-alert-container', 'danger', 'Error al analizar: ' + err.message);
             } finally {
                 e.target.value = '';
+            
+               
+                if (alertElement) {
+                    alertElement.remove?.(); // si es nodo
+                }
             }
         });
     }
@@ -1777,7 +1789,7 @@ class HorarioFormativa {
     }
     showAlert(containerId, type, message) {
         const el = document.getElementById(containerId);
-        if (!el) return;
+        if (!el) return null;
         const icons = { success: 'check-circle', danger: 'x-circle', warning: 'exclamation-triangle', info: 'info-circle' };
         el.innerHTML = `
             <div class="alert alert-${type} alert-dismissible fade show d-flex align-items-center gap-3 rounded-4 shadow-sm" role="alert">
@@ -1785,7 +1797,9 @@ class HorarioFormativa {
                 <div>${message}</div>
                 <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
             </div>`;
-        if (type === 'success') setTimeout(() => el.querySelector('.alert')?.remove(), 4000);
+        const alertEl = el.querySelector('.alert');
+        if (type === 'success') setTimeout(() => alertEl?.remove(), 4000);
+        return alertEl;
     }
 }
 

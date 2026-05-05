@@ -1621,7 +1621,7 @@ class HorarioTitulada {
 
     showAlert(containerId, type, message) {
         const el = document.getElementById(containerId);
-        if (!el) return;
+        if (!el) return null;
         const icons = { success: 'check-circle', danger: 'x-circle', warning: 'exclamation-triangle', info: 'info-circle' };
         el.innerHTML = `
             <div class="alert alert-${type} alert-dismissible fade show d-flex align-items-center gap-3 rounded-4 shadow-sm" role="alert">
@@ -1629,7 +1629,9 @@ class HorarioTitulada {
                 <div>${message}</div>
                 <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
             </div>`;
-        if (type === 'success') setTimeout(() => el.querySelector('.alert')?.remove(), 4000);
+        const alertEl = el.querySelector('.alert');
+        if (type === 'success') setTimeout(() => alertEl?.remove(), 4000);
+        return alertEl;
     }
 }
 

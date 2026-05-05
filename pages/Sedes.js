@@ -6,6 +6,7 @@ import { ModalForm, setModalLoading } from '../components/ModalForm.js';
 import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
+import { SearchableDropdown } from '../components/SearchableDropdown.js';
 import { footer } from '../components/footer.js';
 import { getSedes, createSede, updateSede, deleteSede, getMunicipios } from '../utils/api.js?v=4';
 
@@ -190,10 +191,6 @@ class SedesPage {
     bindToolbarButtons() {}
 
     setupModal() {
-        const municipioOptions = this.municipios.map(m =>
-            '<option value="' + m.idMunicipio + '">' + m.nombreMunicipio + '</option>'
-        ).join('');
-
         const formContent = `
             <div class="row g-3">
                 <div class="col-md-6">
@@ -203,21 +200,21 @@ class SedesPage {
                     ${FormInput({ id: 'direccion', label: 'Dirección' })}
                 </div>
                 <div class="col-md-6">
-                    <div class="mb-4 form-floating position-relative">
-                        <select class="form-select" id="idMunicipio" style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
-                            <option value="">Seleccione un municipio...</option>
-                            ${municipioOptions}
-                        </select>
-                        <label for="idMunicipio">Municipio</label>
+                    <div class="mb-4">
+                        <label class="form-label fw-medium" style="font-size: 0.85rem; color: #475569; margin-bottom: 0.3rem;">Municipio</label>
+                        <div id="sd-municipio-trigger">
+                            <input type="hidden" id="idMunicipio" required>
+                            <input type="text" id="idMunicipio-display" class="form-control shadow-sm" placeholder="Seleccione municipio..." required style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.6rem; color: #334155; cursor: pointer;">
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <div class="mb-4 form-floating position-relative">
-                        <select class="form-select" id="estado" required style="background-color: #f8fafc; border: 1px solid #eeecf5; border-radius: 0.6rem;">
-                            <option value="Activo">Activo</option>
-                            <option value="Inactivo">Inactivo</option>
-                        </select>
-                        <label for="estado">Estado</label>
+                    <div class="mb-4">
+                        <label class="form-label fw-medium" style="font-size: 0.85rem; color: #475569; margin-bottom: 0.3rem;">Estado</label>
+                        <div id="sd-estado-trigger">
+                            <input type="hidden" id="estado" required>
+                            <input type="text" id="estado-display" class="form-control shadow-sm" placeholder="Seleccione estado..." required style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.6rem; color: #334155; cursor: pointer;">
+                        </div>
                     </div>
                 </div>
                 <div class="col-12">
@@ -232,6 +229,36 @@ class SedesPage {
             formContent: formContent
         });
 
+        this.municipioDropdown = new SearchableDropdown({
+            triggerEl: 'sd-municipio-trigger',
+            inputId: 'idMunicipio',
+            displayId: 'idMunicipio-display',
+            placeholder: 'Buscar municipio...',
+            emptyText: 'No se encontraron municipios'
+        });
+
+        if (this.municipios && this.municipios.length > 0) {
+            const items = this.municipios.map(m => ({
+                id: m.idMunicipio,
+                label: m.nombreMunicipio
+            }));
+            this.municipioDropdown.setItems(items);
+        } else {
+            this.municipioDropdown.disable('No hay municipios disponibles');
+        }
+
+        this.estadoDropdown = new SearchableDropdown({
+            triggerEl: 'sd-estado-trigger',
+            inputId: 'estado',
+            displayId: 'estado-display',
+            placeholder: 'Buscar estado...',
+            emptyText: 'No se encontraron estados'
+        });
+        this.estadoDropdown.setItems([
+            { id: 'Activo', label: 'Activo' },
+            { id: 'Inactivo', label: 'Inactivo' }
+        ]);
+
         const formEl = document.getElementById('sede-modal-form');
         formEl.addEventListener('submit', this.handleFormSubmit.bind(this));
 
@@ -242,8 +269,23 @@ class SedesPage {
         document.getElementById('nombre').value = sede ? sede.nombre : '';
         document.getElementById('direccion').value = sede ? (sede.direccion || '') : '';
         document.getElementById('descripcion').value = sede ? (sede.descripcion || '') : '';
-        document.getElementById('estado').value = sede ? (sede.estado || 'Activo') : 'Activo';
-        document.getElementById('idMunicipio').value = sede ? (sede.idMunicipio || '') : '';
+        
+        const estadoVal = sede ? (sede.estado || 'Activo') : 'Activo';
+        document.getElementById('estado').value = estadoVal;
+        if (this.estadoDropdown) {
+            this.estadoDropdown.setValue(estadoVal, estadoVal);
+        }
+
+        const municipioVal = sede ? (sede.idMunicipio || '') : '';
+        document.getElementById('idMunicipio').value = municipioVal;
+        if (this.municipioDropdown) {
+            if (municipioVal) {
+                const found = this.municipios.find(m => String(m.idMunicipio) === String(municipioVal));
+                this.municipioDropdown.setValue(municipioVal, found ? found.nombreMunicipio : municipioVal);
+            } else {
+                this.municipioDropdown.reset('Seleccione municipio...');
+            }
+        }
 
         const formEl = document.getElementById('sede-modal-form');
         formEl.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
