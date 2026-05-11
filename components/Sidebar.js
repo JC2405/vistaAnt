@@ -1,3 +1,5 @@
+import { logout } from '../utils/auth.js';
+
 /**
  * Sidebar / DashboardMenu Component
  * Renders a grouped, collapsible navigation sidebar.
@@ -156,12 +158,13 @@ export const Sidebar = DashboardMenu;
  * Handles logout, user name, and chevron animation.
  */
 export function initSidebarEvents() {
-    // Logout
+    // Logout — llama al backend para invalidar el token JWT antes de limpiar el storage
     const btnLogout = document.getElementById('btn-logout');
     if (btnLogout) {
-        btnLogout.addEventListener('click', () => {
-            localStorage.clear();
-            window.location.href = 'index.html';
+        btnLogout.addEventListener('click', async () => {
+            btnLogout.disabled = true;
+            btnLogout.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Cerrando...';
+            await logout(); // invalida el token en el servidor y limpia localStorage
         });
     }
 

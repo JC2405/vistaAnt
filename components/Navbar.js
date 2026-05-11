@@ -19,7 +19,7 @@ export function Navbar() {
         .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(' ');
     const initial = nombre.charAt(0).toUpperCase();
-    const second  = nombre.split(' ')[1]?.charAt(0).toUpperCase() || '';
+    const second = nombre.split(' ')[1]?.charAt(0).toUpperCase() || '';
 
     return `
         <nav class="nb-float-bar px-3">
@@ -209,5 +209,5 @@ export function initNavbarEvents() {
         document.addEventListener('click', () => menu.classList.remove('open'));
     }
 
-    
+
 }

@@ -41,17 +41,17 @@ export async function apiFetch(endpoint, options = {}) {
     if (!response.ok) {
         const err = new Error(data.message || `Error ${response.status}`);
         // Adjuntar campos extra del backend (ej. tipo de conflicto)
-        if (data.tipo)         err.tipo         = data.tipo;
+        if (data.tipo) err.tipo = data.tipo;
         if (data.codigoFicha) err.codigoFicha = data.codigoFicha;
-        if (data.conflicto)   err.conflicto   = data.conflicto;
+        if (data.conflicto) err.conflicto = data.conflicto;
         throw err;
     }
 
     if (data.ok === false) {
         const err = new Error(data.message || 'Error en la operación');
-        if (data.tipo)         err.tipo         = data.tipo;
+        if (data.tipo) err.tipo = data.tipo;
         if (data.codigoFicha) err.codigoFicha = data.codigoFicha;
-        if (data.conflicto)   err.conflicto   = data.conflicto;
+        if (data.conflicto) err.conflicto = data.conflicto;
         throw err;
     }
 
@@ -121,9 +121,9 @@ export async function apiDownload(endpoint, filename) {
     }
 
     const blob = await response.blob();
-    const url  = window.URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
