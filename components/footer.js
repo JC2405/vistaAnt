@@ -46,6 +46,9 @@ export function footer() {
             <p style="margin: 0; font-size: 11px; color: #6c7a89;">
                 Centro Industrial de Mantenimiento y Manufactura
             </p>
+            <p style="margin: 0; font-size: 11px; color: #6c7a89;">
+                Gustavo Jiménez Instructor ADSO - Julian Chaparro Aprendiz Adso 
+            </p>
         </div>
     </div>
 
