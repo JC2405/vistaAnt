@@ -112,7 +112,7 @@ export function DashboardMenu(activePage) {
                     <div class="sidebar-brand-icon d-flex align-items-center justify-content-center rounded-3 flex-shrink-0">
                         <span class="fw-bold fs-5">H</span>
                     </div>
-                    <span class="sidebar-brand-text fw-bold fs-5">horarios</span>
+                    <span class="sidebar-brand-text fw-bold fs-5">Horarios</span>
                 </a>
                 <button class="btn btn-sm sidebar-toggle-btn d-flex align-items-center justify-content-center" id="btn-toggle-sidebar" title="Ocultar/Mostrar menú">
                     <i class="bi bi-layout-sidebar" id="toggle-sidebar-icon"></i>
