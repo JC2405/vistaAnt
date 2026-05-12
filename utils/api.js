@@ -91,6 +91,7 @@ export async function loginApi(credentials) {
     return data;
 }
 
+
 // ==========================================
 // DOWNLOAD (exportar archivos Excel)
 // ==========================================
@@ -180,6 +181,10 @@ export function createFuncionario(data) {
         method: 'POST',
         body: JSON.stringify(data),
     });
+}
+
+export function me() {
+    return apiFetch('/me', { method: 'GET' });
 }
 
 export function createAdmin(data) {

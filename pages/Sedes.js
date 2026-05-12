@@ -134,7 +134,6 @@ class SedesPage {
         const displayData = data || this.sedes;
 
         const columns = [
-            { key: 'idSede', label: 'ID', icon: 'hash' },
             { key: 'nombre', label: 'Nombre', icon: 'building' },
             { key: 'direccion', label: 'Dirección', icon: 'geo-alt' },
             {

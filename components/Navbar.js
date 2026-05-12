@@ -18,8 +18,6 @@ export function Navbar() {
     const displayName = nombre.split(' ')
         .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(' ');
-    const initial = nombre.charAt(0).toUpperCase();
-    const second = nombre.split(' ')[1]?.charAt(0).toUpperCase() || '';
 
     return `
         <nav class="nb-float-bar px-3">
@@ -81,110 +79,6 @@ export function Navbar() {
                 padding: 4px 10px;
                 gap: 5px;
             }
-
-            /* Avatar flotante */
-            .nb-avatar-wrap {
-                position: relative;
-                cursor: pointer;
-                flex-shrink: 0;
-            }
-            .nb-avatar-circle {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                background: linear-gradient(135deg, #4e73df 0%, #764ba2 100%);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border: 2.5px solid #fff;
-                box-shadow: 0 2px 10px rgba(118,75,162,0.35);
-                transition: box-shadow 0.2s, transform 0.2s;
-            }
-            .nb-avatar-wrap:hover .nb-avatar-circle {
-                box-shadow: 0 4px 16px rgba(118,75,162,0.45);
-                transform: scale(1.05);
-            }
-            .nb-avatar-initials {
-                color: #fff;
-                font-size: 12px;
-                font-weight: 700;
-                letter-spacing: 0.5px;
-                user-select: none;
-            }
-            .nb-online-dot {
-                position: absolute;
-                bottom: 1px;
-                right: 1px;
-                width: 10px;
-                height: 10px;
-                background: #2ecc71;
-                border-radius: 50%;
-                border: 2px solid #fff;
-            }
-
-            /* Dropdown */
-            .nb-dropdown {
-                display: none;
-                position: absolute;
-                top: calc(100% + 10px);
-                right: 0;
-                width: 215px;
-                background: #fff;
-                border: 1px solid #eef0f7;
-                border-radius: 14px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-                padding: 12px;
-                z-index: 9999;
-                animation: nb-drop 0.18s ease;
-            }
-            .nb-avatar-wrap.open .nb-dropdown { display: block; }
-
-            @keyframes nb-drop {
-                from { opacity: 0; transform: translateY(-8px) scale(0.97); }
-                to   { opacity: 1; transform: translateY(0) scale(1); }
-            }
-
-            .nb-dd-header {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding-bottom: 10px;
-            }
-            .nb-dd-avatar {
-                width: 38px; height: 38px;
-                border-radius: 10px;
-                background: linear-gradient(135deg, #4e73df, #764ba2);
-                color: #fff;
-                font-size: 12px;
-                font-weight: 700;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                flex-shrink: 0;
-                letter-spacing: 0.5px;
-            }
-            .nb-dd-name    { margin: 0; font-size: 0.88rem; font-weight: 600; color: #1a1a2e; }
-            .nb-dd-role    { margin: 0; font-size: 0.74rem; color: #8898aa; text-transform: capitalize; }
-            .nb-dd-divider { height: 1px; background: #eef0f7; margin: 4px 0 8px; }
-
-            .nb-dd-item {
-                width: 100%;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                background: none;
-                border: none;
-                padding: 8px 10px;
-                border-radius: 8px;
-                font-size: 0.85rem;
-                font-weight: 500;
-                cursor: pointer;
-                transition: background 0.15s;
-                color: #5a5f7d;
-            }
-            .nb-dd-item:hover         { background: #f4f6fd; }
-            .nb-dd-item--danger       { color: #e74a3b; }
-            .nb-dd-item--danger:hover { background: #fdf0ef; }
         </style>
     `;
 }
@@ -198,16 +92,4 @@ export function initNavbarEvents() {
             day: 'numeric', month: 'short', year: 'numeric'
         });
     }
-
-    // Toggle dropdown avatar
-    const menu = document.getElementById('navbar-user-menu');
-    if (menu) {
-        menu.addEventListener('click', (e) => {
-            e.stopPropagation();
-            menu.classList.toggle('open');
-        });
-        document.addEventListener('click', () => menu.classList.remove('open'));
-    }
-
-
 }
