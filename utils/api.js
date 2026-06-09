@@ -1,15 +1,13 @@
 //export const API_BASE_URL = 'https://backend-manejohorarioscimm.sgdis.cloud/api';
-export const API_BASE_URL = '/api';
-//export const API_BASE_URL = 'http://localhost:8000/api';
+//export const API_BASE_URL = '/api';
+export const API_BASE_URL= 'http://localhost:8000/api';
 
 
 import { getToken } from './auth.js?v=5';
 
-/**
- * Realiza una petición GET/POST/PUT/DELETE autenticada con JSON
- */
+
 export async function apiFetch(endpoint, options = {}) {
-    const token = getToken();
+    const token = getToken();   
 
     const headers = {
         'Accept': 'application/json',
@@ -610,4 +608,37 @@ export function analizarJuiciosConFicha(file, idFicha) {
     formData.append('archivo', file);
     formData.append('id_ficha', String(idFicha));
     return apiUpload('/reportes/competencias-pendientes', formData);
+}
+// ==========================================
+// APRENDICES API
+// ==========================================
+
+export function getAprendicesPorFicha(idFicha) {
+    return apiFetch(`/listarAprendiz?id_ficha=${idFicha}`);
+}
+
+export function crearAprendiz(data) {
+    return apiFetch('/crearAprendiz', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+// ==========================================
+// DASHBOARD CHARTS
+// ==========================================
+
+export function getDashboardCharts(anio = new Date().getFullYear()) {
+    return apiFetch(`/dashboard/charts?anio=${anio}`);
+}
+
+export function actualizarAprendiz(id, data) {
+    return apiFetch(`/editarAprendiz/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+}
+
+export function eliminarAprendiz(id) {
+    return apiFetch(`/eliminarAprendiz/${id}`, { method: 'DELETE' });
 }

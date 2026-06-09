@@ -10,7 +10,8 @@ import { footer } from '../components/footer.js';
 import { SearchableDropdown} from '../components/SearchableDropdownSedes.js';
 import { getFichas, createFicha, updateFicha, deleteFicha, getProgramas, getSedes,
          exportarFichas, exportarAprendicesDeFicha, importarAprendices,
-         getHorariosPorFicha, enviarHorarioAprendiz } from '../utils/api.js?v=4';
+         getHorariosPorFicha, enviarHorarioAprendiz,
+         getAprendicesPorFicha, crearAprendiz,  actualizarAprendiz, eliminarAprendiz  } from '../utils/api.js?v=5';
          
 
 function showDateRangeModal(titulo = 'Seleccionar período', subtitulo = '') {
@@ -184,7 +185,7 @@ class FichasPage {
             
             <div id="modal-container"></div>
             
-            <!-- Modal: Aprendices de la Ficha -->
+            <!-- Modal: Aprendices de la Ficha (principal) -->
             <div class="modal fade" id="modalAprendicesFicha" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-md modal-dialog-centered">
                     <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
@@ -192,30 +193,164 @@ class FichasPage {
                         <div class="modal-header text-white border-0 px-4 py-3"
                              style="background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);">
                             <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modal-aprendices-title">
-                                <i class="bi bi-people"></i> Aprendices de la Ficha
+                                <i class="bi bi-people"></i> Aprendices
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
                         <!-- Body -->
                         <div class="modal-body p-4 text-center" style="background:var(--bg-page);">
-                            <p class="mb-4">Gestiona los aprendices vinculados a esta ficha usando Excel.</p>
-                            
-                            <div class="d-flex flex-column gap-3 mx-auto" style="max-width: 300px;">
+                            <p class="mb-4">Gestiona los aprendices vinculados a esta ficha.</p>
+
+                            <div class="d-flex flex-column gap-3 mx-auto" style="max-width: 320px;">
+                                <button id="btn-ver-aprendices-modal" class="btn d-flex align-items-center justify-content-center gap-2 py-2"
+                                    style="background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%); color:#fff; border:none; border-radius:0.5rem; font-weight:600;">
+                                    <i class="bi bi-eye"></i> Ver Aprendices
+                                </button>
+
                                 <button id="btn-export-aprendices" class="btn btn-success d-flex align-items-center justify-content-center gap-2 py-2">
                                     <i class="bi bi-download"></i> Exportar Aprendices
                                 </button>
-                                
+
                                 <button id="btn-import-aprendices" class="btn btn-primary d-flex align-items-center justify-content-center gap-2 py-2">
                                     <i class="bi bi-upload"></i> Importar Aprendices
                                 </button>
                                 <input type="file" id="file-import-aprendices" accept=".xlsx, .xls, .csv" style="display:none;">
                             </div>
-                            
+
                             <div id="alert-aprendices-container" class="mt-3 text-start"></div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Modal: Lista de Aprendices -->
+            <div class="modal fade" id="modalListaAprendices" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
+                        <!-- Header -->
+                        <div class="modal-header text-white border-0 px-4 py-3"
+                             style="background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);">
+                            <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modalListaAprendicesLabel">
+                                <i class="bi bi-people"></i> Aprendices
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <!-- Body -->
+                        <div class="modal-body p-4" style="background:var(--bg-page); min-height: 300px;">
+                            <div id="lista-aprendices-alert"></div>
+                            <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
+                                <input type="text" id="search-aprendiz-input" class="form-control form-control-sm"
+                                       style="max-width: 250px; border-radius: 0.4rem;" placeholder="Buscar aprendiz...">
+                                <button id="btn-crear-aprendiz-modal" class="btn btn-sm"
+                                        style="background:var(--primary); color:#fff; border-radius: 0.4rem; font-weight: 500;">
+                                    <i class="bi bi-plus-lg"></i> Agregar Aprendiz
+                                </button>
+                            </div>
+                            <div id="lista-aprendices-content" class="d-flex flex-column gap-2">
+                                <!-- Loaded dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Crear Aprendiz -->
+            <div class="modal fade" id="modalCrearAprendiz" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-md modal-dialog-centered">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
+                        <!-- Header -->
+                        <div class="modal-header text-white border-0 px-4 py-3"
+                             style="background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);">
+                            <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="modal-crear-aprendiz-title">
+                                <i class="bi bi-person-plus"></i> Agregar Aprendiz
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <!-- Body -->
+                        <div class="modal-body p-4" style="background:var(--bg-page);">
+                            <div id="crear-aprendiz-alert"></div>
+                            <form id="form-crear-aprendiz">
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">Nombre <span class="text-danger">*</span></label>
+                                    <input type="text" id="ap-nombre" class="form-control" required maxlength="255"
+                                           placeholder="Ej: Cristian">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">Apellido <span class="text-danger">*</span></label>
+                                    <input type="text" id="ap-apellido" class="form-control" required maxlength="255"
+                                           placeholder="Ej: García">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">Número de Documento <span class="text-danger">*</span></label>
+                                    <input type="text" id="ap-documento" class="form-control" required maxlength="20"
+                                           placeholder="Ej: 1234567890">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">Correo Electrónico <span class="text-danger">*</span></label>
+                                    <input type="email" id="ap-email" class="form-control" required maxlength="255"
+                                           placeholder="Ej: juan@email.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-medium">Teléfono</label>
+                                    <input type="text" id="ap-telefono" class="form-control" maxlength="20"
+                                           placeholder="Ej: 3001234567">
+                                </div>
+                                <div class="d-flex justify-content-end gap-2 mt-4">
+                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-primary" id="btn-submit-aprendiz">Guardar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+       </div>
+    </div>
+
+            <!-- Modal: Editar Aprendiz -->
+<div class="modal fade" id="modalEditarAprendiz" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
+            <div class="modal-header text-white border-0 px-4 py-3"
+                 style="background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);">
+                <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                    <i class="bi bi-pencil-square"></i> Editar Aprendiz
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" style="background:var(--bg-page);">
+                <div id="editar-aprendiz-alert"></div>
+                <form id="form-editar-aprendiz">
+                    <input type="hidden" id="edit-ap-id">
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Nombre <span class="text-danger">*</span></label>
+                        <input type="text" id="edit-ap-nombre" class="form-control" required maxlength="255">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Apellido <span class="text-danger">*</span></label>
+                        <input type="text" id="edit-ap-apellido" class="form-control" required maxlength="255">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Número de Documento <span class="text-danger">*</span></label>
+                        <input type="text" id="edit-ap-documento" class="form-control" required maxlength="20">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Correo Electrónico <span class="text-danger">*</span></label>
+                        <input type="email" id="edit-ap-correo" class="form-control" required maxlength="255">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Teléfono</label>
+                        <input type="text" id="edit-ap-telefono" class="form-control" maxlength="20">
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btn-submit-editar-aprendiz">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>    
 
             <!-- Modal: Horario de la Ficha -->
             <div class="modal fade" id="modalHorarioFicha" tabindex="-1" aria-hidden="true">
@@ -282,6 +417,12 @@ class FichasPage {
             }
         });
 
+        // Evento: Ver Aprendices
+        document.getElementById('btn-ver-aprendices-modal').addEventListener('click', () => {
+            this.verAprendices();
+        });
+
+        // Evento: Exportar Aprendices
         document.getElementById('btn-export-aprendices').addEventListener('click', async () => {
             if (!this.currentFichaIdAprendices) return;
             try {
@@ -293,6 +434,7 @@ class FichasPage {
             }
         });
 
+        // Evento: Importar Aprendices
         const fileImportAp = document.getElementById('file-import-aprendices');
         document.getElementById('btn-import-aprendices').addEventListener('click', () => {
             fileImportAp.click();
@@ -313,7 +455,46 @@ class FichasPage {
             } catch (err) {
                 this.showAlert('alert-aprendices-container', 'danger', err.message || 'Error al importar');
             } finally {
-                e.target.value = ''; // Reset input
+                e.target.value = '';
+            }
+        });
+
+        // Evento: Abrir modal de crear aprendiz desde la lista
+        document.getElementById('btn-crear-aprendiz-modal').addEventListener('click', () => {
+            document.getElementById('form-crear-aprendiz').reset();
+            document.getElementById('crear-aprendiz-alert').innerHTML = '';
+
+            const modalLista = bootstrap.Modal.getInstance(document.getElementById('modalListaAprendices'));
+            if (modalLista) modalLista.hide();
+
+            const modalCrear = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCrearAprendiz'));
+            modalCrear.show();
+        });
+
+        // Al cerrar el modal de Crear Aprendiz, volver a mostrar la lista
+        document.getElementById('modalCrearAprendiz').addEventListener('hidden.bs.modal', () => {
+            if (this.currentFichaIdAprendices) {
+                const modalLista = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalListaAprendices'));
+                modalLista.show();
+            }
+        });
+
+        // Evento: Submit crear aprendiz
+        document.getElementById('form-crear-aprendiz').addEventListener('submit', (e) => this.handleCrearAprendiz(e));
+
+        // Evento: Buscar en lista de aprendices
+        document.getElementById('search-aprendiz-input').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase().trim();
+            document.querySelectorAll('.aprendiz-item').forEach(item => {
+                item.style.display = item.textContent.toLowerCase().includes(q) ? '' : 'none';
+            });
+        });
+
+        document.getElementById('form-editar-aprendiz').addEventListener('submit', (e) => this.handleEditarAprendiz(e));
+
+        document.getElementById('modalEditarAprendiz').addEventListener('hidden.bs.modal', () => {
+            if (this.currentFichaIdAprendices) {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('modalListaAprendices')).show();
             }
         });
     }
@@ -480,11 +661,173 @@ class FichasPage {
 
     abrirModalAprendices(idFicha, codigoFicha) {
         this.currentFichaIdAprendices = idFicha;
-        document.getElementById('modal-aprendices-title').innerHTML = `<i class="bi bi-people"></i> Aprendices - Ficha ${codigoFicha}`;
+        this.currentFichaCodigoAprendices = codigoFicha;
+
+        document.getElementById('modal-aprendices-title').innerHTML =
+            `<i class="bi bi-people"></i> Aprendices &mdash; Ficha ${codigoFicha}`;
         document.getElementById('alert-aprendices-container').innerHTML = '';
 
         const modalEl = document.getElementById('modalAprendicesFicha');
         bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+
+    async verAprendices() {
+        // Cerrar el modal principal
+        const modalPrincipal = bootstrap.Modal.getInstance(document.getElementById('modalAprendicesFicha'));
+        if (modalPrincipal) modalPrincipal.hide();
+
+        // Abrir el modal de lista
+        const listaModalEl = document.getElementById('modalListaAprendices');
+        const listaModal = bootstrap.Modal.getOrCreateInstance(listaModalEl);
+        listaModal.show();
+
+        document.getElementById('modalListaAprendicesLabel').innerHTML =
+            `<i class="bi bi-people"></i> Aprendices &mdash; Ficha ${this.currentFichaCodigoAprendices}`;
+
+        await this.cargarListaAprendices(this.currentFichaIdAprendices);
+    }
+
+    async cargarListaAprendices(idFicha) {
+        const content = document.getElementById('lista-aprendices-content');
+        if (!content) return;
+
+        content.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-hourglass-split fs-1 mb-3 d-block"></i> Cargando...</div>';
+
+        try {
+            const res = await getAprendicesPorFicha(idFicha);
+            const lista = res.data || (Array.isArray(res) ? res : []);
+
+            if (lista.length === 0) {
+                content.innerHTML = `
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-person-x" style="font-size:2rem;"></i>
+                        <p class="mt-2 mb-0">No hay aprendices registrados para esta ficha.</p>
+                    </div>`;
+                return;
+            }
+
+          content.innerHTML = lista.map((a, i) => `
+    <div class="card border-0 shadow-sm mb-2 aprendiz-item" style="border-radius: 0.8rem; overflow: hidden;">
+        <div class="card-body p-3 d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center justify-content-center flex-shrink-0"
+                 style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%); color:#fff; font-size:0.9rem; font-weight:700;">
+                ${i + 1}
+            </div>
+            <div class="flex-grow-1">
+                <div class="fw-semibold mb-1" style="color:var(--text-dark); font-size:0.95rem;">
+                    ${a.nombre || 'Sin nombre'} ${a.apellido || ''}
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    ${a.documento ? `<span class="badge" style="background:rgba(124,58,237,0.1); color:var(--primary); border:1px solid rgba(124,58,237,0.2); font-size:0.75rem;"><i class="bi bi-credit-card me-1"></i>${a.documento}</span>` : ''}
+                    ${a.correo ? `<span class="badge bg-light text-dark border" style="font-size:0.75rem;"><i class="bi bi-envelope me-1"></i>${a.correo}</span>` : ''}
+                    ${a.telefono ? `<span class="badge bg-light text-dark border" style="font-size:0.75rem;"><i class="bi bi-telephone me-1"></i>${a.telefono}</span>` : ''}
+                </div>
+            </div>
+            <!-- Botones de acción -->
+            <div class="d-flex gap-1 flex-shrink-0">
+                <button class="btn btn-sm btn-outline-primary btn-editar-aprendiz px-2"
+                    data-id="${a.idAprendiz}"
+                    data-nombre="${(a.nombre || '').replace(/"/g, '&quot;')}"
+                    data-apellido="${(a.apellido || '').replace(/"/g, '&quot;')}"
+                    data-documento="${(a.documento || '').replace(/"/g, '&quot;')}"
+                    data-correo="${(a.correo || '').replace(/"/g, '&quot;')}"
+                    data-telefono="${(a.telefono || '').replace(/"/g, '&quot;')}"
+                    title="Editar">
+                    <i class="bi bi-pencil-square"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger btn-eliminar-aprendiz px-2"
+                    data-id="${a.idAprendiz}"
+                    data-nombre="${(a.nombre || '').replace(/"/g, '&quot;')} ${(a.apellido || '').replace(/"/g, '&quot;')}"
+                    title="Eliminar">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+`).join('');
+
+// Bind botones editar
+content.querySelectorAll('.btn-editar-aprendiz').forEach(btn => {
+    btn.addEventListener('click', () => this.abrirModalEditarAprendiz(btn.dataset));
+});
+
+// Bind botones eliminar
+content.querySelectorAll('.btn-eliminar-aprendiz').forEach(btn => {
+    btn.addEventListener('click', () => this.handleEliminarAprendiz(btn.dataset.id, btn.dataset.nombre));
+});
+
+        } catch (err) {
+            content.innerHTML = `<div class="alert alert-danger m-2 py-2"><i class="bi bi-exclamation-triangle me-1"></i>${err.message || 'Error al cargar aprendices'}</div>`;
+        }
+    }
+
+    async handleCrearAprendiz(e) {
+        e.preventDefault();
+        const alertEl  = document.getElementById('crear-aprendiz-alert');
+        const btn      = document.getElementById('btn-submit-aprendiz');
+        const originalHtml = btn.innerHTML;
+
+        const nombre    = document.getElementById('ap-nombre').value.trim();
+        const apellido  = document.getElementById('ap-apellido').value.trim();
+        const documento = document.getElementById('ap-documento').value.trim();
+        const email     = document.getElementById('ap-email').value.trim();
+        const telefono  = document.getElementById('ap-telefono').value.trim();
+
+        if (!nombre || !documento || !email) {
+            alertEl.innerHTML = `<div class="alert alert-warning py-2"><i class="bi bi-exclamation-circle me-1"></i>Por favor completa los campos obligatorios.</div>`;
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...';
+        alertEl.innerHTML = '';
+
+        try {
+            await crearAprendiz({
+                nombre: nombre,
+                apellido: apellido,  
+                documento: documento,
+                correo: email,
+                telefono: telefono || 'Sin registro',
+                password: documento,
+                estado: 'Activo',
+                idFicha: Number(this.currentFichaIdAprendices)
+            });
+
+            // Cerrar modal de crear y volver a la lista (el listener hidden.bs.modal lo hace)
+            const modalCrear = bootstrap.Modal.getInstance(document.getElementById('modalCrearAprendiz'));
+            if (modalCrear) modalCrear.hide();
+
+            // Recargar lista en background
+            this.cargarListaAprendices(this.currentFichaIdAprendices);
+
+            // Mostrar mensaje de éxito en el modal de la lista
+            setTimeout(() => {
+                const listAlert = document.getElementById('lista-aprendices-alert');
+                if (listAlert) {
+                    listAlert.innerHTML = `<div class="alert alert-success py-2"><i class="bi bi-check-circle me-1"></i>¡Aprendiz guardado correctamente!</div>`;
+                    setTimeout(() => {
+                        listAlert.innerHTML = '';
+                    }, 3000);
+                }
+            }, 300);
+
+        } catch (err) {
+            alertEl.innerHTML = `<div class="alert alert-danger py-2"><i class="bi bi-exclamation-triangle me-1"></i>${err.message || 'Error al crear el aprendiz.'}</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+
+    _buildAlert(type, message) {
+        const icons = { success:'check-circle-fill', danger:'exclamation-triangle-fill',
+                        warning:'exclamation-circle-fill', info:'info-circle-fill' };
+        return `<div class="alert alert-${type} alert-dismissible d-flex align-items-center gap-2 py-2 px-3 mb-0" style="font-size:0.85rem;">
+            <i class="bi bi-${icons[type] || 'info-circle-fill'}"></i>
+            <span>${message}</span>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+        </div>`;
     }
 
 
@@ -1138,7 +1481,91 @@ class FichasPage {
         btnElement.disabled = false;
     }
 }
+abrirModalEditarAprendiz(dataset) {
+    document.getElementById('edit-ap-id').value        = dataset.id;
+    document.getElementById('edit-ap-nombre').value    = dataset.nombre;
+    document.getElementById('edit-ap-apellido').value  = dataset.apellido;
+    document.getElementById('edit-ap-documento').value = dataset.documento;
+    document.getElementById('edit-ap-correo').value    = dataset.correo;
+    document.getElementById('edit-ap-telefono').value  = dataset.telefono;
+    document.getElementById('editar-aprendiz-alert').innerHTML = '';
 
+    const modalLista = bootstrap.Modal.getInstance(document.getElementById('modalListaAprendices'));
+    if (modalLista) modalLista.hide();
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarAprendiz')).show();
+}
+
+async handleEditarAprendiz(e) {
+    e.preventDefault();
+    const alertEl = document.getElementById('editar-aprendiz-alert');
+    const btn     = document.getElementById('btn-submit-editar-aprendiz');
+    const original = btn.innerHTML;
+
+    const id       = document.getElementById('edit-ap-id').value;
+    const nombre   = document.getElementById('edit-ap-nombre').value.trim();
+    const apellido = document.getElementById('edit-ap-apellido').value.trim();
+    const documento= document.getElementById('edit-ap-documento').value.trim();
+    const correo   = document.getElementById('edit-ap-correo').value.trim();
+    const telefono = document.getElementById('edit-ap-telefono').value.trim();
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Guardando...';
+    alertEl.innerHTML = '';
+
+    try {
+        await actualizarAprendiz(id, { nombre, apellido, documento, correo, telefono,
+    estado: 'Activo',                                    // ← agregar
+    idFicha: Number(this.currentFichaIdAprendices)       // ← agregar
+ });
+
+        bootstrap.Modal.getInstance(document.getElementById('modalEditarAprendiz')).hide();
+
+        // Refrescar lista en background
+        this.cargarListaAprendices(this.currentFichaIdAprendices);
+
+        setTimeout(() => {
+            const listAlert = document.getElementById('lista-aprendices-alert');
+            if (listAlert) {
+                listAlert.innerHTML = `<div class="alert alert-success py-2"><i class="bi bi-check-circle me-1"></i>Aprendiz actualizado correctamente.</div>`;
+                setTimeout(() => { listAlert.innerHTML = ''; }, 3000);
+            }
+        }, 300);
+
+    } catch (err) {
+        alertEl.innerHTML = `<div class="alert alert-danger py-2"><i class="bi bi-exclamation-triangle me-1"></i>${err.message || 'Error al actualizar.'}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+
+async handleEliminarAprendiz(id, nombre) {
+    const confirmado = await ConfirmDialog({
+        title: '¿Eliminar Aprendiz?',
+        message: `Vas a eliminar a <strong>${nombre}</strong>. Esta acción no se puede deshacer.`,
+        confirmText: 'Sí, eliminar',
+        cancelText: 'Cancelar'
+    });
+
+    if (!confirmado) return;
+
+    try {
+        await eliminarAprendiz(id);
+        await this.cargarListaAprendices(this.currentFichaIdAprendices);
+
+        const listAlert = document.getElementById('lista-aprendices-alert');
+        if (listAlert) {
+            listAlert.innerHTML = `<div class="alert alert-success py-2"><i class="bi bi-check-circle me-1"></i>Aprendiz eliminado correctamente.</div>`;
+            setTimeout(() => { listAlert.innerHTML = ''; }, 3000);
+        }
+    } catch (err) {
+        const listAlert = document.getElementById('lista-aprendices-alert');
+        if (listAlert) {
+            listAlert.innerHTML = `<div class="alert alert-danger py-2"><i class="bi bi-exclamation-triangle me-1"></i>${err.message || 'Error al eliminar.'}</div>`;
+        }
+    }
+}
     renderCalendarioFicha(container, clases, codigoFicha) {
         if (!clases.length) {
             container.innerHTML = `
@@ -1414,6 +1841,7 @@ class FichasPage {
             }
         });
 
+        
         document.getElementById('ficha-btn-prev')?.addEventListener('click', () => calendar.prev());
         document.getElementById('ficha-btn-next')?.addEventListener('click', () => calendar.next());
         document.getElementById('ficha-btn-today')?.addEventListener('click', () => calendar.today());
