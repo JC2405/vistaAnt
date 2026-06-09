@@ -142,7 +142,7 @@ class FuncionariosPage {
                         
 
 
-
+                        
                         <div class="d-flex gap-2">
                             <button class="btn btn-purple d-flex align-items-center gap-2" id="btn-asignar-area-masivo">
                                 <i class="bi bi-tags-fill"></i>
@@ -164,9 +164,21 @@ class FuncionariosPage {
                             <button id="btn-import-db" class="btn btn-primary rounded-end-pill px-3" title="Importar DB">
                                 <i class="bi bi-upload"></i> Importar
                             </button>
+
+                          
                             <input type="file" id="file-import-db" accept=".xlsx, .xls, .csv" style="display:none;">
+                             <button type="button"
+                                class="btn btn-tooltip-green"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="bottom"
+                                title="<strong>Información sobre importación:</strong><br>Columnas necesarias:<br>• <strong>nombre</strong> (Los dos nombres de la persona)<br>• <strong>apellido</strong> (Los dos apellidos de la persona)<br>• <strong>documento</strong> (En formato texto)<br>• <strong>correo</strong> (Correo Institucional)<br>• <strong>telefono</strong> (Telefono en Formato texto)<br>• <strong>tipo_contrato</strong> (Tipo Contrato al cual corresponde) <br>• <strong>estado</strong> (El estado en la institucion Activo/Inactivo) 
+                          <i class="bi bi-question-circle-fill text-white">?</i>
+                        </button>
                         </div>
+                        
+                         
                         <div class="d-flex align-items-center gap-2">
+                        
                             <label class="mb-0 fw-medium" style="color: var(--text-muted); font-size: 0.85rem;">Search:</label>
                             <input type="text" class="form-control form-control-sm" style="max-width: 200px; border-color: var(--border-color); border-radius: 0.4rem;" placeholder="" id="search-input">
                         </div>
@@ -498,6 +510,14 @@ class FuncionariosPage {
             data: displayData
         });
 
+      document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+          new bootstrap.Tooltip(el, {
+            html: true
+          });
+        });
+
+
+      
         const bindActionButtons = () => {
             document.querySelectorAll('.btn-edit').forEach(btn => {
                 btn.addEventListener('click', (e) => this.openModal(e.currentTarget.dataset.id));

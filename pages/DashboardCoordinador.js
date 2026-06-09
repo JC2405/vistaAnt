@@ -319,15 +319,7 @@ poblarSelectorAnios(anios) {
                                     <h6 class="fw-bold text-dark mb-4">
                                         <i class="bi bi-bar-chart-line me-2 text-primary"></i>Resumen de Recursos
                                     </h6>
-                                    <div class="mb-4">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span class="text-secondary" style="font-size:0.85rem;">Ocupación de Ambientes</span>
-                                            <span class="fw-semibold text-dark" style="font-size:0.85rem;" id="lbl-ocupacion">0%</span>
-                                        </div>
-                                        <div class="dash-progress">
-                                            <div class="dash-progress__bar dash-progress__bar--purple" id="bar-ocupacion" style="width:0%"></div>
-                                        </div>
-                                    </div>
+                                    <br>
                                     <div class="mb-4">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <span class="text-secondary" style="font-size:0.85rem;">Fichas en el Sistema</span>
@@ -337,6 +329,7 @@ poblarSelectorAnios(anios) {
                                             <div class="dash-progress__bar dash-progress__bar--blue" id="bar-fichas" style="width:0%"></div>
                                         </div>
                                     </div>
+                                    <br>
                                     <div class="mb-2">
                                         <div class="d-flex justify-content-between align-items-center mb-2">
                                             <span class="text-secondary" style="font-size:0.85rem;">Instructores Registrados</span>

@@ -629,3 +629,44 @@ body.sidebar-collapsed .sidebar-logout {
     border-color: #ffcccc;
     color: #dc3545;
 }
+
+.tooltip-inner {
+  background-color: #c0c0c0 !important;
+  color: #010101 !important;
+  font-size: 11px;
+  padding: 15px;
+
+  max-width: 300px;
+  text-align: left;
+
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+/* Bootstrap 5 arrow */
+.tooltip .tooltip-arrow::before {
+  border-top-color: #c0c0c0 !important;
+  border-bottom-color: #c0c0c0 !important;
+  border-left-color: #c0c0c0 !important;
+  border-right-color: #c0c0c0 !important;
+}
+.btn-tooltip-green {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: #fff;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    font-size: 14px;
+    display: inline-flex;        /* cambia flex → inline-flex */
+    align-items: center;
+    justify-content: center;
+    border-radius: 50% !important;
+    align-self: center;          /* se centra verticalmente en el contenedor */
+    vertical-align: middle;      /* por si acaso hay contexto inline */
+}
+
+.btn-tooltip-green:hover {
+  background-color: #218838; /* verde más oscuro */
+  border-color: #1e7e34;
+}
