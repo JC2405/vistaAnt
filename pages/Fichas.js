@@ -1365,7 +1365,7 @@ content.querySelectorAll('.btn-eliminar-aprendiz').forEach(btn => {
 
         
 
-        let mensaje = 'Error al guardar la ficha - Asegurate que el codigo de la ficha no este duplicado';
+        let mensaje = error;
 
         if (error.response && error.response.data) {
             const data = error.response.data;
