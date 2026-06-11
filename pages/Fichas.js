@@ -597,7 +597,27 @@ class FichasPage {
                 : row.programa.nombre)
             : '<span class="text-muted">N/A</span>'
     },
-    { key: 'jornada',   label: 'Jornada',   icon: 'clock'  },
+    {
+    key: 'jornada',
+    label: 'Jornada',
+    icon: 'clock',
+    render: (row) => {
+        const jornada = row.jornada || '';
+
+        switch (jornada) {
+            case '6 - 12':
+                return '☀️Diurna 6-12';
+
+            case '12 - 18':
+                return '☀️Diurna 12-18';
+
+            case '18 - 24':
+                return '🌜Mixta 18-24';
+
+            default:
+                return jornada;
+        } 
+    }  },
     { key: 'modalidad', label: 'Modalidad', icon: 'laptop' },
     { key: 'fechaInicio', label: 'Inicio', icon: 'calendar-event' },
     { key: 'fechaFin', label: 'Fin', icon: 'calendar-check' },
@@ -880,8 +900,9 @@ content.querySelectorAll('.btn-eliminar-aprendiz').forEach(btn => {
                         <label for="jornada" class="form-label">Jornada</label>
                         <select class="form-select" id="jornada" required>
                           <option value="">Seleccionar...</option>
-                          <option value="Diurna">🌅 Diurna</option>
-                          <option value="Mixta">🌙 Mixta</option>
+                          <option value="6 - 12">🌅 Diurna 6-12</option>
+                          <option value="12 - 18">🌅 Diurna 12-18</option>
+                          <option value="18 - 24">🌙 Mixta 18-24</option>
                         </select>
                       </div>
                       <div class="col-6">
