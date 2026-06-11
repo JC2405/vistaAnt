@@ -1335,7 +1335,7 @@ content.querySelectorAll('.btn-eliminar-aprendiz').forEach(btn => {
     const data = {
         codigoFicha : document.getElementById('codigoFicha').value,
         idPrograma  : parseInt(document.getElementById('idPrograma').value),
-        jornada     : document.getElementById('jornada').value,
+        jornada     : (document.getElementById('jornada').value) || null,
         modalidad   : document.getElementById('modalidad').value,
         fechaInicio : document.getElementById('fechaInicio').value,
         fechaFin    : document.getElementById('fechaFin').value,
