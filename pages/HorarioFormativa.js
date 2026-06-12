@@ -108,29 +108,28 @@ class HorarioFormativa {
                                     <label class="form-label small fw-semibold text-muted mb-1 text-uppercase" style="letter-spacing:.04em;">
                                         <i class="bi bi-building text-primary me-1"></i>Sede
                                     </label>
-
-                                    <select id="idSede"
-                                            class="form-select form-select-sm border-0"
-                                            style="height:38px;border-radius:0.5rem;border:1px solid #d1d5db !important;background:#fff;">
-                                        <option value="">Seleccionar sede...</option>
-                                    </select>
+                                    <div id="dd-sede-trigger"
+                                         style="border-radius:0.5rem;overflow:hidden;border:1px solid #d1d5db;background:#fff;">
+                                        <input type="text" id="sedeDisplay" class="form-control border-0 form-control-sm"
+                                               placeholder="Seleccionar sede..." readonly>
+                                        <input type="hidden" id="hidSede">
+                                    </div>
                                 </div>
 
                                 <!-- Ficha -->
-                                <div class="col-md-3    ">
+                                <div class="col-md-3">
                                     <label class="form-label small fw-semibold text-muted mb-1 text-uppercase" style="letter-spacing:.04em;">
                                         <i class="bi bi-card-list text-primary me-1"></i>Ficha
                                     </label>
-
-                                    <select id="filtroFicha"
-                                            class="form-select form-select-sm border-0"
-                                            style="height:38px;border-radius:0.5rem;border:1px solid #d1d5db !important;background:#fff;"
-                                            disabled>
-                                        <option value="">Seleccionar ficha...</option>
-                                    </select>
+                                    <div id="dd-ficha-trigger"
+                                         style="border-radius:0.5rem;overflow:hidden;border:1px solid #d1d5db;background:#fff;">
+                                        <input type="text" id="fichaDisplay" class="form-control border-0 form-control-sm"
+                                               placeholder="Seleccionar sede primero..." readonly>
+                                        <input type="hidden" id="hidFicha">
+                                    </div>
                                 </div>
 
-                                <!-- Botón Analizar Juicios -->
+
                                 <div class="col-md-2 d-flex align-items-end">
                                     <button class="btn btn-outline-success w-100 rounded-3 d-flex align-items-center justify-content-center gap-2"
                                             id="btn-juicios-evaluativos" style="height:33px;font-size:0.82rem;">
@@ -139,7 +138,6 @@ class HorarioFormativa {
                                     </button>
                                     <input type="file" id="file-juicios" accept=".xlsx,.xls" class="d-none">
                                 </div>
-
                             </div>
                         </div>
                     </div>
@@ -345,99 +343,156 @@ class HorarioFormativa {
     }
 
     /* ── SELECTS Y DROPDOWNS ────────────────────────────────────────────── */
-    populateSelects() {
-        this.renderSedesSelectModal();
-
-        // Días
-        const cont = document.getElementById('dias-container');
-        if (cont) {
-            const dias = [
-                { label: 'L', nombre: 'Lunes' }, { label: 'M', nombre: 'Martes' },
-                { label: 'M', nombre: 'Miercoles' }, { label: 'J', nombre: 'Jueves' },
-                { label: 'V', nombre: 'Viernes' }, { label: 'S', nombre: 'Sabado' },
-                { label: 'D', nombre: 'Domingo' },
-            ];
-            cont.innerHTML = dias.map((d, i) => {
-                const val = i + 1;
-                return `<input type="checkbox" class="btn-check" id="dia_${val}" value="${val}" autocomplete="off">
-                        <label class="btn btn-outline-primary rounded-circle d-flex align-items-center justify-content-center fw-bold"
-                               style="width:38px;height:38px;font-size:0.82rem;" for="dia_${val}"
-                               title="${d.nombre}">${d.label}</label>`;
-            }).join('');
-        }
-
-        this._initAreaDropdown();
-        this._initInstructorDropdown();
-        this._initAmbienteDropdown();
-        this._initSedeFichaFilter();
-        this._initJuiciosEvents();
+  populateSelects() {
+    // Días
+    const cont = document.getElementById('dias-container');
+    if (cont) {
+        const dias = [
+            { label: 'L', nombre: 'Lunes' }, { label: 'M', nombre: 'Martes' },
+            { label: 'M', nombre: 'Miercoles' }, { label: 'J', nombre: 'Jueves' },
+            { label: 'V', nombre: 'Viernes' }, { label: 'S', nombre: 'Sabado' },
+            { label: 'D', nombre: 'Domingo' },
+        ];
+        cont.innerHTML = dias.map((d, i) => {
+            const val = i + 1;
+            return `<input type="checkbox" class="btn-check" id="dia_${val}" value="${val}" autocomplete="off">
+                    <label class="btn btn-outline-primary rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                           style="width:38px;height:38px;font-size:0.82rem;" for="dia_${val}"
+                           title="${d.nombre}">${d.label}</label>`;
+        }).join('');
     }
 
-    /* ── FILTRO: SEDE → FICHA ──────────────────────────────────────────── */
-    _initSedeFichaFilter() {
-        const selSede  = document.getElementById('idSede');
-        const selFicha = document.getElementById('filtroFicha');
-        if (!selSede || !selFicha) return;
+    this._initAreaDropdown();
+    this._initInstructorDropdown();
+    this._initAmbienteDropdown();
+    this._initSedeDropdown();
+    this._initFichaDropdown();
+    this._initJuiciosEvents();
+}
 
-        const resetFichas = (msg = 'Seleccionar ficha...') => {
-            selFicha.innerHTML = `<option value="">${msg}</option>`;
-            selFicha.disabled = true;
-        };
+_initSedeDropdown() {
+    const triggerEl = document.getElementById('dd-sede-trigger');
+    if (!triggerEl) return;
+    this._ddSede?.destroy();
+    this._ddSede = new SearchableDropdown({
+        triggerEl: 'dd-sede-trigger',
+        inputId: 'hidSede',
+        displayId: 'sedeDisplay',
+        placeholder: 'Buscar sede...',
+        emptyText: 'No se encontraron sedes',
+        onOpen: () => {
+            this._ddSede.setItems(
+                this.sedes.map(s => ({
+                    id: s.idSede,
+                    label: s.nombre,
+                    sub: s.ciudad || s.direccion || '',
+                }))
+            );
+        },
+        onSelect: async (item) => {
+            const idSede = String(item.id);
+            this.selectedSedeId = idSede;
 
-        selSede.addEventListener('change', async () => {
-            const idSede = selSede.value;
-            this.selectedSedeId = idSede || null;
-
-            // Resetear ficha y ambiente al cambiar sede
-            resetFichas();
-            this._ddAmbiente?.reset();
+            this._ddFicha?.reset();
+            document.getElementById('fichaDisplay').placeholder = 'Cargando fichas...';
             this.selectedFicha = null;
+            this._ddAmbiente?.reset();
             this._ocultarPanelFormulario();
             this.renderMainContent();
 
-            if (!idSede) return;
-
-            resetFichas('Cargando fichas...');
-            triggerEl:'dd-sede-trigger'
             try {
                 if (!this._fichasPorSedeCache[idSede]) {
                     const res = await getFichasPorSede(idSede);
                     this._fichasPorSedeCache[idSede] = res.data || (Array.isArray(res) ? res : []);
                 }
-                // La sede cambió mientras se cargaba: ignorar esta respuesta
-                if (selSede.value !== idSede) return;
-
                 const fichas = this._fichasPorSedeCache[idSede];
-                if (!fichas.length) { resetFichas('Sin fichas en esta sede'); return; }
-
-                selFicha.innerHTML = '<option value="">Seleccionar ficha...</option>' +
-                    fichas.map(f => {
-                        const prog = f.programa?.nombre ? ` — ${escapeHtml(f.programa.nombre)}` : '';
-                        return `<option value="${escapeHtml(f.idFicha)}">${escapeHtml(f.codigoFicha)}${prog}</option>`;
-                    }).join('');
-                selFicha.disabled = false;
+                document.getElementById('fichaDisplay').placeholder =
+                    fichas.length ? 'Seleccionar ficha...' : 'Sin fichas en esta sede';
             } catch (err) {
-                resetFichas('Error al cargar fichas');
+                document.getElementById('fichaDisplay').placeholder = 'Error al cargar fichas';
                 this.showAlert('page-alert-container', 'danger',
-                    `<i class="bi bi-x-circle me-2"></i>Error al cargar las fichas de la sede: ${escapeHtml(err.message)}`);
+                    `<i class="bi bi-x-circle me-2"></i>Error al cargar fichas: ${escapeHtml(err.message)}`);
             }
-        });
+        }
+    });
+}
 
-        selFicha.addEventListener('change', () => {
-            const idFicha = selFicha.value;
-            if (!idFicha) return;
-            this.fichas = this._fichasPorSedeCache[selSede.value] || [];
-            this._goToFicha(idFicha);
-        });
-    }
+_initFichaDropdown() {
+    const triggerEl = document.getElementById('dd-ficha-trigger');
+    if (!triggerEl) return;
+    this._ddFicha?.destroy();
+    this._ddFicha = new SearchableDropdown({
+        triggerEl: 'dd-ficha-trigger',
+        inputId: 'hidFicha',
+        displayId: 'fichaDisplay',
+        placeholder: 'Seleccionar sede primero...',
+        emptyText: 'No se encontraron fichas',
+        onOpen: () => {
+            if (!this.selectedSedeId) {
+                const t = document.getElementById('dd-sede-trigger');
+                if (t) {
+                    t.style.transition = 'box-shadow .15s';
+                    t.style.boxShadow = '0 0 0 3px rgba(220,53,69,.3)';
+                    t.style.borderColor = '#dc3545';
+                    setTimeout(() => { t.style.boxShadow = ''; t.style.borderColor = '#d1d5db'; }, 1500);
+                }
+                this._ddFicha.close?.();
+                return;
+            }
+            const fichas = this._fichasPorSedeCache[this.selectedSedeId] || [];
+            this._ddFicha.setItems(
+                fichas.map(f => ({
+                    id: f.idFicha,
+                    label: f.codigoFicha,
+                    sub: (f.programa?.nombre || '') + (f.jornada ? ` · ${f.jornada}` : ''),
+                }))
+            );
+        },
+        onSelect: (item) => {
+            this.fichas = this._fichasPorSedeCache[this.selectedSedeId] || [];
+            this._goToFicha(item.id);
+        }
+    });
+}
 
-    renderSedesSelectModal() {
-        const sel = document.getElementById('idSede');
-        if (!sel) return;
-        sel.innerHTML = '<option value="">Seleccionar sede...</option>' +
-            this.sedes.map(s => `<option value="${escapeHtml(String(s.idSede))}">${escapeHtml(s.nombre)}</option>`).join('');
-    }
+_initAreaDropdown() {
+    const triggerEl = document.getElementById('dd-area-trigger');
+    if (!triggerEl) return;
+    this._ddArea?.destroy();
+    this._ddArea = new SearchableDropdown({
+        triggerEl: 'dd-area-trigger',
+        inputId: 'hidArea',
+        displayId: 'areaDisplay',
+        placeholder: 'Buscar área...',
+        emptyText: 'No se encontraron áreas',
+        onOpen: () => {
+            this._ddArea.setItems(
+                this.areas.map(a => ({
+                    id: a.idArea,
+                    label: a.nombreArea || a.nombre || 'Sin nombre',
+                    sub: a.tipo || '',
+                }))
+            );
+        },
+        onSelect: async (item) => {
+            this.selectedAreaId = item.id;
 
+            this._ddInstructor?.reset('Cargando instructores...');
+            document.getElementById('instructorNombreDisplay').placeholder = 'Cargando instructores...';
+            document.getElementById('idFuncionario').value = '';
+
+            try {
+                const res = await apiCall(`/obtenerInstructorPorArea/${item.id}`);
+                this.instructores = res.data || (Array.isArray(res) ? res : []);
+                document.getElementById('instructorNombreDisplay').placeholder = 'Seleccionar instructor...';
+            } catch {
+                this.instructores = [];
+                document.getElementById('instructorNombreDisplay').placeholder = 'Error al cargar';
+            }
+            this._initInstructorDropdown();
+        }
+    });
+}
     /* ── DROPDOWN: ÁREA ─────────────────────────────────────────────────── */
     _initAreaDropdown() {
         const triggerEl = document.getElementById('dd-area-trigger');
@@ -1316,17 +1371,22 @@ class HorarioFormativa {
         };
 
         try {
-            const result = await apiCall('/crearAsignacion', 'POST', payload);
-            console.log(result);
-            document.getElementById('form-horario').reset();
-            document.getElementById('form-alert').innerHTML = '';
-            this._ddInstructor?.reset('Seleccionar instructor...');
-            this._ddAmbiente?.reset();
-            if (this.selectedSedeId) {
-                const selSede = document.getElementById('idSede');
-                if (selSede) selSede.value = this.selectedSedeId;
-            }
-            this.showAlert('page-alert-container', 'success', 'Clase asignada correctamente al horario.');
+         const result = await apiCall('/crearAsignacion', 'POST', payload);
+         document.getElementById('form-alert').innerHTML = '';
+                
+         if (this.selectedSedeId) {
+             const selSede = document.getElementById('idSede');
+             if (selSede) selSede.value = this.selectedSedeId;
+         }
+        
+         // Solo recargar la grilla, sin tocar el formulario
+         if (this.selectedFicha) {
+             const response = await apiCall('/horariosPorFicha/' + this.selectedFicha.idFicha);
+             const asignaciones = response.data?.asignaciones || response.asignaciones || [];
+             this.renderGrid(this.selectedFicha, asignaciones);
+         }
+        
+         this.showAlert('page-alert-container', 'success', 'Clase asignada correctamente al horario.');
         } catch (err) {
             if (err.tipo === 'conflicto_ambiente' && err.codigoFicha) {
                 this.showAlert('form-alert', 'warning', `<i class="bi bi-exclamation-triangle-fill me-2"></i>${err.message}`);
