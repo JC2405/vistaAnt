@@ -1335,7 +1335,7 @@ content.querySelectorAll('.btn-eliminar-aprendiz').forEach(btn => {
     const data = {
         codigoFicha : document.getElementById('codigoFicha').value,
         idPrograma  : parseInt(document.getElementById('idPrograma').value),
-        jornada     : (document.getElementById('jornada').value) || null,
+        jornada     : document.getElementById('jornada').value,
         modalidad   : document.getElementById('modalidad').value,
         fechaInicio : document.getElementById('fechaInicio').value,
         fechaFin    : document.getElementById('fechaFin').value,
@@ -1365,7 +1365,7 @@ content.querySelectorAll('.btn-eliminar-aprendiz').forEach(btn => {
 
         
 
-        let mensaje = error;
+        let mensaje = 'Error al guardar, Verifica que el codigo de la ficha NO este repetido    ';
 
         if (error.response && error.response.data) {
             const data = error.response.data;
