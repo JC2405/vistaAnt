@@ -241,7 +241,7 @@ export function deleteTipoContrato(id) {
 // ==========================================
 
 export function getAreas() {
-    return apiFetch('/listarArea');
+    return apiFetch('/listarTransversales');
 }
 
 export function createArea(data) {
@@ -641,4 +641,8 @@ export function actualizarAprendiz(id, data) {
 
 export function eliminarAprendiz(id) {
     return apiFetch(`/eliminarAprendiz/${id}`, { method: 'DELETE' });
+}
+
+export function getFichasPorSede(idSede) {
+    return apiFetch(`/fichasPorSede/${idSede}`);
 }
