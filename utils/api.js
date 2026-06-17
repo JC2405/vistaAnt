@@ -241,6 +241,11 @@ export function deleteTipoContrato(id) {
 // ==========================================
 
 export function getAreas() {
+    return apiFetch('/listarArea');
+}
+
+
+export function obtenerAreasTransversales() {
     return apiFetch('/listarTransversales');
 }
 

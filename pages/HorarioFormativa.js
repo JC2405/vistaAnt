@@ -5,7 +5,7 @@ import { SearchableDropdown } from '../components/SearchableDropdown.js';
 import { escapeHtml } from '../utils/sanitize.js';
 import {
     apiFetch, getAmbientes, getFuncionarios, getSedes, analizarJuiciosConFicha,
-    getProgramasPorSede, getFichasPorProgramaSede, getFichasPorSede, getAreas
+    getProgramasPorSede, getFichasPorProgramaSede, getFichasPorSede, getAreas , obtenerAreasTransversales
 } from '../utils/api.js?v=4';
 
 async function apiCall(endpoint, method = 'GET', body = null) {
@@ -305,7 +305,7 @@ class HorarioFormativa {
     async loadDependencies() {
         try {
             const [aData, sData, areasData] = await Promise.all([
-                getAmbientes(), getSedes(), getAreas()
+                getAmbientes(), getSedes(), obtenerAreasTransversales()
             ]);
             this.ambientes = aData.data || (Array.isArray(aData) ? aData : []);
             this.sedes     = sData.data || (Array.isArray(sData) ? sData : []);
