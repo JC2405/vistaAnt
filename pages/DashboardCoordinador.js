@@ -304,7 +304,7 @@ poblarSelectorAnios(anios) {
                             <div class="dash-card dash-card--warning">
                                 <div class="dash-card__icon"><i class="bi bi-door-open"></i></div>
                                 <div class="dash-card__body">
-                                    <span class="dash-card__label">Ambientes Libres</span>
+                                    <span class="dash-card__label">Ambientes Registrados    </span>
                                     <span class="dash-card__value" id="metric-ambientes">...</span>
                                 </div>
                             </div>

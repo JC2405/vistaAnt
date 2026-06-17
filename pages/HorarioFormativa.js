@@ -36,8 +36,9 @@ class HorarioFormativa {
         this.ambientesDisponibles = [];
         this.mostrarDropdownDisponibles = false;
 
-        // Cache de fichas por sede para evitar consultas repetidas
         this._fichasPorSedeCache = {};
+        this._idInstructorActivo = null;
+        this._cargaInstructor = [];
 
         this.init();
     }
@@ -61,7 +62,6 @@ class HorarioFormativa {
                 <main class="container-fluid p-4 flex-grow-1" style="background:var(--bg-page);">
                     <div id="page-alert-container"></div>
 
-                    <!-- Encabezado -->
                     <div class="d-flex align-items-center gap-3 mb-3">
                         <div class="page-icon"><i class="bi bi-calendar-event"></i></div>
                         <div>
@@ -70,14 +70,10 @@ class HorarioFormativa {
                         </div>
                     </div>
 
-                    <!-- ══════════════════════════════
-                         PANEL BÚSQUEDA: Área → Instructor → Sede → Ficha
-                    ══════════════════════════════════ -->
                     <div class="card border-0 shadow-sm rounded-4 mb-3">
                         <div class="card-body px-4 py-3">
                             <div class="row g-3 align-items-end">
 
-                                <!-- Área -->
                                 <div class="col-md-2">
                                     <label class="form-label small fw-semibold text-muted mb-1 text-uppercase" style="letter-spacing:.04em;">
                                         <i class="bi bi-diagram-3 text-primary me-1"></i>Área
@@ -90,7 +86,6 @@ class HorarioFormativa {
                                     </div>
                                 </div>
 
-                                <!-- Instructor (depende del área) -->
                                 <div class="col-md-3">
                                     <label class="form-label small fw-semibold text-muted mb-1 text-uppercase" style="letter-spacing:.04em;">
                                         <i class="bi bi-person-badge text-primary me-1"></i>Instructor
@@ -103,7 +98,6 @@ class HorarioFormativa {
                                     </div>
                                 </div>
 
-                                <!-- Sede -->
                                 <div class="col-md-2">
                                     <label class="form-label small fw-semibold text-muted mb-1 text-uppercase" style="letter-spacing:.04em;">
                                         <i class="bi bi-building text-primary me-1"></i>Sede
@@ -116,7 +110,6 @@ class HorarioFormativa {
                                     </div>
                                 </div>
 
-                                <!-- Ficha -->
                                 <div class="col-md-3">
                                     <label class="form-label small fw-semibold text-muted mb-1 text-uppercase" style="letter-spacing:.04em;">
                                         <i class="bi bi-card-list text-primary me-1"></i>Ficha
@@ -128,7 +121,6 @@ class HorarioFormativa {
                                         <input type="hidden" id="hidFicha">
                                     </div>
                                 </div>
-
 
                                 <div class="col-md-2 d-flex align-items-end">
                                     <button class="btn btn-outline-success w-100 rounded-3 d-flex align-items-center justify-content-center gap-2"
@@ -142,7 +134,6 @@ class HorarioFormativa {
                         </div>
                     </div>
 
-                    <!-- Banner ficha seleccionada -->
                     <div id="ficha-info-banner" class="d-none mb-3">
                         <div class="card border-0 rounded-4 shadow-sm" style="background:linear-gradient(135deg,var(--primary-dark) 0%,var(--primary) 100%);">
                             <div class="card-body px-4 py-2 d-flex align-items-center gap-3">
@@ -158,9 +149,6 @@ class HorarioFormativa {
                         </div>
                     </div>
 
-                    <!-- ══════════════════════════════
-                         FORMULARIO (compacto)
-                    ══════════════════════════════════ -->
                     <div id="panel-formulario" class="d-none mb-3">
                         <div class="card border-0 shadow-sm rounded-4">
                             <div class="card-body px-4 py-3">
@@ -169,11 +157,9 @@ class HorarioFormativa {
                                     <div class="row g-2 align-items-end">
                                        <div class="row g-3">
 
-                                        <!-- IZQUIERDA -->
                                         <div class="col-md-8">
                                             <div class="row g-2">
 
-                                                <!-- Modalidad -->
                                                 <div class="col-md-6">
                                                     <label class="form-label small mb-1">Modalidad</label>
                                                     <select class="form-select form-select-sm" id="modalidad_clase">
@@ -182,7 +168,6 @@ class HorarioFormativa {
                                                     </select>
                                                 </div>
 
-                                                <!-- Ambiente -->
                                                 <div class="col-md-6">
                                                     <label class="form-label small mb-1">Ambiente</label>
                                                     <div class="d-flex gap-2">
@@ -203,7 +188,6 @@ class HorarioFormativa {
                                                     </div>
                                                 </div>
 
-                                                <!-- Observación -->
                                                 <div class="col-11">
                                                     <label class="form-label small mb-1">Observación</label>
                                                     <input type="text"
@@ -217,11 +201,9 @@ class HorarioFormativa {
                                             </div>
                                         </div>
 
-                                        <!-- DERECHA -->
                                         <div class="col-md-4">
                                             <div class="row g-2">
 
-                                                <!-- Horas -->
                                                 <div class="col-6">
                                                     <label class="form-label small mb-1">Hora Inicio</label>
                                                     <input type="time" class="form-control form-control-sm" id="hora_inicio">
@@ -231,7 +213,6 @@ class HorarioFormativa {
                                                     <input type="time" class="form-control form-control-sm" id="hora_fin">
                                                 </div>
 
-                                                <!-- Fechas -->
                                                 <div class="col-6">
                                                     <label class="form-label small mb-1">Fecha Inicio</label>
                                                     <input type="date" class="form-control form-control-sm" id="fecha_inicio">
@@ -241,13 +222,11 @@ class HorarioFormativa {
                                                     <input type="date" class="form-control form-control-sm" id="fecha_fin">
                                                 </div>
 
-                                                <!-- Días -->
                                                 <div class="col-12">
                                                     <label class="form-label small mb-1">Días</label>
                                                     <div class="d-flex flex-wrap gap-1" id="dias-container"></div>
                                                 </div>
 
-                                                <!-- Resumen de horas -->
                                                 <div class="col-12">
                                                     <div id="resumen-horas-container" style="display:none;">
                                                         <div class="rounded-3 border px-3 py-2 mb-2"
@@ -286,7 +265,6 @@ class HorarioFormativa {
                                                     </div>
                                                 </div>
 
-                                                <!-- Botón -->
                                                 <div class="col-12">
                                                     <button type="submit" id="btn-asignar" class="btn btn-purple btn-sm w-100">
                                                         <i class="bi bi-calendar-check"></i> Guardar
@@ -303,10 +281,8 @@ class HorarioFormativa {
                         </div>
                     </div>
 
-                    <!-- Calendario -->
                     <div id="main-content" class="fade-in"></div>
 
-                    <!-- Modal Juicios -->
                     <div class="modal fade" id="modalAnalisisJuicios" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
                             <div class="modal-content border-0 shadow-lg" style="border-radius:1rem;overflow:hidden;">
@@ -343,156 +319,124 @@ class HorarioFormativa {
     }
 
     /* ── SELECTS Y DROPDOWNS ────────────────────────────────────────────── */
-  populateSelects() {
-    // Días
-    const cont = document.getElementById('dias-container');
-    if (cont) {
-        const dias = [
-            { label: 'L', nombre: 'Lunes' }, { label: 'M', nombre: 'Martes' },
-            { label: 'M', nombre: 'Miercoles' }, { label: 'J', nombre: 'Jueves' },
-            { label: 'V', nombre: 'Viernes' }, { label: 'S', nombre: 'Sabado' },
-            { label: 'D', nombre: 'Domingo' },
-        ];
-        cont.innerHTML = dias.map((d, i) => {
-            const val = i + 1;
-            return `<input type="checkbox" class="btn-check" id="dia_${val}" value="${val}" autocomplete="off">
-                    <label class="btn btn-outline-primary rounded-circle d-flex align-items-center justify-content-center fw-bold"
-                           style="width:38px;height:38px;font-size:0.82rem;" for="dia_${val}"
-                           title="${d.nombre}">${d.label}</label>`;
-        }).join('');
+    populateSelects() {
+        const cont = document.getElementById('dias-container');
+        if (cont) {
+            const dias = [
+                { label: 'L', nombre: 'Lunes' }, { label: 'M', nombre: 'Martes' },
+                { label: 'M', nombre: 'Miercoles' }, { label: 'J', nombre: 'Jueves' },
+                { label: 'V', nombre: 'Viernes' }, { label: 'S', nombre: 'Sabado' },
+                { label: 'D', nombre: 'Domingo' },
+            ];
+            cont.innerHTML = dias.map((d, i) => {
+                const val = i + 1;
+                return `<input type="checkbox" class="btn-check" id="dia_${val}" value="${val}" autocomplete="off">
+                        <label class="btn btn-outline-primary rounded-circle d-flex align-items-center justify-content-center fw-bold"
+                               style="width:38px;height:38px;font-size:0.82rem;" for="dia_${val}"
+                               title="${d.nombre}">${d.label}</label>`;
+            }).join('');
+        }
+
+        this._initAreaDropdown();
+        this._initInstructorDropdown();
+        this._initAmbienteDropdown();
+        this._initSedeDropdown();
+        this._initFichaDropdown();
+        this._initJuiciosEvents();
     }
 
-    this._initAreaDropdown();
-    this._initInstructorDropdown();
-    this._initAmbienteDropdown();
-    this._initSedeDropdown();
-    this._initFichaDropdown();
-    this._initJuiciosEvents();
-}
+    /* ── DROPDOWN: SEDE ─────────────────────────────────────────────────── */
+    _initSedeDropdown() {
+        const triggerEl = document.getElementById('dd-sede-trigger');
+        if (!triggerEl) return;
+        this._ddSede?.destroy();
+        this._ddSede = new SearchableDropdown({
+            triggerEl: 'dd-sede-trigger',
+            inputId: 'hidSede',
+            displayId: 'sedeDisplay',
+            placeholder: 'Buscar sede...',
+            emptyText: 'No se encontraron sedes',
+            onOpen: () => {
+                this._ddSede.setItems(
+                    this.sedes.map(s => ({
+                        id: s.idSede,
+                        label: s.nombre,
+                        sub: s.ciudad || s.direccion || '',
+                    }))
+                );
+            },
+            onSelect: async (item) => {
+                const idSede = String(item.id);
+                this.selectedSedeId = idSede;
 
-_initSedeDropdown() {
-    const triggerEl = document.getElementById('dd-sede-trigger');
-    if (!triggerEl) return;
-    this._ddSede?.destroy();
-    this._ddSede = new SearchableDropdown({
-        triggerEl: 'dd-sede-trigger',
-        inputId: 'hidSede',
-        displayId: 'sedeDisplay',
-        placeholder: 'Buscar sede...',
-        emptyText: 'No se encontraron sedes',
-        onOpen: () => {
-            this._ddSede.setItems(
-                this.sedes.map(s => ({
-                    id: s.idSede,
-                    label: s.nombre,
-                    sub: s.ciudad || s.direccion || '',
-                }))
-            );
-        },
-        onSelect: async (item) => {
-            const idSede = String(item.id);
-            this.selectedSedeId = idSede;
+                this._ddFicha?.reset();
+                document.getElementById('fichaDisplay').placeholder = 'Cargando fichas...';
+                this.selectedFicha = null;
+                this._ddAmbiente?.reset();
+                this._ocultarPanelFormulario();
 
-            this._ddFicha?.reset();
-            document.getElementById('fichaDisplay').placeholder = 'Cargando fichas...';
-            this.selectedFicha = null;
-            this._ddAmbiente?.reset();
-            this._ocultarPanelFormulario();
-            this.renderMainContent();
-
-            try {
-                if (!this._fichasPorSedeCache[idSede]) {
-                    const res = await getFichasPorSede(idSede);
-                    this._fichasPorSedeCache[idSede] = res.data || (Array.isArray(res) ? res : []);
+                // ✅ FIX Bug 1: si hay instructor activo, re-renderizar tabla SIN tocar renderMainContent()
+                // Si no hay instructor activo, no tocar main-content — ya tiene el placeholder inicial
+                if (this._idInstructorActivo) {
+                    this._renderTablaInstructor();
                 }
-                const fichas = this._fichasPorSedeCache[idSede];
-                document.getElementById('fichaDisplay').placeholder =
-                    fichas.length ? 'Seleccionar ficha...' : 'Sin fichas en esta sede';
-            } catch (err) {
-                document.getElementById('fichaDisplay').placeholder = 'Error al cargar fichas';
-                this.showAlert('page-alert-container', 'danger',
-                    `<i class="bi bi-x-circle me-2"></i>Error al cargar fichas: ${escapeHtml(err.message)}`);
-            }
-        }
-    });
-}
 
-_initFichaDropdown() {
-    const triggerEl = document.getElementById('dd-ficha-trigger');
-    if (!triggerEl) return;
-    this._ddFicha?.destroy();
-    this._ddFicha = new SearchableDropdown({
-        triggerEl: 'dd-ficha-trigger',
-        inputId: 'hidFicha',
-        displayId: 'fichaDisplay',
-        placeholder: 'Seleccionar sede primero...',
-        emptyText: 'No se encontraron fichas',
-        onOpen: () => {
-            if (!this.selectedSedeId) {
-                const t = document.getElementById('dd-sede-trigger');
-                if (t) {
-                    t.style.transition = 'box-shadow .15s';
-                    t.style.boxShadow = '0 0 0 3px rgba(220,53,69,.3)';
-                    t.style.borderColor = '#dc3545';
-                    setTimeout(() => { t.style.boxShadow = ''; t.style.borderColor = '#d1d5db'; }, 1500);
+                try {
+                    if (!this._fichasPorSedeCache[idSede]) {
+                        const res = await getFichasPorSede(idSede);
+                        this._fichasPorSedeCache[idSede] = res.data || (Array.isArray(res) ? res : []);
+                    }
+                    const fichas = this._fichasPorSedeCache[idSede];
+                    document.getElementById('fichaDisplay').placeholder =
+                        fichas.length ? 'Seleccionar ficha...' : 'Sin fichas en esta sede';
+                } catch (err) {
+                    document.getElementById('fichaDisplay').placeholder = 'Error al cargar fichas';
+                    this.showAlert('page-alert-container', 'danger',
+                        `<i class="bi bi-x-circle me-2"></i>Error al cargar fichas: ${escapeHtml(err.message)}`);
                 }
-                this._ddFicha.close?.();
-                return;
             }
-            const fichas = this._fichasPorSedeCache[this.selectedSedeId] || [];
-            this._ddFicha.setItems(
-                fichas.map(f => ({
-                    id: f.idFicha,
-                    label: f.codigoFicha,
-                    sub: (f.programa?.nombre || '') + (f.jornada ? ` · ${f.jornada}` : ''),
-                }))
-            );
-        },
-        onSelect: (item) => {
-            this.fichas = this._fichasPorSedeCache[this.selectedSedeId] || [];
-            this._goToFicha(item.id);
-        }
-    });
-}
+        });
+    }
 
-_initAreaDropdown() {
-    const triggerEl = document.getElementById('dd-area-trigger');
-    if (!triggerEl) return;
-    this._ddArea?.destroy();
-    this._ddArea = new SearchableDropdown({
-        triggerEl: 'dd-area-trigger',
-        inputId: 'hidArea',
-        displayId: 'areaDisplay',
-        placeholder: 'Buscar área...',
-        emptyText: 'No se encontraron áreas',
-        onOpen: () => {
-            this._ddArea.setItems(
-                this.areas.map(a => ({
-                    id: a.idArea,
-                    label: a.nombreArea || a.nombre || 'Sin nombre',
-                    sub: a.tipo || '',
-                }))
-            );
-        },
-        onSelect: async (item) => {
-            this.selectedAreaId = item.id;
-
-            this._ddInstructor?.reset('Cargando instructores...');
-            document.getElementById('instructorNombreDisplay').placeholder = 'Cargando instructores...';
-            document.getElementById('idFuncionario').value = '';
-
-            try {
-                const res = await apiCall(`/obtenerInstructorPorArea/${item.id}`);
-                this.instructores = res.data || (Array.isArray(res) ? res : []);
-                document.getElementById('instructorNombreDisplay').placeholder = 'Seleccionar instructor...';
-            } catch {
-                this.instructores = [];
-                document.getElementById('instructorNombreDisplay').placeholder = 'Error al cargar';
+    /* ── DROPDOWN: FICHA ────────────────────────────────────────────────── */
+    _initFichaDropdown() {
+        const triggerEl = document.getElementById('dd-ficha-trigger');
+        if (!triggerEl) return;
+        this._ddFicha?.destroy();
+        this._ddFicha = new SearchableDropdown({
+            triggerEl: 'dd-ficha-trigger',
+            inputId: 'hidFicha',
+            displayId: 'fichaDisplay',
+            placeholder: 'Seleccionar sede primero...',
+            emptyText: 'No se encontraron fichas',
+            onOpen: () => {
+                if (!this.selectedSedeId) {
+                    const t = document.getElementById('dd-sede-trigger');
+                    if (t) {
+                        t.style.transition = 'box-shadow .15s';
+                        t.style.boxShadow = '0 0 0 3px rgba(220,53,69,.3)';
+                        t.style.borderColor = '#dc3545';
+                        setTimeout(() => { t.style.boxShadow = ''; t.style.borderColor = '#d1d5db'; }, 1500);
+                    }
+                    this._ddFicha.close?.();
+                    return;
+                }
+                const fichas = this._fichasPorSedeCache[this.selectedSedeId] || [];
+                this._ddFicha.setItems(
+                    fichas.map(f => ({
+                        id: f.idFicha,
+                        label: f.codigoFicha,
+                        sub: (f.programa?.nombre || '') + (f.jornada ? ` · ${f.jornada}` : ''),
+                    }))
+                );
+            },
+            onSelect: (item) => {
+                this.fichas = this._fichasPorSedeCache[this.selectedSedeId] || [];
+                this._goToFicha(item.id);
             }
-            this._initInstructorDropdown();
-        }
-    });
-}
+        });
+    }
+
     /* ── DROPDOWN: ÁREA ─────────────────────────────────────────────────── */
     _initAreaDropdown() {
         const triggerEl = document.getElementById('dd-area-trigger');
@@ -513,8 +457,16 @@ _initAreaDropdown() {
                     }))
                 );
             },
+            // ✅ FIX Bug 3: onSelect limpio, sin onSelect anidado, con guard de misma área
             onSelect: async (item) => {
+                // Si el usuario seleccionó la misma área, no hacer nada
+                if (String(this.selectedAreaId) === String(item.id)) return;
+
                 this.selectedAreaId = item.id;
+
+                // Solo limpiar instructor y carga si el área realmente cambió
+                this._idInstructorActivo = null;
+                this._cargaInstructor = [];
 
                 this._ddInstructor?.reset('Cargando instructores...');
                 document.getElementById('instructorNombreDisplay').placeholder = 'Cargando instructores...';
@@ -529,6 +481,9 @@ _initAreaDropdown() {
                     document.getElementById('instructorNombreDisplay').placeholder = 'Error al cargar';
                 }
                 this._initInstructorDropdown();
+
+                // Mostrar placeholder limpio porque ya no hay instructor activo
+                this.renderMainContent();
             }
         });
     }
@@ -598,6 +553,15 @@ _initAreaDropdown() {
                 }
                 this._ddInstructor.setItems(this._getInstructorItems());
             },
+            onSelect: async (item) => {
+                this._idInstructorActivo = item.id;
+                this.selectedFicha = null;
+                this._ddFicha?.reset();
+                this._ocultarPanelFormulario();
+                const rec = document.getElementById('recomendacion-contrajornada');
+                if (rec) { rec.classList.add('d-none'); rec.innerHTML = ''; }
+                await this._cargarTablaInstructor(item.id);
+            }
         });
     }
 
@@ -697,26 +661,242 @@ _initAreaDropdown() {
         document.getElementById('panel-formulario')?.classList.add('d-none');
     }
 
-    /* ── VISTA PRINCIPAL ────────────────────────────────────────────────── */
+    /* ── VISTA PRINCIPAL (placeholder sin instructor) ────────────────────── */
     renderMainContent() {
         const container = document.getElementById('main-content');
         if (!container) return;
-        if (!this.selectedFicha) {
-            container.innerHTML = `
-                <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-body py-5 text-center text-muted d-flex flex-column align-items-center" style="min-height:300px;justify-content:center;">
-                        <i class="bi bi-calendar-event fs-1 mb-3 opacity-25"></i>
-                        <p class="fw-medium mb-1">Selecciona una sede y luego una ficha para ver su horario</p>
-                        <p class="small">Usa los selectores en la barra superior</p>
-                    </div>
-                </div>`;
+        container.innerHTML = `
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body py-5 text-center text-muted d-flex flex-column align-items-center" style="min-height:300px;justify-content:center;">
+                    <i class="bi bi-person-badge fs-1 mb-3 opacity-25"></i>
+                    <p class="fw-medium mb-1">Selecciona un área e instructor para ver su carga de transversales</p>
+                    <p class="small">Luego elige sede y ficha para asignar nuevas horas</p>
+                </div>
+            </div>`;
+    }
+
+    async _cargarTablaInstructor(idFuncionario) {
+    const container = document.getElementById('main-content');
+    container.innerHTML = `
+        <div class="card border-0 shadow-sm rounded-4" id="tabla-instructor-card">
+            <div class="card-body py-4 text-center text-muted">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                Cargando carga del instructor...
+            </div>
+        </div>`;
+
+    try {
+        const res = await apiCall(`/horarioPorInstructor/${idFuncionario}`);  // ✅ endpoint correcto
+        this._cargaInstructor = res.data?.clases || [];                        // ✅ estructura correcta
+        this._renderTablaInstructor();
+    } catch (err) {
+        const card = document.getElementById('tabla-instructor-card');
+        if (card) card.innerHTML = `
+            <div class="card-body text-danger p-4">
+                <i class="bi bi-exclamation-triangle me-2"></i>${escapeHtml(err.message)}
+            </div>`;
+    }
+}
+
+    /* ── RENDER TABLA INSTRUCTOR ────────────────────────────────────────── */
+    _renderTablaInstructor() {
+        if (!this._idInstructorActivo) return;
+
+        
+        let card = document.getElementById('tabla-instructor-card');
+        if (!card) {
+            const container = document.getElementById('main-content');
+            container.innerHTML = `<div class="card border-0 shadow-sm rounded-4" id="tabla-instructor-card"></div>`;
+            card = document.getElementById('tabla-instructor-card');
         }
+
+        const asignaciones  = this._cargaInstructor;
+        const idFichaActiva = this.selectedFicha?.idFicha;
+
+        const idFuncionario = document.getElementById('idFuncionario').value;
+        const instructor    = this.instructores.find(i => String(i.idFuncionario) === String(idFuncionario));
+        const nombreInst    = instructor
+            ? `${instructor.nombre || ''} ${instructor.apellido || instructor.apellidos || ''}`.trim()
+            : document.getElementById('instructorNombreDisplay').value || '—';
+        const iniciales = nombreInst.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+
+        const totalHSem = asignaciones.reduce((acc, asig) => {
+            const bloque = asig.bloque;
+            if (!bloque) return acc;
+            const hI = bloque.horaInicio || bloque.hora_inicio || '';
+            const hF = bloque.horaFin    || bloque.hora_fin    || '';
+            if (!hI || !hF) return acc;
+            const [h1, m1] = hI.split(':').map(Number);
+            const [h2, m2] = hF.split(':').map(Number);
+            const hDia     = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
+            const diasCount = (bloque.dias || []).length;
+            return acc + hDia * diasCount;
+        }, 0);
+
+        const DIAS_LABELS  = ['', 'L', 'M', 'M', 'J', 'V', 'S', 'D'];
+        const DIAS_NOMBRES = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
+        const filas = asignaciones.map(asig => {
+            const bloque = asig.bloque;
+            if (!bloque) return '';
+
+            const fichaId    = asig.ficha?.idFicha || asig.idFicha || '—';
+            const fichaCod   = asig.ficha?.codigoFicha || fichaId;
+            const progNombre = asig.ficha?.programa?.nombre || '';
+            const jornada    = (asig.ficha?.jornada || '').toLowerCase();
+            const isActiva   = String(fichaId) === String(idFichaActiva);
+            const isVirtual  = asig.modalidad === 'virtual';
+
+            const horaIni = (bloque.horaInicio || bloque.hora_inicio || '').substring(0, 5);
+            const horaFin = (bloque.horaFin    || bloque.hora_fin    || '').substring(0, 5);
+            const [h1, m1] = horaIni.split(':').map(Number);
+            const [h2, m2] = horaFin.split(':').map(Number);
+            const hDia = (isNaN(h1) || isNaN(h2)) ? 0 : ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
+
+            const fechaIni = asig.fechaInicio || asig.fecha_inicio || bloque.fechaInicio || '';
+            const fechaFin = asig.fechaFin    || asig.fecha_fin    || bloque.fechaFin    || '';
+            const fmtFecha = s => s ? s.split('-').reverse().join('/') : '—';
+
+            const diasAsig = new Set((bloque.dias || []).map(d => d.idDia || DIA_ID_MAP[d.nombreDia || d.nombre]));
+            const diasHtml = [1, 2, 3, 4, 5, 6, 7].map(n =>
+                `<span title="${DIAS_NOMBRES[n]}"
+                       style="width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;
+                              justify-content:center;font-size:9px;font-weight:500;margin-right:1px;
+                              ${diasAsig.has(n)
+                                  ? 'background:#ede9fe;color:#4c1d95;border:0.5px solid #c4b5fd;'
+                                  : 'background:#f3f4f6;color:#adb5bd;border:0.5px solid #dee2e6;'}"
+                >${DIAS_LABELS[n]}</span>`
+            ).join('');
+
+            const jornadaBadge = jornada.includes('noche')
+                ? `<span style="padding:1px 6px;border-radius:999px;font-size:9px;background:#ede9fe;color:#4c1d95;">Noche</span>`
+                : jornada.includes('tarde')
+                ? `<span style="padding:1px 6px;border-radius:999px;font-size:9px;background:#fff3cd;color:#856404;">Tarde</span>`
+                : `<span style="padding:1px 6px;border-radius:999px;font-size:9px;background:#d1e7dd;color:#0f5132;">Mañana</span>`;
+
+            const hSem     = (hDia * diasAsig.size).toFixed(1).replace('.0', '');
+            const ambiente = asig.ambiente ? (asig.ambiente.nombre || asig.ambiente.codigo) : null;
+            const blqNombre = asig.ambiente?.bloque ? `Blq ${asig.ambiente.bloque}` : '';
+
+            return `<tr style="${isActiva ? 'background:#f5f3ff;' : ''}">
+                <td class="px-3 py-2">
+                    <span style="font-weight:500;font-size:12px;">${escapeHtml(String(fichaCod))}</span>
+                    ${isActiva ? `<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:9px;background:#ede9fe;color:#4c1d95;margin-left:4px;font-weight:500;">Activa</span>` : ''}
+                    <div style="margin-top:2px;">${jornadaBadge}</div>
+                </td>
+                <td class="px-3 py-2" style="font-size:11px;color:var(--bs-secondary);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    ${escapeHtml(progNombre)}
+                </td>
+                <td class="px-3 py-2">
+                    <span style="font-size:12px;font-weight:500;">${horaIni} → ${horaFin}</span>
+                    <div style="font-size:10px;color:var(--bs-secondary);">${hDia > 0 ? hDia + 'h/día' : '—'}</div>
+                </td>
+                <td class="px-3 py-2" style="font-size:11px;color:var(--bs-secondary);line-height:1.5;">
+                    ${fmtFecha(fechaIni)}<br>${fmtFecha(fechaFin)}
+                </td>
+                <td class="px-3 py-2"><div style="display:flex;flex-wrap:wrap;gap:1px;">${diasHtml}</div></td>
+                <td class="px-3 py-2">
+                    <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:500;
+                        ${isVirtual ? 'background:#cfe2ff;color:#084298;' : 'background:#d1e7dd;color:#0f5132;'}">
+                        <i class="bi ${isVirtual ? 'bi-laptop' : 'bi-building'}" style="font-size:10px;"></i>
+                        ${escapeHtml(asig.modalidad || '—')}
+                    </span>
+                </td>
+                <td class="px-3 py-2" style="font-size:11px;">
+                    ${ambiente
+                        ? `${escapeHtml(ambiente)}<br><span style="color:var(--bs-secondary);font-size:10px;">${escapeHtml(blqNombre)}</span>`
+                        : `<span style="color:var(--bs-secondary);">—</span>`}
+                </td>
+                <td class="px-3 py-2 text-center">
+                    <span style="font-weight:500;font-size:12px;">${hSem}</span>
+                    <div style="font-size:10px;color:var(--bs-secondary);">h/sem</div>
+                </td>
+                <td class="px-3 py-2 text-center">
+                    <button class="btn btn-sm btn-outline-danger border-0 rounded-circle delete-asig-btn"
+                            data-id="${asig.idAsignacion}"
+                            style="width:26px;height:26px;padding:0;font-size:.8rem;"
+                            title="Eliminar asignación">
+                        <i class="bi bi-trash3"></i>
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+
+        const hSemFmt = Number.isInteger(totalHSem) ? totalHSem : totalHSem.toFixed(1);
+
+        card.innerHTML = `
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 18px;
+                        border-bottom:0.5px solid #e5e7eb;background:#f9fafb;border-radius:calc(var(--bs-card-border-radius) - 1px) calc(var(--bs-card-border-radius) - 1px) 0 0;">
+                <div style="width:36px;height:36px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;
+                            justify-content:center;font-size:12px;font-weight:500;color:#4c1d95;flex-shrink:0;">
+                    ${escapeHtml(iniciales)}
+                </div>
+                <div>
+                    <p style="font-size:14px;font-weight:500;margin:0;">${escapeHtml(nombreInst)}</p>
+                    <p style="font-size:11px;color:var(--bs-secondary);margin:0;">Carga de transversales asignadas</p>
+                </div>
+                <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+                    <span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:500;background:#ede9fe;color:#4c1d95;">
+                        <i class="bi bi-calendar-check me-1" style="font-size:11px;"></i>${asignaciones.length} fichas
+                    </span>
+                    <span style="padding:3px 10px;border-radius:999px;font-size:11px;font-weight:500;background:#d1e7dd;color:#0f5132;">
+                        <i class="bi bi-clock me-1" style="font-size:11px;"></i>${hSemFmt} h/sem
+                    </span>
+                </div>
+            </div>
+            ${asignaciones.length === 0
+                ? `<div style="padding:40px;text-align:center;color:var(--bs-secondary);font-size:13px;">
+                    <i class="bi bi-calendar-x fs-2 d-block mb-2 opacity-25"></i>
+                    Sin asignaciones transversales registradas
+                   </div>`
+                : `<div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle" style="font-size:.82rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="px-3 py-2" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--bs-secondary);font-weight:500;white-space:nowrap;">Ficha</th>
+                                <th class="px-3 py-2" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--bs-secondary);font-weight:500;">Programa</th>
+                                <th class="px-3 py-2" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--bs-secondary);font-weight:500;white-space:nowrap;">Horario</th>
+                                <th class="px-3 py-2" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--bs-secondary);font-weight:500;white-space:nowrap;">Fechas</th>
+                                <th class="px-3 py-2" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--bs-secondary);font-weight:500;">Días</th>
+                                <th class="px-3 py-2" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--bs-secondary);font-weight:500;">Modalidad</th>
+                                <th class="px-3 py-2" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--bs-secondary);font-weight:500;">Ambiente</th>
+                                <th class="px-3 py-2" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--bs-secondary);font-weight:500;white-space:nowrap;">H/sem</th>
+                                <th class="px-3 py-2"></th>
+                            </tr>
+                        </thead>
+                        <tbody>${filas}</tbody>
+                    </table>
+                   </div>`
+            }`;
+
+      card.querySelectorAll('.delete-asig-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const result = await Swal.fire({
+            title: '¿Eliminar asignación?',
+            text: 'Esta acción no se puede deshacer.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#0630b7',
+            confirmButtonText: '<i class="bi bi-trash3 me-1"></i>Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true,
+        });
+        if (result.isConfirmed) {
+            this.deleteAsignacion(parseInt(btn.dataset.id), true); // true = skipConfirm
+        }
+    });
+    });
     }
 
     /* ── NAVEGACIÓN A FICHA ─────────────────────────────────────────────── */
     _goToFicha(id) {
+        this.fichas = this._fichasPorSedeCache[this.selectedSedeId] || [];
         this.selectedFicha = this.fichas.find(f => String(f.idFicha) === String(id));
-        if (!this.selectedFicha) return;
+        // ✅ FIX Bug 2: si no está en cache todavía, construir objeto mínimo para no salir silenciosamente
+        if (!this.selectedFicha) {
+            this.selectedFicha = { idFicha: id, codigoFicha: String(id), jornada: '' };
+        }
         this.selectFicha(id);
     }
 
@@ -726,21 +906,21 @@ _initAreaDropdown() {
             this.selectedFicha = { idFicha, codigoFicha: idFicha, jornada: '' };
         }
 
-        const f = this.selectedFicha;
+        const f          = this.selectedFicha;
         const progNombre = f.programa?.nombre ?? f.nombrePrograma ?? '';
         const sedeNombre = f.sede?.nombre ?? '';
         const jornada    = f.jornada || f.jornadaFormacion || '';
         const fechaIni   = f.fechaInicio ?? f.fecha_inicio ?? '';
         const fechaFin   = f.fechaFin    ?? f.fecha_fin    ?? '';
 
-        const jornadaIcon = jornada.toLowerCase().includes('noche') ? 'bi-moon-stars'
-            : jornada.toLowerCase().includes('tarde') ? 'bi-sunset'
+        const jornadaIcon = jornada.toLowerCase().includes('noche')    ? 'bi-moon-stars'
+            : jornada.toLowerCase().includes('tarde')    ? 'bi-sunset'
             : jornada.toLowerCase().includes('madrugada') ? 'bi-moon'
             : 'bi-sun';
 
         document.getElementById('lbl-ficha-context').innerHTML =
             `<span class="me-2">${escapeHtml(f.codigoFicha)}</span>
-             ${jornada ? `<span class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-25 fw-normal me-1" style="font-size:0.7rem;"><i class="bi ${jornadaIcon} me-1"></i>${escapeHtml(jornada)}</span>` : ''}
+             ${jornada    ? `<span class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-25 fw-normal me-1" style="font-size:0.7rem;"><i class="bi ${jornadaIcon} me-1"></i>${escapeHtml(jornada)}</span>` : ''}
              ${progNombre ? `<span class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-25 fw-normal me-1" style="font-size:0.7rem;"><i class="bi bi-journal-bookmark me-1"></i>${escapeHtml(progNombre)}</span>` : ''}
              ${sedeNombre ? `<span class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-25 fw-normal me-1" style="font-size:0.7rem;"><i class="bi bi-building me-1"></i>${escapeHtml(sedeNombre)}</span>` : ''}
              ${fechaIni && fechaFin ? `<span class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-25 fw-normal" style="font-size:0.68rem;"><i class="bi bi-calendar-range me-1"></i>${escapeHtml(fechaIni)} → ${escapeHtml(fechaFin)}</span>` : ''}`;
@@ -748,7 +928,6 @@ _initAreaDropdown() {
         if (fechaIni) document.getElementById('fecha_inicio').value = fechaIni;
         if (fechaFin)  document.getElementById('fecha_fin').value   = fechaFin;
 
-        // Sincronizar sede con la de la ficha si viene
         const idSedeFicha = f.idSede ?? f.sede?.idSede ?? null;
         if (idSedeFicha) {
             this.selectedSedeId = idSedeFicha;
@@ -760,31 +939,12 @@ _initAreaDropdown() {
         this._mostrarPanelFormulario();
         this._mostrarRecomendacionContrajornada(this.selectedFicha);
 
-        const container = document.getElementById('main-content');
-        container.innerHTML = `
-            <div class="card border-0 shadow-sm rounded-4" id="calendario-card" style="min-height:480px;">
-                <div class="card-body p-5 text-center d-flex flex-column align-items-center justify-content-center">
-                    <div class="spinner-border text-primary mb-3" role="status"></div>
-                    <p class="text-muted small">Cargando horario de ${escapeHtml(f.codigoFicha)}...</p>
-                </div>
-            </div>`;
-
-        try {
-            const response = await apiCall('/horariosPorFicha/' + idFicha);
-            const asignaciones = response.data?.asignaciones || response.asignaciones || [];
-            this.renderGrid(f, asignaciones);
-        } catch (err) {
-            document.getElementById('calendario-card').innerHTML = `
-                <div class="card-body p-5 text-center text-danger">
-                    <i class="bi bi-exclamation-triangle fs-1 mb-3 d-block opacity-50"></i>
-                    <p>${escapeHtml(err.message)}</p>
-                </div>`;
-        }
+        // Actualizar tabla marcando la fila de la ficha activa (sin nueva llamada API)
+        this._renderTablaInstructor();
     }
 
     /* ── EVENTOS ────────────────────────────────────────────────────────── */
     setupEventListeners() {
-        // Modalidad → ambiente
         document.getElementById('modalidad_clase')?.addEventListener('change', e => {
             const isVirtual = e.target.value === 'virtual';
             const contAmbiente = document.getElementById('container-ambiente');
@@ -796,19 +956,15 @@ _initAreaDropdown() {
             if (isVirtual) this._ddAmbiente?.reset();
         });
 
-        // Cambiar ficha — resetea selector de ficha también
         document.getElementById('btn-cambiar-ficha')?.addEventListener('click', () => {
             this.selectedFicha = null;
             this._ocultarPanelFormulario();
-            this.renderMainContent();
             const rec = document.getElementById('recomendacion-contrajornada');
             if (rec) { rec.classList.add('d-none'); rec.innerHTML = ''; }
-            // Resetear el select de ficha sin perder la sede
-            const selFicha = document.getElementById('filtroFicha');
-            if (selFicha) selFicha.value = '';
+            this._ddFicha?.reset();
+            this._renderTablaInstructor();
         });
 
-        // Ambientes Libres
         const btnAmbientesLibres = document.getElementById('btn-ambientes-libres');
         const _cerrarDropdownDisponibles = () => {
             if (this._ddAmbienteDisponibles) {
@@ -868,7 +1024,7 @@ _initAreaDropdown() {
                 ).join('');
             };
 
-            const ddH = 320;
+            const ddH   = 320;
             const below = window.innerHeight - rect.bottom;
             const goUp  = below < ddH + 8 && rect.top > ddH + 8;
             panel.style.cssText = `position:fixed;z-index:9999;width:${Math.max(rect.width, 240)}px;left:${rect.left}px;top:${goUp ? (rect.top - Math.min(ddH, 320) - 4) : (rect.bottom + 4)}px;`;
@@ -951,7 +1107,6 @@ _initAreaDropdown() {
             });
         }
 
-        // Al cambiar sede desde el formulario también cerrar dropdown de ambientes
         document.getElementById('idSede')?.addEventListener('change', () => {
             this._ddAmbiente?.reset();
             _cerrarDropdownDisponibles();
@@ -1004,12 +1159,12 @@ _initAreaDropdown() {
 
     /* ── CÁLCULO DE HORAS ───────────────────────────────────────────────── */
     _calcularHorasFormacion() {
-        const container     = document.getElementById('resumen-horas-container');
-        const elTotalHoras  = document.getElementById('rh-total-horas');
-        const elTotalDias   = document.getElementById('rh-total-dias');
-        const elHorasDia    = document.getElementById('rh-horas-dia');
-        const elWarning     = document.getElementById('rh-warning');
-        const elWarningMsg  = document.getElementById('rh-warning-msg');
+        const container    = document.getElementById('resumen-horas-container');
+        const elTotalHoras = document.getElementById('rh-total-horas');
+        const elTotalDias  = document.getElementById('rh-total-dias');
+        const elHorasDia   = document.getElementById('rh-horas-dia');
+        const elWarning    = document.getElementById('rh-warning');
+        const elWarningMsg = document.getElementById('rh-warning-msg');
         if (!container) return;
 
         const fechaInicioVal = document.getElementById('fecha_inicio')?.value;
@@ -1075,213 +1230,6 @@ _initAreaDropdown() {
         }
     }
 
-    /* ── GRID / FULLCALENDAR ────────────────────────────────────────────── */
-    renderGrid(ficha, asignaciones) {
-        const card    = document.getElementById('calendario-card');
-        const isEmpty = !asignaciones || asignaciones.length === 0;
-
-        const jornada = ficha.jornada || ficha.jornadaFormacion || '';
-        const jornadaBadge = jornada
-            ? `<span class="badge bg-light text-muted border ms-2" style="font-size:.7rem;"><i class="bi bi-clock me-1"></i>${escapeHtml(jornada)}</span>`
-            : '';
-
-        const header = `
-            <div class="card-header bg-white border-0 d-flex flex-wrap justify-content-between align-items-center pt-3 pb-2 px-4 gap-3">
-                <div>
-                    <h5 class="fw-bold mb-0 d-flex align-items-center" style="color:var(--text-dark)">
-                        Ficha ${escapeHtml(ficha.codigoFicha)}${jornadaBadge}
-                    </h5>
-                    <p class="small mb-0" style="color:var(--text-muted)">${escapeHtml(ficha.programa?.nombre ?? ficha.nombrePrograma ?? '')}</p>
-                    ${ficha.sede?.nombre ? `<p class="small mb-0" style="color:var(--text-muted)"><i class="bi bi-building me-1"></i>${escapeHtml(ficha.sede.nombre)}</p>` : ''}
-                </div>
-            </div>`;
-
-        if (isEmpty) {
-            card.innerHTML = header + `
-                <div class="card-body p-5 text-center text-muted d-flex flex-column align-items-center justify-content-center" style="min-height:280px;">
-                    <i class="bi bi-calendar-x fs-1 d-block mb-3 opacity-25"></i>
-                    <p class="fw-medium">Sin formaciones asignadas</p>
-                    <p class="small">Completa el formulario y haz clic en <strong>Guardar</strong>.</p>
-                </div>`;
-            return;
-        }
-
-        card.innerHTML = header +
-            `<div class="card-body pt-2 px-4 pb-4" style="height:560px;">
-                <div id="fullcalendar-container" class="h-100"></div>
-             </div>`;
-
-        const jsWeekday = date => date.getDay() === 0 ? 7 : date.getDay();
-        const fechasDelDiaEnRango = (nombreDia, fechaInicioStr, fechaFinStr) => {
-            const targetWd = DIA_ID_MAP[nombreDia];
-            if (!targetWd || !fechaInicioStr || !fechaFinStr) return [];
-            const start = new Date(fechaInicioStr + 'T00:00:00');
-            const end   = new Date(fechaFinStr    + 'T00:00:00');
-            const fechas = [];
-            const cur = new Date(start);
-            while (jsWeekday(cur) !== targetWd) {
-                cur.setDate(cur.getDate() + 1);
-                if (cur > end) return [];
-            }
-            while (cur <= end) {
-                fechas.push(cur.toISOString().slice(0, 10));
-                cur.setDate(cur.getDate() + 7);
-            }
-            return fechas;
-        };
-
-        const events = [];
-        let globalStart = null, globalEnd = null;
-
-        for (const asig of asignaciones) {
-            const bloque    = asig.bloque;
-            if (!bloque) continue;
-            const startHour = bloque.horaInicio || bloque.hora_inicio;
-            const endHour   = bloque.horaFin    || bloque.hora_fin;
-            if (!startHour || !endHour) continue;
-            const startDate = asig.fechaInicio || asig.fecha_inicio || bloque.fechaInicio || bloque.fecha_inicio;
-            const endDate   = asig.fechaFin    || asig.fecha_fin    || bloque.fechaFin    || bloque.fecha_fin;
-            if (startDate && (!globalStart || startDate < globalStart)) globalStart = startDate;
-            if (endDate   && (!globalEnd   || endDate   > globalEnd))   globalEnd   = endDate;
-            const isVirtual = asig.modalidad === 'virtual';
-
-            (bloque.dias || []).forEach(diaObj => {
-                const dia = diaObj.nombreDia || diaObj.nombre;
-                if (!dia) return;
-                const fechas = fechasDelDiaEnRango(dia, startDate, endDate);
-                for (const fecha of fechas) {
-                    events.push({
-                        id: `${asig.idAsignacion}_${dia}_${fecha}`,
-                        start: `${fecha}T${startHour}`,
-                        end:   `${fecha}T${endHour}`,
-                        orderPriority: 1,
-                        backgroundColor: '#ffffff',
-                        borderColor: isVirtual ? '#0dcaf0' : '#4caa16',
-                        textColor:   isVirtual ? '#0dcaf0' : '#4caa16',
-                        extendedProps: {
-                            instructor: asig.funcionario
-                                ? `${asig.funcionario.nombre || ''} ${asig.funcionario.apellido || asig.funcionario.apellidos || ''}`.trim()
-                                : '—',
-                            ambiente: asig.ambiente ? (asig.ambiente.codigo || asig.ambiente.nombre) : null,
-                            modalidad: asig.modalidad,
-                            tipoDeFormacion: asig.ficha?.programa?.tipoFormacion?.nombreTipoFormacion || '',
-                            fechaInicio: startDate, fechaFin: endDate,
-                            idBloque: bloque.idBloque,
-                            idDia: diaObj.idDia || DIA_ID_MAP[dia],
-                            nombreDia: dia,
-                            idAsignacion: asig.idAsignacion,
-                            observaciones: bloque.observaciones || bloque.observacion || '',
-                        }
-                    });
-                }
-            });
-        }
-
-        const initialDate      = globalStart ?? new Date().toISOString().slice(0, 10);
-        const calendarWrapper  = document.getElementById('fullcalendar-container');
-
-        const toolbarEl = document.createElement('div');
-        toolbarEl.className = 'd-flex align-items-center justify-content-between mb-3';
-        toolbarEl.innerHTML = `
-            <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-prev"><i class="bi bi-chevron-left"></i></button>
-                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-next"><i class="bi bi-chevron-right"></i></button>
-                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm" id="fc-today">Hoy</button>
-            </div>
-            <div class="text-center">
-                <span id="fc-title" class="fw-semibold" style="color:var(--text-dark);font-size:.9rem;"></span>
-                ${globalStart && globalEnd ? `<span class="badge bg-light text-muted border ms-2" style="font-size:.65rem;"><i class="bi bi-calendar-range me-1"></i>${escapeHtml(globalStart)} → ${escapeHtml(globalEnd)}</span>` : ''}
-            </div>
-            <div class="d-flex gap-2">
-                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm fc-view-btn active-view" data-view="timeGridWeek">Semana</button>
-                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm fc-view-btn" data-view="dayGridMonth">Mes</button>
-                <button class="btn btn-sm btn-light border rounded-pill px-3 shadow-sm fc-view-btn" data-view="timeGridDay">Día</button>
-            </div>`;
-
-        const fcEl = document.createElement('div');
-        fcEl.id    = 'fc-grid';
-        fcEl.style.height = 'calc(100% - 52px)';
-        calendarWrapper.style.cssText = 'display:flex;flex-direction:column;height:100%;';
-        calendarWrapper.appendChild(toolbarEl);
-        calendarWrapper.appendChild(fcEl);
-
-        const calendar = new FullCalendar.Calendar(fcEl, {
-            initialView: 'timeGridWeek',
-            eventOrder: 'orderPriority,start,-duration,allDay,title',
-            initialDate,
-            headerToolbar: false,
-            allDaySlot: false,
-            slotMinTime: '06:00:00',
-            slotMaxTime: '24:00:00',
-            expandRows: true,
-            locale: 'es',
-            validRange: globalStart && globalEnd ? { start: globalStart, end: globalEnd } : undefined,
-            dayHeaderFormat: { weekday: 'short', day: 'numeric', month: 'short' },
-            views: { dayGridMonth: { dayHeaderFormat: { weekday: 'short' } } },
-            events,
-            datesSet: () => {
-                const t = document.getElementById('fc-title');
-                if (t) t.textContent = calendar.view.title;
-            },
-            eventContent(arg) {
-                const p    = arg.event.extendedProps;
-                const icon = p.modalidad === 'virtual' ? 'bi-laptop' : 'bi-building';
-                const badge = p.tipoDeFormacion
-                    ? `<div class="mt-auto pt-1"><span class="badge bg-secondary bg-opacity-25 text-dark" style="font-size:0.65rem;">${escapeHtml(p.tipoDeFormacion)}</span></div>`
-                    : '';
-                if (calendar.view.type === 'dayGridMonth') {
-                    const fmtH = d => d ? d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
-                    const rango = fmtH(arg.event.start) && fmtH(arg.event.end)
-                        ? `<span class="fw-normal ms-1" style="opacity:0.75;">${fmtH(arg.event.start)} - ${fmtH(arg.event.end)}</span>` : '';
-                    return { html: `<div class="p-1 d-flex flex-column overflow-hidden" style="font-size:0.72rem;">
-                        <div class="fw-semibold text-truncate">${escapeHtml(p.instructor)}<br>${rango}</div>
-                        <div class="text-truncate" style="font-size:0.65rem;opacity:0.85;"><i class="bi ${icon}"></i> ${escapeHtml(p.ambiente || 'Virtual')}</div>
-                    </div>` };
-                }
-                return { html: `
-                    <div class="p-2 d-flex flex-column position-relative" style="height:100%;width:100%;overflow:hidden;background:#ffffff;border-radius:3px;">
-                        <div class="fw-bold mb-1 lh-sm" style="font-size:0.8rem;">${escapeHtml(p.instructor)}</div>
-                        <div class="text-truncate" style="font-size:0.75rem;opacity:0.9;"><i class="bi ${icon}"></i> ${escapeHtml(p.ambiente || 'Virtual')}</div>
-                        <div class="mt-1 pb-1" style="font-size:0.65rem;opacity:0.85;border-bottom:1px dashed rgba(0,0,0,0.1);">
-                            <i class="bi bi-calendar3 me-1"></i>${escapeHtml(p.fechaInicio)} → ${escapeHtml(p.fechaFin)}
-                        </div>
-                        ${badge}
-                        <button class="btn btn-sm text-danger p-0 position-absolute top-0 end-0 delete-btn d-none"
-                                data-idbloque="${escapeHtml(String(p.idBloque))}" data-iddia="${escapeHtml(String(p.idDia))}"
-                                data-nombredia="${escapeHtml(p.nombreDia)}" data-idasignacion="${escapeHtml(String(p.idAsignacion))}"
-                                style="line-height:1;transform:translate(25%,-25%);background:white;border-radius:50%;box-shadow:0 0 3px rgba(0,0,0,0.2);z-index:10;">
-                            <i class="bi bi-x-circle-fill"></i>
-                        </button>
-                    </div>` };
-            },
-            eventMouseEnter: info => info.el.querySelector('.delete-btn')?.classList.remove('d-none'),
-            eventMouseLeave: info => info.el.querySelector('.delete-btn')?.classList.add('d-none'),
-        });
-
-        calendar.render();
-
-        document.getElementById('fc-prev')?.addEventListener('click',  () => calendar.prev());
-        document.getElementById('fc-next')?.addEventListener('click',  () => calendar.next());
-        document.getElementById('fc-today')?.addEventListener('click', () => calendar.today());
-        document.querySelectorAll('.fc-view-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.fc-view-btn').forEach(b => b.classList.remove('active-view', 'btn-purple'));
-                btn.classList.add('active-view', 'btn-purple');
-                calendar.changeView(btn.dataset.view);
-            });
-        });
-
-        fcEl.addEventListener('click', e => {
-            const btn = e.target.closest('.delete-btn');
-            if (!btn) return;
-            e.stopPropagation();
-            this.eliminarDiaDeBloque(
-                parseInt(btn.dataset.idbloque), parseInt(btn.dataset.iddia),
-                btn.dataset.nombredia, parseInt(btn.dataset.idasignacion)
-            );
-        });
-    }
-
     /* ── ELIMINAR ───────────────────────────────────────────────────────── */
     async eliminarDiaDeBloque(idBloque, idDia, nombreDia, idAsignacion) {
         const result = await Swal.fire({
@@ -1298,7 +1246,7 @@ _initAreaDropdown() {
             try {
                 await apiCall(`/eliminarDiaDeBloque/${idBloque}/${idDia}`, 'DELETE');
                 this.showAlert('page-alert-container', 'success', `Día ${nombreDia} eliminado correctamente.`);
-                this.selectFicha(this.selectedFicha.idFicha);
+                await this._cargarTablaInstructor(this._idInstructorActivo);
             } catch (err) {
                 const msg = err.message || '';
                 if (msg.includes('ULTIMO_DIA') || msg.toLowerCase().includes('único')) {
@@ -1324,7 +1272,9 @@ _initAreaDropdown() {
         try {
             await apiCall('/eliminarAsignacion/' + id, 'DELETE');
             this.showAlert('page-alert-container', 'success', 'Clase eliminada correctamente.');
-            this.selectFicha(this.selectedFicha.idFicha);
+            if (this._idInstructorActivo) {
+                await this._cargarTablaInstructor(this._idInstructorActivo);
+            }
         } catch (err) {
             this.showAlert('page-alert-container', 'danger', 'Error al eliminar: ' + err.message);
         }
@@ -1371,22 +1321,12 @@ _initAreaDropdown() {
         };
 
         try {
-         const result = await apiCall('/crearAsignacion', 'POST', payload);
-         document.getElementById('form-alert').innerHTML = '';
-                
-         if (this.selectedSedeId) {
-             const selSede = document.getElementById('idSede');
-             if (selSede) selSede.value = this.selectedSedeId;
-         }
-        
-         // Solo recargar la grilla, sin tocar el formulario
-         if (this.selectedFicha) {
-             const response = await apiCall('/horariosPorFicha/' + this.selectedFicha.idFicha);
-             const asignaciones = response.data?.asignaciones || response.asignaciones || [];
-             this.renderGrid(this.selectedFicha, asignaciones);
-         }
-        
-         this.showAlert('page-alert-container', 'success', 'Clase asignada correctamente al horario.');
+            await apiCall('/crearAsignacion', 'POST', payload);
+            document.getElementById('form-alert').innerHTML = '';
+            if (this._idInstructorActivo) {
+                await this._cargarTablaInstructor(this._idInstructorActivo);
+            }
+            this.showAlert('page-alert-container', 'success', 'Clase asignada correctamente al horario.');
         } catch (err) {
             if (err.tipo === 'conflicto_ambiente' && err.codigoFicha) {
                 this.showAlert('form-alert', 'warning', `<i class="bi bi-exclamation-triangle-fill me-2"></i>${err.message}`);
@@ -1471,7 +1411,9 @@ _initAreaDropdown() {
             document.getElementById('form-alert').innerHTML = '';
             this._ddInstructor?.reset('Seleccionar instructor...');
             this.showAlert('page-alert-container', 'success', 'Conflicto resuelto y clase asignada correctamente.');
-            this.selectFicha(this.selectedFicha.idFicha);
+            if (this._idInstructorActivo) {
+                await this._cargarTablaInstructor(this._idInstructorActivo);
+            }
         } catch (err) {
             this.showAlert('form-alert', 'danger', 'Error al resolver conflicto: ' + err.message);
             btns.forEach(b => b.disabled = false);

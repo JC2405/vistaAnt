@@ -7,7 +7,7 @@ import { FormInput } from '../components/FormInput.js';
 import { ConfirmDialog } from '../components/ConfirmDialog.js';
 import { AlertMessage } from '../components/AlertMessage.js';
 import { footer } from '../components/footer.js';
-import { getFuncionarios, createFuncionario, createAdmin, updateFuncionario, deleteFuncionario, getTiposContrato, getAreas, getHorarioPorInstructor, enviarHorario, importarFuncionarios, exportarFuncionarios, asignarAreaMasivo } from '../utils/api.js?v=4';
+import { getFuncionarios, createFuncionario, createAdmin, updateFuncionario, deleteFuncionario, getTiposContrato, getAreas, getHorarioPorInstructor, enviarHorario, importarFuncionarios, exportarFuncionarios, asignarAreaMasivo,getFuncionariosPorRangoDeHorario,enviarHorarioMasivo} from '../utils/api.js?v=4';
 
 
 function showDateRangeModal(titulo = 'Seleccionar período', subtitulo = '') {
@@ -144,6 +144,10 @@ class FuncionariosPage {
 
                         
                         <div class="d-flex gap-2">
+                                <button class="btn btn-purple d-flex align-items-center gap-2" id="btn-rango-horario">
+                               <i class="bi bi-calendar-range"></i>
+                               <span>Funcionarios por Horario</span>
+                            </button>
                             <button class="btn btn-purple d-flex align-items-center gap-2" id="btn-asignar-area-masivo">
                                 <i class="bi bi-tags-fill"></i>
                                 <span>Asignar Instructores A Área</span>
@@ -289,8 +293,107 @@ class FuncionariosPage {
                     </div>
                 </div>
             </div>
-        `;
+             <!-- Modal: Funcionarios por rango de horario -->
+<div class="modal fade" id="modalRangoHorario" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
+            <div class="modal-header text-white border-0 px-4 py-3"
+                 style="background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);">
+                <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                    <i class="bi bi-calendar-range"></i> Funcionarios por Rango de Horario
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
 
+            <div class="modal-body p-4" style="background:var(--bg-page);">
+                <!-- Paso 1: Fechas -->
+                <div id="rango-step-fechas">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Fecha inicio</label>
+                            <input type="date" id="rango-fecha-inicio" class="form-control shadow-sm"
+                                   style="border-radius:0.5rem;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Fecha fin</label>
+                            <input type="date" id="rango-fecha-fin" class="form-control shadow-sm"
+                                   style="border-radius:0.5rem;">
+                        </div>
+                    </div>
+                    <div id="rango-error" class="text-danger small fw-medium d-none">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        <span id="rango-error-msg"></span>
+                    </div>
+                </div>
+
+                <!-- Paso 2: Resultados (oculto hasta buscar) -->
+                <div id="rango-step-resultados" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label fw-semibold mb-0">
+                            Funcionarios encontrados
+                        </label>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-light text-dark border" id="rango-count-badge">0</span>
+                            <button class="btn btn-sm btn-outline-secondary" id="btn-select-all-rango">Seleccionar todos</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive bg-white rounded shadow-sm border"
+                         style="max-height:350px; overflow-y:auto;">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light position-sticky top-0 shadow-sm" style="z-index:1;">
+                               <tr>
+                                   <th style="width:40px; text-align:center;">
+                                       <input class="form-check-input" type="checkbox" id="checkbox-all-rango">
+                                   </th>
+                                   <th>Nombre</th>
+                                   <th>Correo</th>
+                                   <th>Teléfono</th>
+                                   <th>Estado</th>
+                               </tr>
+                            </thead>
+                            <tbody id="tbody-rango-horario"></tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div class="text-muted small">
+                            <span id="counter-instructores-rango">0</span> instructores seleccionados
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estado vacío / sin resultados -->
+                <div id="rango-empty" class="text-center py-4 text-muted d-none">
+                    <i class="bi bi-calendar-x fs-1 d-block mb-2 opacity-25"></i>
+                    <p class="fw-medium mb-0">Sin funcionarios en ese rango</p>
+                    <p class="small">Prueba con otras fechas.</p>
+                </div>
+
+                <!-- Spinner de carga -->
+                <div id="rango-loading" class="text-center py-5 d-none">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <p class="small text-muted">Consultando funcionarios...</p>
+                </div>
+            </div>
+
+            <div class="modal-footer border-0 px-4 py-3"
+                 style="background:var(--bg-page); border-top:1px solid var(--border-color)!important;">
+                <button type="button" class="btn btn-light px-3 shadow-sm" data-bs-dismiss="modal">
+                    Cerrar
+                </button>
+                <button type="button" class="btn btn-outline-primary px-4 shadow-sm d-none" id="btn-enviar-rango-masivo"
+                        style="border-color:var(--primary); color:var(--primary);">
+                    <i class="bi bi-envelope-paper me-1"></i> Enviar horario a seleccionados
+                </button>
+                <button type="button" class="btn btn-primary px-4 shadow-sm" id="btn-buscar-rango"
+                        style="background-color:var(--primary); border:none;">
+                    <i class="bi bi-search me-1"></i> Buscar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+        `;
+        document.getElementById('btn-rango-horario').addEventListener('click', () => this.openRangoHorarioModal());
         document.getElementById('btn-add-funcionario').addEventListener('click', () => this.openModal());
         document.getElementById('btn-asignar-area-masivo').addEventListener('click', () => this.openMasivoModal());
 
@@ -387,7 +490,11 @@ class FuncionariosPage {
                 e.target.value = '';
             }
         });
+
+        
     }
+
+    
 
     filterTable(query) {
         const q = query.toLowerCase().trim();
@@ -441,6 +548,152 @@ class FuncionariosPage {
             ?? '';
     }
 
+    openRangoHorarioModal() {
+    // Resetear estado
+    const hoy = new Date();
+    const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
+        .toISOString().split('T')[0];
+    const ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0)
+        .toISOString().split('T')[0];
+
+    document.getElementById('rango-fecha-inicio').value = primerDia;
+    document.getElementById('rango-fecha-fin').value = ultimoDia;
+    document.getElementById('rango-step-resultados').classList.add('d-none');
+    document.getElementById('rango-empty').classList.add('d-none');
+    document.getElementById('rango-loading').classList.add('d-none');
+    document.getElementById('rango-error').classList.add('d-none');
+    document.getElementById('tbody-rango-horario').innerHTML = '';
+    document.getElementById('rango-count-badge').textContent = '0';
+
+    // NUEVO: resetear selección
+    this.instructoresRangoSeleccionados = new Set();
+    document.getElementById('counter-instructores-rango').textContent = '0';
+    document.getElementById('checkbox-all-rango').checked = false;
+    document.getElementById('btn-enviar-rango-masivo').classList.add('d-none');
+
+    const modalEl = document.getElementById('modalRangoHorario');
+    const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    bsModal.show();
+
+    const fechaFinInput = document.getElementById('rango-fecha-fin');
+    fechaFinInput.onchange = () => this._buscarFuncionariosRango();
+    document.getElementById('btn-buscar-rango').onclick = () => this._buscarFuncionariosRango();
+
+    // NUEVO: eventos de selección
+    const tbody = document.getElementById('tbody-rango-horario');
+    tbody.onchange = (e) => {
+        if (e.target.classList.contains('chk-rango')) {
+            if (e.target.checked) {
+                this.instructoresRangoSeleccionados.add(String(e.target.value));
+            } else {
+                this.instructoresRangoSeleccionados.delete(String(e.target.value));
+            }
+            this._updateCounterRango();
+            this._refreshCheckboxAllRango();
+        }
+    };
+
+    document.getElementById('checkbox-all-rango').onchange = (e) => {
+        const isChecked = e.target.checked;
+        tbody.querySelectorAll('.chk-rango').forEach(chk => {
+            chk.checked = isChecked;
+            if (isChecked) {
+                this.instructoresRangoSeleccionados.add(String(chk.value));
+            } else {
+                this.instructoresRangoSeleccionados.delete(String(chk.value));
+            }
+        });
+        this._updateCounterRango();
+    };
+
+    document.getElementById('btn-select-all-rango').onclick = () => {
+        tbody.querySelectorAll('.chk-rango').forEach(chk => {
+            chk.checked = true;
+            this.instructoresRangoSeleccionados.add(String(chk.value));
+        });
+        document.getElementById('checkbox-all-rango').checked = true;
+        this._updateCounterRango();
+    };
+
+    document.getElementById('btn-enviar-rango-masivo').onclick = () => this._enviarHorarioRangoMasivo();
+}
+
+_updateCounterRango() {
+    const counterEl = document.getElementById('counter-instructores-rango');
+    if (counterEl) counterEl.textContent = this.instructoresRangoSeleccionados.size;
+}
+
+_refreshCheckboxAllRango() {
+    const tbody = document.getElementById('tbody-rango-horario');
+    const total = tbody.querySelectorAll('.chk-rango').length;
+    const checked = tbody.querySelectorAll('.chk-rango:checked').length;
+    document.getElementById('checkbox-all-rango').checked = (total > 0 && total === checked);
+}
+
+async _buscarFuncionariosRango() {
+    const inicio = document.getElementById('rango-fecha-inicio').value;
+    const fin    = document.getElementById('rango-fecha-fin').value;
+    const errorEl   = document.getElementById('rango-error');
+    const errorMsg  = document.getElementById('rango-error-msg');
+    const loading   = document.getElementById('rango-loading');
+    const resultados = document.getElementById('rango-step-resultados');
+    const empty     = document.getElementById('rango-empty');
+
+    // Validaciones
+    errorEl.classList.add('d-none');
+    if (!inicio || !fin) {
+        errorMsg.textContent = 'Ambas fechas son obligatorias.';
+        errorEl.classList.remove('d-none');
+        return;
+    }
+    if (fin < inicio) {
+        errorMsg.textContent = 'La fecha fin no puede ser anterior a la fecha inicio.';
+        errorEl.classList.remove('d-none');
+        return;
+    }
+
+    // Mostrar spinner
+    loading.classList.remove('d-none');
+    resultados.classList.add('d-none');
+    empty.classList.add('d-none');
+
+    try {
+       const data = await getFuncionariosPorRangoDeHorario(inicio, fin);
+        const lista = data.data || (Array.isArray(data) ? data : []);
+
+        loading.classList.add('d-none');
+
+        if (lista.length === 0) {
+            empty.classList.remove('d-none');
+            return;
+        }
+
+        document.getElementById('rango-count-badge').textContent = lista.length;
+        document.getElementById('tbody-rango-horario').innerHTML = lista.map(item => {
+            const f = item.funcionario || {};
+            const id = f.idFuncionario || '';
+            const isActive = f.estado && f.estado.toLowerCase() === 'activo';
+            return `
+                <tr>
+                    <td style="text-align:center;">
+                        <input class="form-check-input chk-rango" type="checkbox" value="${id}">
+                    </td>
+                    <td>${f.nombre || ''} ${f.apellido || ''}</td>
+                    <td>${f.correo || ''}</td>
+                    <td>${f.telefono || ''}</td>
+                    <td><span class="badge-status ${isActive ? 'active' : 'inactive'}">${f.estado || ''}</span></td>
+                </tr>
+            `;
+        }).join('');
+        resultados.classList.remove('d-none');
+        document.getElementById('btn-enviar-rango-masivo').classList.remove('d-none');
+
+    } catch (err) {
+        loading.classList.add('d-none');
+        errorMsg.textContent = err.message || 'Error al consultar el servidor.';
+        errorEl.classList.remove('d-none');
+    }
+}
     renderTable(data = null) {
         const displayData = data || this.funcionarios;
 
@@ -1248,6 +1501,60 @@ class FuncionariosPage {
                 confirmButtonColor: '#d33'
             });
         }
+    }
+
+    async _enviarHorarioRangoMasivo() {
+    const ids = Array.from(this.instructoresRangoSeleccionados);
+    if (ids.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'Atención', text: 'Selecciona al menos un instructor.', confirmButtonColor: '#4caa16' });
+        return;
+    }
+
+    const fechaInicio = document.getElementById('rango-fecha-inicio').value;
+    const fechaFin = document.getElementById('rango-fecha-fin').value;
+
+    const confirm = await Swal.fire({
+        title: '¿Enviar horario?',
+        text: `Se enviará el horario a ${ids.length} instructor(es) seleccionados.`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, enviar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#4caa16'
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    Swal.fire({
+        title: 'Enviando horarios...',
+        text: 'Esto puede tardar unos segundos según la cantidad de instructores.',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        const res = await enviarHorarioMasivo(ids, fechaInicio, fechaFin);
+        const data = res.data || res;
+
+        const enviados = data.total_enviados ?? 0;
+        const fallidos = data.total_fallidos ?? 0;
+
+        let html = `Se enviaron <strong>${enviados}</strong> horario(s) correctamente.`;
+        let icon = 'success';
+
+        if (fallidos > 0) {
+            icon = 'warning';
+            const detalle = (data.fallidos || [])
+                .map(f => `<li>ID ${f.idFuncionario}: ${f.motivo}</li>`)
+                .join('');
+            html += `<br><br><span class="text-danger">Fallaron ${fallidos}:</span><ul class="text-start small">${detalle}</ul>`;
+        }
+
+        Swal.fire({ title: 'Envío finalizado', html, icon, confirmButtonColor: '#4caa16' });
+
+    } catch (err) {
+        Swal.fire({ title: 'Error', text: err.message || 'Error al enviar los horarios.', icon: 'error', confirmButtonColor: '#d33' });
+    }
     }
 
     renderCalendarioInstructor(container, clases, nombreInstructor) {

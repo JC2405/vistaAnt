@@ -646,3 +646,18 @@ export function eliminarAprendiz(id) {
 export function getFichasPorSede(idSede) {
     return apiFetch(`/fichasPorSede/${idSede}`);
 }
+
+export function getFuncionariosPorRangoDeHorario(fechaInicio, fechaFin) {
+    return apiFetch(`/funcionariosPorRangoDeHorario/${fechaInicio}/${fechaFin}`);
+}
+
+export function enviarHorarioMasivo(funcionariosIds, fechaInicio = null, fechaFin = null) {
+    const body = { funcionarios_ids: funcionariosIds };
+    if (fechaInicio) body.fechaInicio = fechaInicio;
+    if (fechaFin) body.fechaFin = fechaFin;
+
+    return apiFetch('/enviarHorarioMasivo', {
+        method: 'POST',
+        body: JSON.stringify(body),
+    });
+}
