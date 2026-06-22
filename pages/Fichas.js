@@ -199,7 +199,14 @@ class FichasPage {
                         </div>
                         <!-- Body -->
                         <div class="modal-body p-4 text-center" style="background:var(--bg-page);">
-                            <p class="mb-4">Gestiona los aprendices vinculados a esta ficha.</p>
+                            <p class="mb-4">Gestiona los aprendices vinculados a esta ficha.
+                              <button type="button"
+                                class="btn btn-tooltip-aprendiz"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="bottom"
+                               title="<strong>Información sobre importación:</strong><br>Columnas necesarias:<br>• <strong>nombre</strong> (Los dos nombres del Aprendiz)<br>• <strong>apellido</strong> (Los dos apellidos del Aprendiz)<br>• <strong>documento</strong> (Numero en formato texto)<br>• <strong>correo</strong> (Correo Institucional)<br>• <strong>estado</strong> (El estado en la institucion Activo/Inactivo)<br>• <strong>codigo_ficha</strong> (Número de Ficha en Formato texto)
+                                <i class="bi bi-question-circle-fill text-white">?</i>
+                              </button></p>
 
                             <div class="d-flex flex-column gap-3 mx-auto" style="max-width: 320px;">
                                 <button id="btn-ver-aprendices-modal" class="btn d-flex align-items-center justify-content-center gap-2 py-2"
@@ -289,7 +296,7 @@ class FichasPage {
                                 <div class="mb-3">
                                     <label class="form-label fw-medium">Correo Electrónico <span class="text-danger">*</span></label>
                                     <input type="email" id="ap-email" class="form-control" required maxlength="255"
-                                           placeholder="Ej: juan@email.com">
+                                           placeholder="Ej: marcoC@gmail.com">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label fw-medium">Teléfono</label>
@@ -459,6 +466,11 @@ class FichasPage {
             }
         });
 
+          document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        new bootstrap.Tooltip(el, {
+          html: true
+        });
+        });
         // Evento: Abrir modal de crear aprendiz desde la lista
         document.getElementById('btn-crear-aprendiz-modal').addEventListener('click', () => {
             document.getElementById('form-crear-aprendiz').reset();

@@ -682,6 +682,22 @@ body.sidebar-collapsed .sidebar-logout {
     vertical-align: middle;      /* por si acaso hay contexto inline */
 }
 
+.btn-tooltip-aprendiz {
+    background-color: #ffffff;
+    border-color: #000000;
+    color: #140808;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    font-size: 14px;
+    display: inline-flex;        /* cambia flex → inline-flex */
+    align-items: center;
+    justify-content: center;
+    border-radius: 50% !important;
+    align-self: center;          /* se centra verticalmente en el contenedor */
+    vertical-align: middle;      /* por si acaso hay contexto inline */
+}
+
 .btn-tooltip-green:hover {
   background-color: #218838; /* verde más oscuro */
   border-color: #1e7e34;
