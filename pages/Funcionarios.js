@@ -176,8 +176,8 @@ class FuncionariosPage {
                                 data-bs-toggle="tooltip"
                                 data-bs-placement="bottom"
                                 title="<strong>Información sobre importación:</strong><br>Columnas necesarias:<br>• <strong>nombre</strong> (Los dos nombres de la persona)<br>• <strong>apellido</strong> (Los dos apellidos de la persona)<br>• <strong>documento</strong> (En formato texto)<br>• <strong>correo</strong> (Correo Institucional)<br>• <strong>telefono</strong> (Telefono en Formato texto)<br>• <strong>tipo_contrato</strong> (Tipo Contrato al cual corresponde) <br>• <strong>estado</strong> (El estado en la institucion Activo/Inactivo) 
-                          <i class="bi bi-question-circle-fill text-white">?</i>
-                        </button>
+                                <i class="bi bi-question-circle-fill text-white">?</i>
+                              </button>
                         </div>
                         
                          

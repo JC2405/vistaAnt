@@ -54,7 +54,7 @@ class TiposContratoPage {
                         
                         <button class="btn btn-purple d-flex align-items-center gap-2" id="btn-add-tipo">
                             <i class="bi bi-plus-lg"></i>
-                            <span>Nuevo Tipo</span>
+                            <span>Agregar Tipo Contrato</span>
                         </button>
                     </div>
 

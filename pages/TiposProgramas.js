@@ -55,7 +55,7 @@ class TiposProgramasPage {
                         
                         <button class="btn btn-purple d-flex align-items-center gap-2" id="btn-add-tipo">
                             <i class="bi bi-plus-lg"></i>
-                            <span>Nuevo Tipo</span>
+                            <span>Agregar Tipo Formación</span>
                         </button>
                     </div>
 
@@ -93,7 +93,14 @@ class TiposProgramasPage {
                         </div>
                         <!-- Body -->
                         <div class="modal-body p-4 text-center" style="background:var(--bg-page);">
-                            <p class="mb-4">Gestiona las competencias vinculadas a este tipo de formación usando Excel.</p>
+                            <p class="mb-4">Gestiona las competencias vinculadas a este tipo de formación usando Excel.
+                              <button type="button"
+                                class="btn btn-tooltip-green"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="bottom"
+                                title="<strong>Información sobre importación:</strong><br>Columnas necesarias:<br>• <strong>nombreCompetencia</strong> (El nombre de la competencia)<br>• <strong>codigo</strong>(el codigo de la competencia)<br>• <strong>tipo</strong> (tipo de la competencia Transversal/Titulada)<br>• <strong>nombreTipoFormacion</strong> (Si Tecnicá o Tecnóloga)<br>
+                                <i class="bi bi-question-circle-fill text-white">?</i>
+                              </button></p>
                             
                             <div class="d-flex flex-column gap-3 mx-auto" style="max-width: 320px;">
                                 <button id="btn-ver-competencias-modal" class="btn d-flex align-items-center justify-content-center gap-2 py-2"
@@ -198,7 +205,16 @@ class TiposProgramasPage {
                         </div>
                         <!-- Body -->
                         <div class="modal-body p-4 text-center" style="background:var(--bg-page);">
-                            <p class="mb-4">Gestiona los resultados vinculados a este tipo de formación usando Excel.</p>
+                            <p class="mb-4">Gestiona los resultados vinculados a este tipo de formación usando Excel.   
+                            <button type="button"
+                                class="btn btn-tooltip-azul"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="bottom"
+                                title="<strong>Información sobre importación:</strong><br>Columnas necesarias:<br>• <strong>nombre  </strong> (El nombre del resultado)<br>• <strong>codigo</strong>(el codigo del resultado)<br>• <strong>tipo</strong> (tipo de la competencia Transversal/Titulada)<br>• <strong>codigo_competencia</strong> (el codigo de la competencia al que corresponde el resultado)<br>
+                                <i class="bi bi-question-circle-fill text-white">?</i>
+                              </button></p>
+
+                            
                             
                             <div class="d-flex flex-column gap-3 mx-auto" style="max-width: 320px;">
                                 <button id="btn-ver-resultados-modal" class="btn d-flex align-items-center justify-content-center gap-2 py-2"
@@ -213,7 +229,7 @@ class TiposProgramasPage {
                                 <button id="btn-import-resultados-modal" class="btn btn-primary d-flex align-items-center justify-content-center gap-2 py-2">
                                     <i class="bi bi-upload"></i> Importar Resultados
                                 </button>
-                                <input type="file" id="file-import-resultados" accept=".xlsx, .xls, .csv" style="display:none;">
+                                <input type="file" id="file-import-resultados" accept=".xlsx, .xls, .csv" style="display:none;">    
                             </div>
                             
                             <div id="alert-resultados-container" class="mt-3 text-start"></div>
@@ -434,6 +450,13 @@ class TiposProgramasPage {
                 modalLista.show();
             }
         });
+
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        new bootstrap.Tooltip(el, {
+          html: true
+        });
+        });
+
 
         // Evento: Submit Crear/Editar Resultado
         document.getElementById('form-crear-resultado').addEventListener('submit', async (e) => {
