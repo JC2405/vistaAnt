@@ -259,7 +259,7 @@ poblarSelectorAnios(anios) {
                     <!-- Header -->
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <div>
-                            <h2 class="fw-bold mb-1" style="letter-spacing:-0.5px; color:#1a1a2e;">Vista General</h2>
+                            <h2 class="fw-bold mb-1" style="letter-spacing:-0.5px; color:#1a1a2e;">Panel Principal  </h2>
                             <p class="mb-0" style="color:#6c757d; font-size:0.95rem;">
                                 <i class="bi bi-calendar3 me-1"></i>
                                 ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}
@@ -286,7 +286,7 @@ poblarSelectorAnios(anios) {
                             <div class="dash-card dash-card--success">
                                 <div class="dash-card__icon"><i class="bi bi-person-video3"></i></div>
                                 <div class="dash-card__body">
-                                    <span class="dash-card__label">Instructores</span>
+                                    <span class="dash-card__label">Funcionarios </span>
                                     <span class="dash-card__value" id="metric-instructores">...</span>
                                 </div>
                             </div>
@@ -295,7 +295,7 @@ poblarSelectorAnios(anios) {
                             <div class="dash-card dash-card--info">
                                 <div class="dash-card__icon"><i class="bi bi-mortarboard"></i></div>
                                 <div class="dash-card__body">
-                                    <span class="dash-card__label">Aprendices</span>
+                                    <span class="dash-card__label">Aprendices Registrados</span>
                                     <span class="dash-card__value" id="metric-aprendices">...</span>
                                 </div>
                             </div>

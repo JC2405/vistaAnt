@@ -66,7 +66,14 @@ class HorarioFormativa {
                         <div class="page-icon"><i class="bi bi-calendar-event"></i></div>
                         <div>
                             <h4 class="fw-bold mb-0" style="color:var(--text-dark)">Horario Transversal</h4>
-                            <small class="text-muted">Selecciona área, instructor y ficha para gestionar el horario</small>
+                            <small class="text-muted">Selecciona área, instructor ,sede y ficha para gestionar el horario  
+                             <button type="button"
+                                class="btn btn-tooltip-green"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="bottom"
+                               title="<strong>Información Analisis Juicios Evaluativos:</strong><br>Una vez terminada la seleccion de filtrado podra subir el archivo de Juicios evaluativos de la ficha correspondiente; al subir este archivo el sistema le enviara los correspondientes resultados que estan pediente u evaluados de esta ficha.
+                                <i class="bi bi-question-circle-fill text-white">?</i>
+                              </button></p></small>
                         </div>
                     </div>
 
@@ -345,6 +352,9 @@ class HorarioFormativa {
         this._initJuiciosEvents();
     }
 
+
+    
+
     /* ── DROPDOWN: SEDE ─────────────────────────────────────────────────── */
     _initSedeDropdown() {
         const triggerEl = document.getElementById('dd-sede-trigger');
@@ -457,7 +467,7 @@ class HorarioFormativa {
                     }))
                 );
             },
-            // ✅ FIX Bug 3: onSelect limpio, sin onSelect anidado, con guard de misma área
+    
             onSelect: async (item) => {
                 // Si el usuario seleccionó la misma área, no hacer nada
                 if (String(this.selectedAreaId) === String(item.id)) return;
@@ -528,6 +538,8 @@ class HorarioFormativa {
             </div>`;
     }
 
+
+    
     /* ── DROPDOWN: INSTRUCTOR ───────────────────────────────────────────── */
     _initInstructorDropdown() {
         const triggerEl = document.getElementById('btn-select-instructor');
@@ -661,6 +673,7 @@ class HorarioFormativa {
         document.getElementById('panel-formulario')?.classList.add('d-none');
     }
 
+    
     /* ── VISTA PRINCIPAL (placeholder sin instructor) ────────────────────── */
     renderMainContent() {
         const container = document.getElementById('main-content');
@@ -891,12 +904,45 @@ class HorarioFormativa {
 
     /* ── NAVEGACIÓN A FICHA ─────────────────────────────────────────────── */
     _goToFicha(id) {
+        // ✅ Si es la misma ficha que ya está activa, no resetear los campos del formulario
+        const mismsFicha = this.selectedFicha && String(this.selectedFicha.idFicha) === String(id);
+
         this.fichas = this._fichasPorSedeCache[this.selectedSedeId] || [];
         this.selectedFicha = this.fichas.find(f => String(f.idFicha) === String(id));
         // ✅ FIX Bug 2: si no está en cache todavía, construir objeto mínimo para no salir silenciosamente
         if (!this.selectedFicha) {
             this.selectedFicha = { idFicha: id, codigoFicha: String(id), jornada: '' };
         }
+
+        if (!mismsFicha) {
+            // 🔄 Ficha diferente → resetear todos los campos del formulario
+            const hora_inicio = document.getElementById('hora_inicio');
+            const hora_fin    = document.getElementById('hora_fin');
+            const fecha_inicio = document.getElementById('fecha_inicio');
+            const fecha_fin    = document.getElementById('fecha_fin');
+            const observacion  = document.getElementById('observacion');
+            const modalidad    = document.getElementById('modalidad_clase');
+
+            if (hora_inicio)  hora_inicio.value  = '';
+            if (hora_fin)     hora_fin.value     = '';
+            if (fecha_inicio) fecha_inicio.value = '';
+            if (fecha_fin)    fecha_fin.value    = '';
+            if (observacion)  observacion.value  = '';
+            if (modalidad)    modalidad.value    = 'presencial';
+
+            // Resetear checkboxes de días
+            document.querySelectorAll('#dias-container input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+
+            // Resetear resumen de horas
+            const resumenCont = document.getElementById('resumen-horas-container');
+            if (resumenCont) resumenCont.style.display = 'none';
+
+            // Resetear ambiente
+            this._ddAmbiente?.reset();
+        }
+
         this.selectFicha(id);
     }
 
@@ -1126,6 +1172,12 @@ class HorarioFormativa {
         document.getElementById('dias-container')?.addEventListener('change', () => {
             this._calcularHorasFormacion();
         });
+
+         document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+          new bootstrap.Tooltip(el, {
+            html: true
+          });
+        });
     }
 
     /* ── JUICIOS ────────────────────────────────────────────────────────── */
@@ -1268,10 +1320,10 @@ class HorarioFormativa {
     }
 
     async deleteAsignacion(id, skipConfirm = false) {
-        if (!skipConfirm && !confirm('¿Eliminar esta clase del horario por completo?')) return;
+        if (!skipConfirm && !confirm('¿Eliminar esta Formación del horario por completo?')) return;
         try {
             await apiCall('/eliminarAsignacion/' + id, 'DELETE');
-            this.showAlert('page-alert-container', 'success', 'Clase eliminada correctamente.');
+            this.showAlert('page-alert-container', 'success', 'Formación eliminada correctamente.');
             if (this._idInstructorActivo) {
                 await this._cargarTablaInstructor(this._idInstructorActivo);
             }
