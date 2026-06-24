@@ -135,8 +135,8 @@ class FuncionariosPage {
                                 <i class="bi bi-people-fill"></i>
                             </div>
                             <div>
-                                <h4 class="fw-bold mb-0" style="color: var(--text-dark);">Instructores</h4>
-                                <small style="color: var(--text-muted);">Administra los instructores</small>
+                                <h4 class="fw-bold mb-0" style="color: var(--text-dark);">Funcionarios</h4>
+                                <small style="color: var(--text-muted);">Administra los funcionarios registrados en el aplicativo.</small>
                             </div>
                         </div>
                         

@@ -49,7 +49,7 @@ class TiposProgramasPage {
                             </div>
                             <div>
                                 <h4 class="fw-bold mb-0" style="color: var(--text-dark);">Tipos de Formación</h4>
-                                <small style="color: var(--text-muted);">Administra los niveles/tipos de programas</small>
+                                <small style="color: var(--text-muted);">Administra los niveles/tipos de formación registrados.</small>
                             </div>
                         </div>
                         

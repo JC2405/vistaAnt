@@ -63,18 +63,7 @@
                 `<div class="main-wrapper">
                     ${Navbar()}
                     <main class="container-fluid p-4 flex-grow-1" style="background:var(--bg-page);">
-                        <div id="page-alert-container"></div>
-                        <div class="d-flex align-items-center gap-3 mb-4">
-                            <div class="page-icon"><i class="bi bi-calendar-week"></i></div>
-                            <div class="flex-grow-1">
-                                <h4 class="fw-bold mb-1" style="color:var(--text-dark)">Horario Titulada</h4>
-                                <nav aria-label="breadcrumb">
-                                    <ol class="breadcrumb mb-0" id="nav-breadcrumb">
-                                        <li class="breadcrumb-item active">Fichas</li>
-                                    </ol>
-                                </nav>
-                            </div>
-                        </div>
+                      
                         <div id="main-content" class="fade-in"></div>
 
                         <!-- Modal: Asignar Formacion -->

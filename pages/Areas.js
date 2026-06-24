@@ -48,7 +48,7 @@ class AreasPage {
                             </div>
                             <div>
                                 <h4 class="fw-bold mb-0" style="color: var(--text-dark);">Áreas</h4>
-                                <small style="color: var(--text-muted);">Administra las áreas de formación</small>
+                                <small style="color: var(--text-muted);">Administra las áreas de formación registradas en el aplicativo.</small>
                             </div>
                         </div>
                         

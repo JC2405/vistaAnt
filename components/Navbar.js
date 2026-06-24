@@ -30,7 +30,7 @@ export function Navbar() {
 
                 <!-- Saludo izquierda -->
                 <div class="d-none d-md-flex align-items-center gap-2">
-                    <span class="nb-hello">Bienvenido, </span>
+                    <span class="nb-hello"> 👋 Bienvenido, </span>
                     <span class="nb-username">${displayName.toUpperCase()}</span>
                 </div>
 

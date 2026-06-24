@@ -48,7 +48,7 @@ class TiposContratoPage {
                             </div>
                             <div>
                                 <h4 class="fw-bold mb-0" style="color: var(--text-dark);">Tipos de Contrato</h4>
-                                <small style="color: var(--text-muted);">Administra los tipos de contratación</small>
+                                <small style="color: var(--text-muted);">Administra los tipos de contratación registrados en el aplicativo.</small>
                             </div>
                         </div>
                         
