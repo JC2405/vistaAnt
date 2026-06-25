@@ -577,15 +577,14 @@ class HorarioFormativa {
         });
     }
 
-    _getInstructorItems() {
-        return this.instructores.map(i => ({
-            id: i.idFuncionario,
-            label: `${i.nombre || ''} ${i.apellido || i.apellidos || ''}`.trim() || 'Sin nombre',
-            sub: i.areas?.length
-                ? i.areas.map(a => a.tipo ? `${a.nombreArea} (${a.tipo})` : a.nombreArea).join(', ')
-                : 'Sin área',
-        })).sort((a, b) => a.label.localeCompare(b.label));
-    }
+_getInstructorItems() {
+    return this.instructores.map(i => ({
+        id: i.idFuncionario,
+        label: `${i.nombre || ''} ${i.apellido || ''}`.trim() || 'Sin nombre',
+        sub: `${i.areas?.map(a => a.nombreArea).join(', ') || 'Sin área'} - ${i.tipo_contrato?.nombreTipoContrato || 'Sin contrato'}`
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
 
     /* ── DROPDOWN: AMBIENTE ─────────────────────────────────────────────── */
     _initAmbienteDropdown() {

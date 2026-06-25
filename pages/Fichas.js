@@ -594,6 +594,8 @@ class FichasPage {
         }
     }
 
+    
+
     renderTable(data = null) {
         const displayData = data || this.fichas;
 
@@ -885,7 +887,7 @@ content.querySelectorAll('.btn-eliminar-aprendiz').forEach(btn => {
                     <h6 class="section-title"><i class="bi bi-info-circle text-primary me-1"></i>1. Detalles de la Ficha</h6>
                     <div class="mb-2">
                       <label for="codigoFicha" class="form-label">Código de la Ficha</label>
-                      <input type="text" class="form-control" id="codigoFicha" placeholder="Ej: 2866432" required>
+                      <input type="number" class="form-control" id="codigoFicha" placeholder="Ej: 2866432" required>
                     </div>
                     <div>
                       <label class="form-label">Programa de Formación</label>
@@ -953,20 +955,29 @@ content.querySelectorAll('.btn-eliminar-aprendiz').forEach(btn => {
                   <div class="compact-section shadow-sm flex-grow-1 mb-2">
                     <h6 class="section-title"><i class="bi bi-calendar-range text-primary me-1"></i>3. Rango de Fechas</h6>
                     <div class="row g-2">
-                      <div class="col-6">
+                      <div class="col-4">
                         <label for="fechaInicio" class="form-label">Fecha de Inicio</label>
                         <input type="date" class="form-control" id="fechaInicio" required>
                       </div>
-                      <div class="col-6">
-                        <label for="fechaFin" class="form-label">Fecha Fin (Auto)</label>
+                      <div class="col-4">
+                        <label for="fechaFin" class="form-label" id="fechaFin-label">Fecha Fin (Auto)</label>
                         <input type="date" class="form-control" id="fechaFin" style="background:#e9ecef; pointer-events:none;" readonly>
                       </div>
+
+                    <div class="col-4">
+                        <label for="fechaFinEtapaPractica" class="form-label">Fecha F.Practica</label>
+                        <input type="date" class="form-control" id="fechaFinEtapaPractica" style="background:#e9ecef; pointer-events:none;" readonly>
+                      </div>
+                      <div class="col-12">
                       <div class="col-12">
                         <div class="d-flex align-items-center gap-2 text-muted py-1 px-2 rounded" style="background:#fffbeb; border:1px solid #fde68a; font-size:0.75rem;">
                           <i class="bi bi-lightbulb-fill text-warning"></i>
                           <span>La fecha fin se calcula según la duración del programa.</span>
                         </div>
                       </div>
+                      
+                       
+                      </div>    
                     </div>
                   </div>
 
@@ -1062,6 +1073,11 @@ content.querySelectorAll('.btn-eliminar-aprendiz').forEach(btn => {
         formEl.addEventListener('change', (e) => {
             if (e.target.id === 'idPrograma' || e.target.id === 'fechaInicio') {
                 this._recalcularFechaFin();
+                this._calcularFechaFinEtapaPractica();
+            }
+            // Si se edita fechaFin manualmente (solo en modo edición), recalcular fechaFinEtapaPractica
+            if (e.target.id === 'fechaFin' && this.currentEditId) {
+                this._calcularFechaFinEtapaPractica();
             }
         });
 
@@ -1098,6 +1114,7 @@ content.querySelectorAll('.btn-eliminar-aprendiz').forEach(btn => {
                 document.getElementById('idPrograma').value = id;
                 document.getElementById('programaNombreDisplay').value = codigo ? `${codigo} - ${nombre}` : nombre;
                 this._recalcularFechaFin();
+                this._calcularFechaFinEtapaPractica();
                 document.getElementById('programaNombreDisplay').classList.remove('is-invalid');
                 document.getElementById('view-program-search').classList.remove('active');
                 document.getElementById('view-ficha-form').classList.add('active');
@@ -1249,6 +1266,26 @@ content.querySelectorAll('.btn-eliminar-aprendiz').forEach(btn => {
             startDate.setMonth(startDate.getMonth() + duracion);
             endInput.value = startDate.toISOString().split('T')[0];
         }
+
+        // Recalcular siempre la fecha fin de etapa practica encadenada
+        this._calcularFechaFinEtapaPractica();
+    }
+
+    
+    _calcularFechaFinEtapaPractica(){
+        const valorBase = document.getElementById('fechaFin');
+        const inputFechaFinPractica = document.getElementById('fechaFinEtapaPractica');
+
+        if (!valorBase || !inputFechaFinPractica) return;
+        if (!valorBase.value) {
+            inputFechaFinPractica.value = '';
+            return;
+        }
+
+        const duracion = 6;
+        const fechaBase = new Date(valorBase.value + 'T00:00:00');
+        fechaBase.setMonth(fechaBase.getMonth() + duracion);
+        inputFechaFinPractica.value = fechaBase.toISOString().split('T')[0];
     }
 
     injectDynamicModalFields(ficha = null) {
@@ -1295,12 +1332,25 @@ content.querySelectorAll('.btn-eliminar-aprendiz').forEach(btn => {
         if (infoBox) infoBox.style.display = 'none';
 
         const endInput = document.getElementById('fechaFin');
-        endInput.setAttribute('readonly', 'true');
-        endInput.style.backgroundColor = '#e9ecef';
-        endInput.style.pointerEvents = 'none';
+        const fechaFinLabel = document.getElementById('fechaFin-label');
 
-        if (ficha && ficha.idPrograma && ficha.fechaInicio) {
-            setTimeout(() => this._recalcularFechaFin(), 0);
+        if (ficha) {
+            // MODO EDICIÓN: fechaFin editable manualmente
+            endInput.removeAttribute('readonly');
+            endInput.style.backgroundColor = '';
+            endInput.style.pointerEvents = 'auto';
+            if (fechaFinLabel) fechaFinLabel.textContent = 'Fecha Fin';
+            // Calcular fechaFinEtapaPractica a partir de la fechaFin actual
+            setTimeout(() => this._calcularFechaFinEtapaPractica(), 0);
+        } else {
+            // MODO CREACIÓN: fechaFin solo lectura (auto-calculada)
+            endInput.setAttribute('readonly', 'true');
+            endInput.style.backgroundColor = '#e9ecef';
+            endInput.style.pointerEvents = 'none';
+            if (fechaFinLabel) fechaFinLabel.textContent = 'Fecha Fin (Auto)';
+            if (ficha && ficha.idPrograma && ficha.fechaInicio) {
+                setTimeout(() => this._recalcularFechaFin(), 0);
+            }
         }
 
         const formEl = document.getElementById('ficha-modal-form');

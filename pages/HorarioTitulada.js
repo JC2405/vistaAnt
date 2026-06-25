@@ -799,7 +799,14 @@
             <div class="card border-0 shadow-sm rounded-4 mb-4">
                 <div class="card-header bg-white border-0 pt-4 pb-3 px-4">
                     <h5 class="fw-bold mb-1" style="color:var(--text-dark);">Horario Titulada</h5>
-                    <small class="text-muted">Selecciona la sede y programa para filtrar las fichas disponibles.</small>
+                    <small class="text-muted">Selecciona la sede y programa para filtrar las fichas disponibles.
+                    <button type="button"
+                                class="btn btn-tooltip-aprendiz"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="bottom"
+                               title="<strong>Información sobre importación:</strong><br>Columnas necesarias:<br>• <strong>nombre</strong> (Los dos nombres del Aprendiz)<br>• <strong>apellido</strong> (Los dos apellidos del Aprendiz)<br>• <strong>documento</strong> (Numero en formato texto)<br>• <strong>correo</strong> (Correo Institucional)<br>• <strong>estado</strong> (El estado en la institucion Activo/Inactivo)<br>• <strong>codigo_ficha</strong> (Número de Ficha en Formato texto)
+                                <i class="bi bi-question-circle-fill text-white">?</i>
+                              </button></p></small>
                 </div>
                 <div class="card-body px-4 pb-4">
                     <div class="row g-3 align-items-end">
@@ -1497,6 +1504,9 @@
             </div>
         `;
 
+
+        
+
         // ── Eventos ─────────────────────────────────────────
         document.getElementById('btn-reemplazar-conflicto')
             .addEventListener('click', (e) => {
@@ -1527,6 +1537,10 @@
                 });
         }
     }
+
+    
+        
+
 
         async _resolverConflictoInstructor(endpoint, payload) {
             const container = document.getElementById('acciones-conflicto');
