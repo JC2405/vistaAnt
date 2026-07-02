@@ -156,5 +156,27 @@ body {
 
 body { background-color: #f8f9fa; }
 
+/* ===== Scroll lista fichas - Cambio Masivo Estado ===== */
+.cme-fichas-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary, #3aab01) #e9ecef;
+}
 
+.cme-fichas-scroll::-webkit-scrollbar {
+    width: 6px;
+}
 
+.cme-fichas-scroll::-webkit-scrollbar-track {
+    background: #e9ecef;
+    border-radius: 10px;
+}
+
+.cme-fichas-scroll::-webkit-scrollbar-thumb {
+    background: var(--primary, #3aab01);
+    border-radius: 10px;
+    transition: background 0.2s;
+}
+
+.cme-fichas-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark, #2e8b01);
+}

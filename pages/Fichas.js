@@ -11,7 +11,8 @@ import { SearchableDropdown} from '../components/SearchableDropdownSedes.js';
 import { getFichas, createFicha, updateFicha, deleteFicha, getProgramas, getSedes,
          exportarFichas, exportarAprendicesDeFicha, importarAprendices,
          getHorariosPorFicha, enviarHorarioAprendiz,
-         getAprendicesPorFicha, crearAprendiz,  actualizarAprendiz, eliminarAprendiz  } from '../utils/api.js?v=5';
+         getAprendicesPorFicha, crearAprendiz,  actualizarAprendiz, eliminarAprendiz,
+         getFichasPorFechaFin, cambiarEstadoFichasMasivamente } from '../utils/api.js?v=5';
          
 
 function showDateRangeModal(titulo = 'Seleccionar período', subtitulo = '') {
@@ -152,10 +153,17 @@ class FichasPage {
                             </div>
                         </div>
                         
-                        <button class="btn btn-purple d-flex align-items-center gap-2" id="btn-add-ficha">
-                            <i class="bi bi-plus-lg"></i>
-                            <span>Nueva Ficha</span>
-                        </button>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-purple d-flex align-items-center gap-2" id="btn-cambio-masivo-estado"
+                                    title="Cambiar estado masivo de fichas por fecha fin">
+                                <i class="bi bi-toggle-on"></i>
+                                <span>Cambio Masivo de Estado</span>
+                            </button>
+                            <button class="btn btn-purple d-flex align-items-center gap-2" id="btn-add-ficha">
+                                <i class="bi bi-plus-lg"></i>
+                                <span>Nueva Ficha</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
@@ -391,6 +399,105 @@ class FichasPage {
                 </div>
             </div>
 
+            <!-- Modal: Cambio Masivo de Estado -->
+            <div class="modal fade" id="modalCambioMasivoEstado" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
+
+                        <div class="modal-header text-white border-0 px-4 py-3"
+                             style="background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);">
+                            <div>
+                                <h5 class="modal-title fw-bold mb-0">
+                                    <i class="bi bi-toggle-on me-2"></i>Cambio Masivo de Estado
+                                </h5>
+                                <small class="opacity-75">Filtra fichas por fecha fin y cambia su estado</small>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+
+                        <div class="modal-body p-4" style="background:var(--bg-page);">
+
+                            <!-- Filtro fecha fin -->
+                            <div class="card border-0 shadow-sm mb-4" style="border-radius:0.75rem;">
+                                <div class="card-body p-3">
+                                    <h6 class="fw-semibold mb-3" style="color:var(--text-dark); font-size:0.85rem;">
+                                        <i class="bi bi-calendar-x text-danger me-1"></i>1. Ingresa la Fecha Fin
+                                    </h6>
+                                    <div class="d-flex align-items-end gap-3">
+                                        <div class="flex-grow-1">
+                                            <label class="form-label fw-medium" style="font-size:0.8rem;">Fecha Fin de Ficha</label>
+                                            <input type="date" id="cme-fecha-fin" class="form-control form-control-sm"
+                                                   style="border-radius:0.4rem;">
+                                        </div>
+                                        <button type="button" id="btn-cme-buscar"
+                                                class="btn btn-sm px-4"
+                                                style="background-color:var(--primary); color:#fff; border:none; border-radius:0.4rem; white-space:nowrap;">
+                                            <i class="bi bi-search me-1"></i>Buscar Fichas
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Resultado de fichas -->
+                            <div id="cme-resultado" class="mb-3" style="display:none;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="fw-semibold mb-0" style="color:var(--text-dark); font-size:0.85rem;">
+                                        <i class="bi bi-list-check text-primary me-1"></i>2. Selecciona las Fichas
+                                    </h6>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" id="btn-cme-sel-all" class="btn btn-outline-secondary btn-sm" style="font-size:0.75rem;">Sel. Todos</button>
+                                        <button type="button" id="btn-cme-des-all" class="btn btn-outline-secondary btn-sm" style="font-size:0.75rem;">Desel. Todos</button>
+                                    </div>
+                                </div>
+                                <div id="cme-fichas-list" class="d-flex flex-column gap-2 cme-fichas-scroll"
+                                     style="max-height:380px; overflow-y:auto; overflow-x:hidden; padding-right:6px; scroll-behavior:smooth;">
+                                </div>
+                            </div>
+
+                            <!-- Sin resultados -->
+                            <div id="cme-empty" class="text-center py-4 text-muted" style="display:none;">
+                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                <p class="mb-0">No se encontraron fichas con esa fecha fin.</p>
+                            </div>
+
+                            <!-- Estado a aplicar -->
+                            <div id="cme-accion-section" class="card border-0 shadow-sm" style="display:none; border-radius:0.75rem;">
+                                <div class="card-body p-3">
+                                    <h6 class="fw-semibold mb-3" style="color:var(--text-dark); font-size:0.85rem;">
+                                        <i class="bi bi-arrow-repeat text-warning me-1"></i>3. Estado a Aplicar
+                                    </h6>
+                                    <div class="d-flex gap-3">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="cme-estado" id="cme-radio-activo" value="Activo" checked>
+                                            <label class="form-check-label fw-medium" for="cme-radio-activo">
+                                                <span class="badge bg-success-subtle text-success">🟢 Activo</span>
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="cme-estado" id="cme-radio-inactivo" value="Inactivo">
+                                            <label class="form-check-label fw-medium" for="cme-radio-inactivo">
+                                                <span class="badge bg-danger-subtle text-danger">🔴 Inactivo</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="cme-alert" class="mt-3"></div>
+                        </div>
+
+                        <div class="modal-footer border-0 px-4 py-3" style="background:var(--bg-page); border-top:1px solid var(--border-color) !important;">
+                            <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="button" id="btn-cme-aplicar"
+                                    class="btn px-4"
+                                    style="background-color:var(--primary); color:#fff; border:none; border-radius:0.4rem;"
+                                    disabled>
+                                <i class="bi bi-check2-all me-1"></i>Aplicar Cambio
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
 
         document.getElementById('btn-add-ficha').addEventListener('click', () => this.openModal());
@@ -422,6 +529,10 @@ class FichasPage {
             } catch (err) {
                 this.showAlert('page-alert-container', 'danger', err.message || 'Error al descargar');
             }
+        });
+
+        document.getElementById('btn-cambio-masivo-estado').addEventListener('click', () => {
+            this.abrirPanelCambioMasivoEstado();
         });
 
         // Evento: Ver Aprendices
@@ -507,6 +618,137 @@ class FichasPage {
         document.getElementById('modalEditarAprendiz').addEventListener('hidden.bs.modal', () => {
             if (this.currentFichaIdAprendices) {
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('modalListaAprendices')).show();
+            }
+        });
+    }
+
+    abrirPanelCambioMasivoEstado() {
+        const modalEl = document.getElementById('modalCambioMasivoEstado');
+        const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        // Reset del panel cada vez que se abre
+        document.getElementById('cme-fecha-fin').value = '';
+        document.getElementById('cme-resultado').style.display = 'none';
+        document.getElementById('cme-empty').style.display = 'none';
+        document.getElementById('cme-accion-section').style.display = 'none';
+        document.getElementById('btn-cme-aplicar').disabled = true;
+        document.getElementById('cme-alert').innerHTML = '';
+        document.getElementById('cme-fichas-list').innerHTML = '';
+        document.getElementById('cme-radio-activo').checked = true;
+
+        bsModal.show();
+
+        // ---- Botón Buscar ----
+        const btnBuscar = document.getElementById('btn-cme-buscar');
+        const newBtnBuscar = btnBuscar.cloneNode(true); // limpia listeners anteriores
+        btnBuscar.parentNode.replaceChild(newBtnBuscar, btnBuscar);
+
+        newBtnBuscar.addEventListener('click', async () => {
+            const fechaFin = document.getElementById('cme-fecha-fin').value;
+            if (!fechaFin) {
+                document.getElementById('cme-alert').innerHTML = this._buildAlert('warning', 'Por favor ingresa una fecha fin.');
+                return;
+            }
+            document.getElementById('cme-alert').innerHTML = '';
+            document.getElementById('cme-resultado').style.display = 'none';
+            document.getElementById('cme-empty').style.display = 'none';
+            document.getElementById('cme-accion-section').style.display = 'none';
+            document.getElementById('btn-cme-aplicar').disabled = true;
+
+            newBtnBuscar.disabled = true;
+            newBtnBuscar.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Buscando...';
+
+            try {
+                const res = await getFichasPorFechaFin(fechaFin);
+                const lista = res.data || (Array.isArray(res) ? res : []);
+
+                if (lista.length === 0) {
+                    document.getElementById('cme-empty').style.display = '';
+                    return;
+                }
+
+                // Renderizar lista de fichas con checkboxes
+                const listEl = document.getElementById('cme-fichas-list');
+                listEl.innerHTML = lista.map(f => {
+                    const nombreProg = f.programa?.nombre || 'Sin programa';
+                    const estadoBadge = f.estado === 'Activo'
+                        ? '<span class="badge bg-success-subtle text-success">Activo</span>'
+                        : '<span class="badge bg-danger-subtle text-danger">Inactivo</span>';
+                    return `
+                    <div class="card border-0 shadow-sm" style="border-radius:0.6rem;">
+                        <div class="card-body p-2 d-flex align-items-center gap-3">
+                            <input class="form-check-input cme-check flex-shrink-0" type="checkbox"
+                                   id="cme-ficha-${f.idFicha}" value="${f.idFicha}" checked
+                                   style="width:1.1rem; height:1.1rem; cursor:pointer;">
+                            <label for="cme-ficha-${f.idFicha}" class="flex-grow-1 mb-0" style="cursor:pointer;">
+                                <span class="fw-semibold" style="font-size:0.88rem;">${f.codigoFicha || 'N/A'}</span>
+                                <span class="text-muted ms-2" style="font-size:0.8rem;">${nombreProg}</span>
+                            </label>
+                            <div>${estadoBadge}</div>
+                            <small class="text-muted flex-shrink-0" style="font-size:0.75rem;">${f.fechaFin || ''}</small>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                document.getElementById('cme-resultado').style.display = '';
+                document.getElementById('cme-accion-section').style.display = '';
+                document.getElementById('btn-cme-aplicar').disabled = false;
+
+                // Sel. Todos / Desel. Todos
+                document.getElementById('btn-cme-sel-all').onclick = () => {
+                    listEl.querySelectorAll('.cme-check').forEach(c => c.checked = true);
+                };
+                document.getElementById('btn-cme-des-all').onclick = () => {
+                    listEl.querySelectorAll('.cme-check').forEach(c => c.checked = false);
+                };
+
+            } catch (err) {
+                document.getElementById('cme-alert').innerHTML = this._buildAlert('danger', err.message || 'Error al buscar fichas.');
+            } finally {
+                newBtnBuscar.disabled = false;
+                newBtnBuscar.innerHTML = '<i class="bi bi-search me-1"></i>Buscar Fichas';
+            }
+        });
+
+        // ---- Botón Aplicar ----
+        const btnAplicar = document.getElementById('btn-cme-aplicar');
+        const newBtnAplicar = btnAplicar.cloneNode(true);
+        btnAplicar.parentNode.replaceChild(newBtnAplicar, btnAplicar);
+        // Mantener deshabilitado hasta que haya resultados
+        newBtnAplicar.disabled = true;
+
+        newBtnAplicar.addEventListener('click', async () => {
+            const checks = document.querySelectorAll('.cme-check:checked');
+            if (checks.length === 0) {
+                document.getElementById('cme-alert').innerHTML = this._buildAlert('warning', 'Debes seleccionar al menos una ficha.');
+                return;
+            }
+            const ids = Array.from(checks).map(c => Number(c.value));
+            const estado = document.querySelector('input[name="cme-estado"]:checked')?.value || 'Activo';
+
+            newBtnAplicar.disabled = true;
+            newBtnAplicar.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Aplicando...';
+            document.getElementById('cme-alert').innerHTML = '';
+
+            try {
+                const res = await cambiarEstadoFichasMasivamente(ids, estado);
+                const msg = res.message || `Estado cambiado a <strong>${estado}</strong> en ${ids.length} ficha(s).`;
+                document.getElementById('cme-alert').innerHTML = this._buildAlert('success', msg);
+
+                // Recargar tabla principal en background
+                this.loadData();
+
+                // Cerrar el modal tras un breve delay para que el usuario vea el mensaje
+                setTimeout(() => {
+                    const modalEl = document.getElementById('modalCambioMasivoEstado');
+                    const bsModal = bootstrap.Modal.getInstance(modalEl);
+                    if (bsModal) bsModal.hide();
+                }, 1200);
+            } catch (err) {
+                document.getElementById('cme-alert').innerHTML = this._buildAlert('danger', err.message || 'Error al aplicar el cambio masivo.');
+            } finally {
+                newBtnAplicar.disabled = false;
+                newBtnAplicar.innerHTML = '<i class="bi bi-check2-all me-1"></i>Aplicar Cambio';
             }
         });
     }

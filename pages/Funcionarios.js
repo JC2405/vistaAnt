@@ -294,18 +294,30 @@ class FuncionariosPage {
                 </div>
             </div>
              <!-- Modal: Funcionarios por rango de horario -->
-<div class="modal fade" id="modalRangoHorario" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
-            <div class="modal-header text-white border-0 px-4 py-3"
-                 style="background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);">
-                <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
-                    <i class="bi bi-calendar-range"></i> Funcionarios por Rango de Horario
+                <div class="modal fade" id="modalRangoHorario" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                        <div class="modal-content border-0 shadow-lg" style="border-radius:1rem; overflow:hidden;">
+                            <div class="modal-header text-white border-0 px-4 py-3"
+                                 style="background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);">
+                                <h5 class="modal-title fw-bold d-flex align-items-center gap-2">
+                                    <i class="bi bi-calendar-range"></i> Funcionarios por Rango de Horario
+                                    <button type="button"
+                                class="btn btn-tooltip-aprendiz"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="bottom"
+                               title="<strong>Información sobre Envio masivo de horarios:</strong><br>Para enviar horarios masivamente primero tendras que seleccionar las fechas donde los funcionarios fueron asignados; con el fin de enviar los horarios en el rango seleccionado.
+                                <i class="bi bi-question-circle-fill text-white">?</i>
+                              </button></p>
                 </h5>
+
+                
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
+                
 
             <div class="modal-body p-4" style="background:var(--bg-page);">
+
+                
                 <!-- Paso 1: Fechas -->
                 <div id="rango-step-fechas">
                     <div class="row g-3 mb-3">

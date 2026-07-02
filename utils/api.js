@@ -1,6 +1,6 @@
 //export const API_BASE_URL = 'https://backend-manejohorarioscimm.sgdis.cloud/api';
-export const API_BASE_URL = '/api';
-//export const API_BASE_URL= 'http://localhost:8000/api';
+//export const API_BASE_URL = '/api';
+export const API_BASE_URL= 'http://localhost:8000/api';
 
 
 import { getToken } from './auth.js?v=5';
@@ -518,7 +518,7 @@ export function enviarHorario(idFuncionario, fechaInicio = null, fechaFin = null
     if (fechaInicio) body.fechaInicio = fechaInicio;
     if (fechaFin) body.fechaFin = fechaFin;
 
-    return apiFetch(`/enviarHorario/${idFuncionario}`, {
+    return apiFetch(`enviarHorario/${idFuncionario}`, {
         method: 'POST',
         body: JSON.stringify(body),
     });
@@ -654,6 +654,30 @@ export function getFichasPorSede(idSede) {
 
 export function getFuncionariosPorRangoDeHorario(fechaInicio, fechaFin) {
     return apiFetch(`/funcionariosPorRangoDeHorario/${fechaInicio}/${fechaFin}`);
+}
+
+// ==========================================
+// FICHAS - CAMBIO MASIVO DE ESTADO
+// ==========================================
+
+/**
+ * Obtiene fichas cuya fecha fin coincide con la fecha dada.
+ * Endpoint: GET /api/listarPorFechaFin/{fechaFin}
+ */
+export function getFichasPorFechaFin(fechaFin) {
+    return apiFetch(`/listarPorFechaFin/${fechaFin}`);
+}
+
+/**
+ * Cambia el estado masivamente de las fichas indicadas.
+ * Endpoint: PUT /api/cambiarEstadoFichaMasivamente
+ * Body: { ids: [...], estado: 'Activo'|'Inactivo' }
+ */
+export function cambiarEstadoFichasMasivamente(ids, estado) {
+    return apiFetch('/cambiarEstadoFichaMasivamente', {
+        method: 'PUT',
+        body: JSON.stringify({ idFichas: ids, estado }),
+    });
 }
 
 export function enviarHorarioMasivo(funcionariosIds, fechaInicio = null, fechaFin = null) {
