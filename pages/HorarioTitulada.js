@@ -804,7 +804,7 @@
                                 class="btn btn-tooltip-aprendiz"
                                 data-bs-toggle="tooltip"
                                 data-bs-placement="bottom"
-                               title="<strong>Información sobre importación:</strong><br>Columnas necesarias:<br>• <strong>nombre</strong> (Los dos nombres del Aprendiz)<br>• <strong>apellido</strong> (Los dos apellidos del Aprendiz)<br>• <strong>documento</strong> (Numero en formato texto)<br>• <strong>correo</strong> (Correo Institucional)<br>• <strong>estado</strong> (El estado en la institucion Activo/Inactivo)<br>• <strong>codigo_ficha</strong> (Número de Ficha en Formato texto)
+                               title="<strong>Información sobre Horario Titulada:</strong><br>Filtros Necesarios:<br>• <strong>Sede</strong> (Sede a la cual quieres asignar Formacion)<br>• <strong>Programa</strong> (Programa al cual le quieres asignar formacion)<br>• <strong>Las Fichas con estado InActivo no se Mostraran para asignar formacion</strong> 
                                 <i class="bi bi-question-circle-fill text-white">?</i>
                               </button></p></small>
                 </div>
