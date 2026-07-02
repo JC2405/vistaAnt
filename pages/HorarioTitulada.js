@@ -892,6 +892,12 @@
                 });
             };
 
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+            new bootstrap.Tooltip(el, {
+            html: true
+            });
+        });
+
             const updateTable = () => {
                 const el = document.getElementById('fichas-tbody');
                 const lbl = document.getElementById('lbl-fichas-count');
@@ -1535,6 +1541,8 @@
                 nuevaHoraFin:    _toHis(payload.horaFin),
                     });
                 });
+
+
         }
     }
 
